@@ -60,7 +60,7 @@ Determine:
 - Preserve thread and resource identifiers across the request, local state, and backend.
 - Make cancellation safe for late events and repeated user actions.
 
-Read the [Agent Protocol](https://docs-ai.interop.io/docs/api-reference/ai-server/agent-protocol.md) for exact wire guarantees.
+Read the [Agent Protocol](https://docs-ai.interop.io/api-reference/ai-server/agent-protocol.md) for exact wire guarantees.
 
 ## Thread model
 
@@ -111,9 +111,9 @@ Use `tools.list()` and `resources.list()` for the aggregated surface. Server nam
 ## Official documentation
 
 - [AI Web Overview](https://docs-ai.interop.io/modules/ai-web/overview.md)
-- [AI Web Capabilities](https://docs-ai.interop.io/docs/modules/ai-web/capabilities.md)
-- [AI Web API Reference](https://docs-ai.interop.io/docs/api-reference/ai-web/api-reference.md)
-- [AI Web Configuration](https://docs-ai.interop.io/docs/api-reference/ai-web/configuration.md)
-- [AI Web Examples](https://docs-ai.interop.io/docs/api-reference/ai-web/examples.md)
+- [AI Web Capabilities](https://docs-ai.interop.io/modules/ai-web/capabilities.md)
+- [AI Web API Reference](https://docs-ai.interop.io/api-reference/ai-web/api-reference.md)
+- [AI Web Configuration](https://docs-ai.interop.io/api-reference/ai-web/configuration.md)
+- [AI Web Examples](https://docs-ai.interop.io/api-reference/ai-web/examples.md)
 - [Custom UI Guide](https://docs-ai.interop.io/guides/io-assist-anywhere/custom-ui-skin-using-ai-web.md)
-- [Agent Protocol](https://docs-ai.interop.io/docs/api-reference/ai-server/agent-protocol.md)
+- [Agent Protocol](https://docs-ai.interop.io/api-reference/ai-server/agent-protocol.md)

@@ -127,7 +127,7 @@ Stateless streaming may work without persistence, but it does not satisfy the th
 
 ## Official documentation
 
-- [Agent Protocol](https://docs-ai.interop.io/docs/api-reference/ai-server/agent-protocol.md)
-- [AI Web API](https://docs-ai.interop.io/docs/api-reference/ai-web/api-reference.md)
+- [Agent Protocol](https://docs-ai.interop.io/api-reference/ai-server/agent-protocol.md)
+- [AI Web API](https://docs-ai.interop.io/api-reference/ai-web/api-reference.md)
 - [AI Mastra Bridge Overview](https://docs-ai.interop.io/modules/ai-mastra-bridge/overview.md)
-- [Mastra Routes and Events](https://docs-ai.interop.io/docs/api-reference/ai-mastra-bridge/routes-and-events.md)
+- [Mastra Routes and Events](https://docs-ai.interop.io/api-reference/ai-mastra-bridge/routes-and-events.md)

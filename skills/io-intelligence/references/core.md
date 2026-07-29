@@ -117,10 +117,10 @@ Do not choose code changes until these boundaries are clear.
 
 ## Official documentation
 
-- [Framework introduction](https://docs-ai.interop.io/docs/modules/introduction.md)
+- [Framework introduction](https://docs-ai.interop.io/index.html.md)
 - [MCP overview](https://docs-ai.interop.io/modules/mcp/overview.md)
-- [Working Context overview](https://docs-ai.interop.io/docs/modules/working-context/overview.md)
+- [Working Context overview](https://docs-ai.interop.io/modules/working-context/overview.md)
 - [AI Web overview](https://docs-ai.interop.io/modules/ai-web/overview.md)
 - [io.Assist overview](https://docs-ai.interop.io/modules/io-assist-ng/overview.md)
 - [AI Mastra Bridge overview](https://docs-ai.interop.io/modules/ai-mastra-bridge/overview.md)
-- [Agent Protocol](https://docs-ai.interop.io/docs/api-reference/ai-server/agent-protocol.md)
+- [Agent Protocol](https://docs-ai.interop.io/api-reference/ai-server/agent-protocol.md)

@@ -7,6 +7,7 @@ The skill helps AI coding agents:
 - choose the appropriate io.Intelligence packages and topology;
 - integrate MCP, Working Context, AI Web, io.Assist, and AI Mastra Bridge;
 - build custom assistant frontends and protocol-compatible backends;
+- start, follow, understand, and troubleshoot the io.Assist Anywhere guide;
 - investigate io.Intelligence integration and runtime problems using the developer's actual project.
 
 The official documentation is the source of truth for public product behavior and APIs. The skill adds task routing, cross-package reasoning, implementation workflows, and diagnostic playbooks without copying the documentation.

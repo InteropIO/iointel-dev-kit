@@ -83,9 +83,9 @@ Read the schema reference for environment limitations of target modes.
 
 ## Official documentation
 
-- [Working Context Overview](https://docs-ai.interop.io/docs/modules/working-context/overview.md)
-- [Integration](https://docs-ai.interop.io/docs/modules/working-context/integration.md)
-- [API Overview](https://docs-ai.interop.io/docs/api-reference/working-context/overview.md)
-- [Schema Configuration](https://docs-ai.interop.io/docs/api-reference/working-context/schema-configuration.md)
-- [Examples](https://docs-ai.interop.io/docs/api-reference/working-context/examples.md)
+- [Working Context Overview](https://docs-ai.interop.io/modules/working-context/overview.md)
+- [Integration](https://docs-ai.interop.io/modules/working-context/integration.md)
+- [API Overview](https://docs-ai.interop.io/api-reference/working-context/overview.md)
+- [Schema Configuration](https://docs-ai.interop.io/api-reference/working-context/schema-configuration.md)
+- [Examples](https://docs-ai.interop.io/api-reference/working-context/examples.md)
 - [Add Working Context Guide](https://docs-ai.interop.io/guides/io-assist-anywhere/add-working-context.md)

@@ -1,6 +1,6 @@
 ---
 name: io-intelligence
-description: Build, extend, explain, or diagnose AI assistants in io.Connect with io.Intelligence. Use for io.Assist React or Angular, @interopio/ai-web custom frontends, @interopio/mcp-core, mcp-web, mcp-http, Working Context, MCP Apps, sampling, elicitation, @interopio/ai-mastra-bridge, the io.Intelligence Agent Protocol, AG-UI bridge behavior, missing tools or applications, streaming and thread problems, or choosing among io.Intelligence packages and topologies.
+description: Build, extend, explain, or diagnose AI assistants in io.Connect with io.Intelligence. Use for the io.Assist Anywhere guide or ACME Banking sample; io.Assist React or Angular; @interopio/ai-web custom frontends; @interopio/mcp-core, mcp-web, or mcp-http; Working Context; MCP Apps; sampling; elicitation; @interopio/ai-mastra-bridge; the io.Intelligence Agent Protocol; AG-UI bridge behavior; missing tools or applications; streaming and thread problems; or package and topology selection.
 ---
 
 # io.Intelligence
@@ -31,6 +31,7 @@ Always read [references/core.md](references/core.md), then load only the task-sp
 
 | Task | Read |
 | --- | --- |
+| Start, follow, understand, or troubleshoot the io.Assist Anywhere guide | [references/io-assist-anywhere-guide.md](references/io-assist-anywhere-guide.md) |
 | Expose or consume MCP capabilities; choose Web, HTTP, or Core | [references/mcp-integration.md](references/mcp-integration.md) |
 | Add ready-made React or Angular io.Assist | [references/packaged-io-assist.md](references/packaged-io-assist.md) |
 | Build a custom assistant frontend with AI Web | [references/custom-ai-web.md](references/custom-ai-web.md) |
@@ -64,6 +65,8 @@ Always read [references/core.md](references/core.md), then load only the task-sp
 5. Choose an implementation or investigation order based on the references.
 6. Explain material topology decisions and unsupported assumptions.
 7. Implement or diagnose using the coding agent's normal project tools.
+
+For an io.Assist Anywhere request, establish the current chapter and the user's React/Angular path first. Read the exact current chapter, then use the guide companion and only the product references relevant to that chapter.
 
 ## Respect current delivery boundaries
 

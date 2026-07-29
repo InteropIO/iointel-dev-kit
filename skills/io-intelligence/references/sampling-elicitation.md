@@ -67,8 +67,8 @@ io.Assist supplies built-in UI for these flows. A custom AI Web application supp
 
 ## Official documentation
 
-- [AI Web Configuration: MCPClientConfig](https://docs-ai.interop.io/docs/api-reference/ai-web/configuration.md#mcpclientconfig)
-- [AI Web Capabilities](https://docs-ai.interop.io/docs/modules/ai-web/capabilities.md#participate-in-mcp-capability-flows)
-- [io.Assist Capabilities](https://docs-ai.interop.io/docs/modules/io-assist-ng/capabilities.md#handle-sampling-and-elicitation-in-the-app)
-- [MCP Core Tool Types](https://docs-ai.interop.io/docs/api-reference/mcp-core/tool-types.md)
+- [AI Web Configuration: MCPClientConfig](https://docs-ai.interop.io/api-reference/ai-web/configuration.md#mcpclientconfig)
+- [AI Web Capabilities](https://docs-ai.interop.io/modules/ai-web/capabilities.md#participate-in-mcp-capability-flows)
+- [io.Assist Capabilities](https://docs-ai.interop.io/modules/io-assist-ng/capabilities.md#handle-sampling-and-elicitation-in-the-app)
+- [MCP Core Tool Types](https://docs-ai.interop.io/api-reference/mcp-core/tool-types.md)
 - [Custom AI Web Guide](https://docs-ai.interop.io/guides/io-assist-anywhere/custom-ui-skin-using-ai-web.md)

@@ -159,8 +159,8 @@ If official docs and installed public declarations conflict, report an alignment
 
 ## Official documentation
 
-- [MCP Tool Types](https://docs-ai.interop.io/docs/api-reference/mcp-core/tool-types.md)
-- [MCP Core API](https://docs-ai.interop.io/docs/api-reference/mcp-core/api-reference.md)
-- [MCP Web API](https://docs-ai.interop.io/docs/api-reference/mcp-web/overview.md)
-- [MCP HTTP API](https://docs-ai.interop.io/docs/api-reference/mcp-http/overview.md)
+- [MCP Tool Types](https://docs-ai.interop.io/api-reference/mcp-core/tool-types.md)
+- [MCP Core API](https://docs-ai.interop.io/api-reference/mcp-core/api-reference.md)
+- [MCP Web API](https://docs-ai.interop.io/api-reference/mcp-web/overview.md)
+- [MCP HTTP API](https://docs-ai.interop.io/api-reference/mcp-http/overview.md)
 - [Update App Definitions Guide](https://docs-ai.interop.io/guides/io-assist-anywhere/updating-app-definitions.md)

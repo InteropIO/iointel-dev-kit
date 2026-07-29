@@ -93,8 +93,8 @@ This information helps later agents reason about the fork without promising auto
 ## Official documentation
 
 - [io.Assist Overview](https://docs-ai.interop.io/modules/io-assist-ng/overview.md)
-- [io.Assist Capabilities](https://docs-ai.interop.io/docs/modules/io-assist-ng/capabilities.md)
-- [React API](https://docs-ai.interop.io/docs/api-reference/io-assist-react/overview.md)
-- [Angular API](https://docs-ai.interop.io/docs/api-reference/io-assist-ng/overview.md)
+- [io.Assist Capabilities](https://docs-ai.interop.io/modules/io-assist-ng/capabilities.md)
+- [React API](https://docs-ai.interop.io/api-reference/io-assist-react/overview.md)
+- [Angular API](https://docs-ai.interop.io/api-reference/io-assist-ng/overview.md)
 - [AI Web Overview](https://docs-ai.interop.io/modules/ai-web/overview.md)
-- [Agent Protocol](https://docs-ai.interop.io/docs/api-reference/ai-server/agent-protocol.md)
+- [Agent Protocol](https://docs-ai.interop.io/api-reference/ai-server/agent-protocol.md)

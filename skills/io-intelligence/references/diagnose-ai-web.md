@@ -145,8 +145,8 @@ Identify the first failed boundary and show the direct evidence. Do not attribut
 
 ## Official documentation
 
-- [AI Web API](https://docs-ai.interop.io/docs/api-reference/ai-web/api-reference.md)
-- [AI Web Configuration](https://docs-ai.interop.io/docs/api-reference/ai-web/configuration.md)
-- [Agent Protocol](https://docs-ai.interop.io/docs/api-reference/ai-server/agent-protocol.md)
+- [AI Web API](https://docs-ai.interop.io/api-reference/ai-web/api-reference.md)
+- [AI Web Configuration](https://docs-ai.interop.io/api-reference/ai-web/configuration.md)
+- [Agent Protocol](https://docs-ai.interop.io/api-reference/ai-server/agent-protocol.md)
 - [MCP Apps](https://docs-ai.interop.io/modules/mcp/mcp-apps/overview.md)
 - [Custom AI Web Guide](https://docs-ai.interop.io/guides/io-assist-anywhere/custom-ui-skin-using-ai-web.md)

@@ -149,7 +149,7 @@ If the wire contract is valid, continue in the frontend state layer rather than 
 
 ## Official documentation
 
-- [Agent Protocol](https://docs-ai.interop.io/docs/api-reference/ai-server/agent-protocol.md)
-- [AI Mastra Bridge Routes and Events](https://docs-ai.interop.io/docs/api-reference/ai-mastra-bridge/routes-and-events.md)
-- [AI Mastra Bridge API](https://docs-ai.interop.io/docs/api-reference/ai-mastra-bridge/api-reference.md)
-- [AI Web API](https://docs-ai.interop.io/docs/api-reference/ai-web/api-reference.md)
+- [Agent Protocol](https://docs-ai.interop.io/api-reference/ai-server/agent-protocol.md)
+- [AI Mastra Bridge Routes and Events](https://docs-ai.interop.io/api-reference/ai-mastra-bridge/routes-and-events.md)
+- [AI Mastra Bridge API](https://docs-ai.interop.io/api-reference/ai-mastra-bridge/api-reference.md)
+- [AI Web API](https://docs-ai.interop.io/api-reference/ai-web/api-reference.md)

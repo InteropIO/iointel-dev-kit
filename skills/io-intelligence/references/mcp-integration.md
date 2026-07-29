@@ -38,7 +38,7 @@ Use `@interopio/mcp-core` directly for a specialized transport. Core owns the ca
 | Static intent | Declared in MCP config and delegated to an io.Connect intent | The capability is modeled as an intent and may use MCP or io.Connect resolution |
 | Dynamic | Advertised by an application through interop registration metadata | The application owns registration and runtime availability |
 
-For exact config shapes, read [MCP Core Tool Types](https://docs-ai.interop.io/docs/api-reference/mcp-core/tool-types.md).
+For exact config shapes, read [MCP Core Tool Types](https://docs-ai.interop.io/api-reference/mcp-core/tool-types.md).
 
 ## Decisions to make
 
@@ -97,9 +97,9 @@ For exact config shapes, read [MCP Core Tool Types](https://docs-ai.interop.io/d
 
 ## Official documentation
 
-- [MCP Transports](https://docs-ai.interop.io/docs/modules/mcp/transports.md)
-- [MCP Core API](https://docs-ai.interop.io/docs/api-reference/mcp-core/api-reference.md)
-- [MCP Tool Types](https://docs-ai.interop.io/docs/api-reference/mcp-core/tool-types.md)
-- [MCP Web Overview](https://docs-ai.interop.io/docs/api-reference/mcp-web/overview.md)
-- [MCP HTTP Overview](https://docs-ai.interop.io/docs/api-reference/mcp-http/overview.md)
+- [MCP Transports](https://docs-ai.interop.io/modules/mcp/transports.md)
+- [MCP Core API](https://docs-ai.interop.io/api-reference/mcp-core/api-reference.md)
+- [MCP Tool Types](https://docs-ai.interop.io/api-reference/mcp-core/tool-types.md)
+- [MCP Web Overview](https://docs-ai.interop.io/api-reference/mcp-web/overview.md)
+- [MCP HTTP Overview](https://docs-ai.interop.io/api-reference/mcp-http/overview.md)
 - [MCP Web Integration Guide](https://docs-ai.interop.io/guides/io-assist-anywhere/mcp-web-integration.md)

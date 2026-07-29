@@ -91,10 +91,10 @@ The planned scaffolder will eventually create packaged React and Angular applica
 ## Official documentation
 
 - [io.Assist Overview](https://docs-ai.interop.io/modules/io-assist-ng/overview.md)
-- [React API Overview](https://docs-ai.interop.io/docs/api-reference/io-assist-react/overview.md)
-- [React Component API](https://docs-ai.interop.io/docs/api-reference/io-assist-react/component-api.md)
-- [React Configuration](https://docs-ai.interop.io/docs/api-reference/io-assist-react/configuration.md)
-- [Angular API Overview](https://docs-ai.interop.io/docs/api-reference/io-assist-ng/overview.md)
-- [Angular Component API](https://docs-ai.interop.io/docs/api-reference/io-assist-ng/component-api.md)
-- [Angular Configuration](https://docs-ai.interop.io/docs/api-reference/io-assist-ng/configuration.md)
+- [React API Overview](https://docs-ai.interop.io/api-reference/io-assist-react/overview.md)
+- [React Component API](https://docs-ai.interop.io/api-reference/io-assist-react/component-api.md)
+- [React Configuration](https://docs-ai.interop.io/api-reference/io-assist-react/configuration.md)
+- [Angular API Overview](https://docs-ai.interop.io/api-reference/io-assist-ng/overview.md)
+- [Angular Component API](https://docs-ai.interop.io/api-reference/io-assist-ng/component-api.md)
+- [Angular Configuration](https://docs-ai.interop.io/api-reference/io-assist-ng/configuration.md)
 - [Create io.Assist Guide](https://docs-ai.interop.io/guides/io-assist-anywhere/create-io-assist.md)

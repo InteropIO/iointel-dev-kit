@@ -92,7 +92,7 @@ Server tools execute in Mastra and still need a visible `TOOL_CALL_RESULT` in th
 ## Official documentation
 
 - [AI Mastra Bridge Overview](https://docs-ai.interop.io/modules/ai-mastra-bridge/overview.md)
-- [API Reference](https://docs-ai.interop.io/docs/api-reference/ai-mastra-bridge/api-reference.md)
-- [Routes and Events](https://docs-ai.interop.io/docs/api-reference/ai-mastra-bridge/routes-and-events.md)
-- [Examples](https://docs-ai.interop.io/docs/api-reference/ai-mastra-bridge/examples.md)
+- [API Reference](https://docs-ai.interop.io/api-reference/ai-mastra-bridge/api-reference.md)
+- [Routes and Events](https://docs-ai.interop.io/api-reference/ai-mastra-bridge/routes-and-events.md)
+- [Examples](https://docs-ai.interop.io/api-reference/ai-mastra-bridge/examples.md)
 - [Configure Agent Backend Guide](https://docs-ai.interop.io/guides/io-assist-anywhere/configure-agent-backend.md)

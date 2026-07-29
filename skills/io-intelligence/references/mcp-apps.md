@@ -75,7 +75,7 @@ Do not diagnose the entire feature as one component. Prove each boundary.
 ## Official documentation
 
 - [MCP Apps Overview](https://docs-ai.interop.io/modules/mcp/mcp-apps/overview.md)
-- [Workspace Widget](https://docs-ai.interop.io/docs/modules/mcp/mcp-apps/workspace-widget.md)
-- [AI Web Capabilities](https://docs-ai.interop.io/docs/modules/ai-web/capabilities.md)
-- [AI Web Configuration](https://docs-ai.interop.io/docs/api-reference/ai-web/configuration.md#mcpappsconfig)
+- [Workspace Widget](https://docs-ai.interop.io/modules/mcp/mcp-apps/workspace-widget.md)
+- [AI Web Capabilities](https://docs-ai.interop.io/modules/ai-web/capabilities.md)
+- [AI Web Configuration](https://docs-ai.interop.io/api-reference/ai-web/configuration.md#mcpappsconfig)
 - [Add MCP Apps Guide](https://docs-ai.interop.io/guides/io-assist-anywhere/add-support-for-mcp-apps.md)

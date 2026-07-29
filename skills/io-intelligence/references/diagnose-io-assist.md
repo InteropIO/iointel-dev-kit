@@ -129,8 +129,8 @@ Avoid broad fixes across several layers when one causal boundary is unproven.
 ## Official documentation
 
 - [io.Assist Overview](https://docs-ai.interop.io/modules/io-assist-ng/overview.md)
-- [React Component API](https://docs-ai.interop.io/docs/api-reference/io-assist-react/component-api.md)
-- [React Configuration](https://docs-ai.interop.io/docs/api-reference/io-assist-react/configuration.md)
-- [Angular Component API](https://docs-ai.interop.io/docs/api-reference/io-assist-ng/component-api.md)
-- [Angular Configuration](https://docs-ai.interop.io/docs/api-reference/io-assist-ng/configuration.md)
+- [React Component API](https://docs-ai.interop.io/api-reference/io-assist-react/component-api.md)
+- [React Configuration](https://docs-ai.interop.io/api-reference/io-assist-react/configuration.md)
+- [Angular Component API](https://docs-ai.interop.io/api-reference/io-assist-ng/component-api.md)
+- [Angular Configuration](https://docs-ai.interop.io/api-reference/io-assist-ng/configuration.md)
 - [Create io.Assist Guide](https://docs-ai.interop.io/guides/io-assist-anywhere/create-io-assist.md)
