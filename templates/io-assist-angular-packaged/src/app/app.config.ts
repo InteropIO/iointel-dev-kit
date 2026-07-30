@@ -3,7 +3,8 @@ import IOBrowser from "@interopio/browser";
 import { provideIoAssist } from "@interopio/io-assist-ng";
 import IOWorkspaces from "@interopio/workspaces-api";
 
-const AGENT_SERVER_URL = "http://localhost:4111";
+// this must be defined;
+const AGENT_SERVER_URL = "";
 
 const createIOConnect: typeof IOBrowser = async (config) => {
     const io = await IOBrowser(config);
