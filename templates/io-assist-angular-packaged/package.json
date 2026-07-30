@@ -1,5 +1,5 @@
 {
-  "name": "io-assist-angular",
+  "name": "io-assist-angular-packaged",
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
