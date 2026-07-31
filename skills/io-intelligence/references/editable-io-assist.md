@@ -39,9 +39,13 @@ Do not describe the fork as a theme, plugin, or supported extension point unless
 
 ## Current delivery boundary
 
-The planned Phase 2 scaffolder will obtain the React or Angular editable payload from the corresponding io.Assist npm package and arrange the local application. That flow is not implemented in the current skill release.
+There is still no scaffolding command. The planned five-preset scaffolder is not delivered in this skill release.
 
-Until an approved editable source payload is available:
+The **React editable payload is delivered as a checked-in template**. `templates/io-assist-react-editable` carries the io.Assist React source at `src/io-assist`, with `src/io-assist/PROVENANCE.md` recording its origin repository, commit, package version, and customer-owned status. Copy that template to start a React editable application; it builds and runs as-is once `AGENT_SERVER_URL` is set in `src/App.tsx`.
+
+The **Angular editable payload is not materialized**. `templates/io-assist-angular-editable` is still a shell whose imports do not resolve.
+
+Where an approved editable source payload is not already present:
 
 - do not reconstruct io.Assist from this skill;
 - do not reverse-engineer compiled package output;

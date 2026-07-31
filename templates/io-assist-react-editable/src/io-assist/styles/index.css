@@ -1,0 +1,345 @@
+@import 'tailwindcss';
+@import './defaults.css';
+
+/* Inter Variable — latin subset only (weights 100–900, normal style).
+   We declare a single @font-face by hand (instead of importing the full
+   @fontsource-variable/inter stylesheet) so the compiled CSS references only
+   the one woff2 we ship into dist/files. */
+@font-face {
+    font-family: 'Inter Variable';
+    font-style: normal;
+    font-display: swap;
+    font-weight: 100 900;
+    src: url('./files/inter-latin-wght-normal.woff2') format('woff2-variations');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+        U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+        U+FEFF, U+FFFD;
+}
+
+/* ─── Tailwind Theme: map CSS variables to Tailwind utilities ─────────────────
+   All colours reference the CSS variables so dark/light theming works
+   automatically when the class is applied to <html>.
+   ─────────────────────────────────────────────────────────────────────────── */
+@theme {
+    /* General */
+    /* General [Colors] */
+    /* ... */
+    --color-app-background: var(--app-background);
+    --color-app-background-secondary: var(--app-background-secondary);
+    --color-app-accent-color-1: var(--app-accent-color-1);
+    --color-app-accent-color-2: var(--app-accent-color-2);
+    --color-app-accent-color-3: var(--app-accent-color-3);
+
+    /* General [Spacings] */
+    --spacing-spacing-1: var(--app-spacing-1);
+    --spacing-spacing-2: var(--app-spacing-2);
+    --spacing-spacing-3: var(--app-spacing-3);
+    --spacing-spacing-4: var(--app-spacing-4);
+    --spacing-spacing-5: var(--app-spacing-5);
+    --spacing-spacing-6: var(--app-spacing-6);
+
+    /* Font */
+    /* Font [Types] */
+    --font-default: 'Inter Variable', sans-serif;
+
+    /* Font [Colors] */
+    --color-text-states-disabled: var(--app-text-states-disabled);
+    --color-text-states-hover: var(--app-text-states-hover);
+    --color-text-states-active: var(--app-text-states-active);
+    --color-text-default: var(--app-text-default);
+    --color-text-secondary: var(--app-text-secondary);
+    --color-text-black-white: var(--app-text-black-white);
+    --color-text-danger: var(--app-red-700);
+
+    /* Thread History */
+    /* Thread History [Colors] */
+    --color-thread-list-item-hover-background: var(--app-thread-list-item-hover-background);
+
+    /* Font [Weights] */
+    --font-weight-weight-400: var(--app-font-weight-400);
+    --font-weight-weight-600: var(--app-font-weight-600);
+
+    /* Borders */
+    /* Borders [Colors] */
+    --color-border-default: var(--app-border-default);
+    --color-border-hover: var(--app-border-hover);
+
+    /* AppTooltipComponent [Colors] */
+    --color-tooltip-background: var(--app-tooltip-background);
+    --color-tooltip-border: var(--app-tooltip-border);
+    --color-tooltip-text: var(--app-tooltip-text);
+
+    /* AppPanelComponent */
+    /* AppPanelComponent [Colors] */
+    --color-panel-background: var(--app-panel-background);
+    --color-panel-border: var(--app-panel-border);
+    --shadow-panel-box-shadow: var(--app-default-box-shadow);
+
+    /* AppButtonComponent */
+    /* AppButtonComponent [Colors] */
+    --color-button-submit-background: var(--app-blue);
+    --color-button-danger-background: var(--app-red-700);
+    --color-button-border: var(--app-neutrals-1000);
+    --color-button-border-default: var(--app-button-border-default);
+    --color-button-background-disabled: var(--app-background-disabled);
+    --color-button-text-disabled: var(--app-text-disabled);
+
+    /* UserMessageComponent */
+    /* UserMessageComponent [Colors] */
+    --color-user-message-background: var(--app-user-message-background);
+    --color-user-message-text: var(--app-user-message-text);
+
+    /* AppInputComponent */
+    /* AppInputComponent [Colors] */
+    --color-input-background-disabled: var(--app-input-background-disabled);
+    --color-input-border: var(--app-input-border);
+    --color-input-border-disabled: var(--app-border-disabled-default);
+    --color-input-default: var(--app-text-default);
+    --color-input-label-disabled: var(--app-text-states-disabled);
+    --color-input-background: var(--app-input-background);
+    --color-input-background-hover: var(--app-input-background-hover);
+    --color-input-background-active: var(--app-input-background-active);
+    --color-input-border: var(--app-input-border);
+    --color-input-border-hover: var(--app-input-border-hover);
+    --color-input-border-active: var(--app-input-border-active);
+    --color-input-text: var(--app-input-text);
+    --color-input-text-active: var(--app-input-text-active);
+    --color-input-icon: var(--app-input-icon);
+    --color-input-icon-active: var(--app-input-icon-active);
+    --color-input-icon-disabled: var(--app-input-icon-disabled);
+    --color-input-error-border: var(--app-border-error);
+    --color-input-error-text: var(--app-text-error);
+
+    /* AppInputComponent [Sizes] */
+    --border-width-input-border: var(--app-border-size-1);
+    --radius-input-radius: var(--app-border-radius-sm);
+    --font-size-input-text: var(--app-font-size-12);
+    --font-size-input-error: var(--app-font-size-10);
+    --line-height-input-error: var(--app-line-height-13);
+    --tracking-input-error: var(--app-letter-spacing-01);
+
+    /* AppIconComponent [Colors] */
+    --color-app-icon-background-hover: var(--app-icon-background-hover);
+    --color-app-icon-background-disabled: var(--app-icon-background-disabled);
+
+    /* AppToggleComponent */
+    /* AppToggleComponent [Colors] */
+    --color-toggle-background-disabled: var(--app-toggle-background-disabled);
+    --color-toggle-background-enabled: var(--app-toggle-background-enabled);
+    --color-toggle-background-hover-disabled: var(--app-toggle-background-hover-disabled);
+    --color-toggle-background-hover-enabled: var(--app-toggle-background-hover-enabled);
+    --color-toggle-circle: var(--app-toggle-circle);
+
+    /* Prototype Colors */
+    --color-proto-background: var(--app-proto-background);
+    --color-proto-background-light: var(--app-proto-background-light);
+    --color-proto-border-default: var(--app-proto-border-default);
+    --color-proto-text-default: var(--app-proto-text-default);
+    --color-proto-text-disabled: var(--app-proto-text-disabled);
+}
+
+/* ─── App-md-formatter rules ─────────────────────────────────────────────────
+   Ports ng's `app-md-formatter.component.css`:
+   - Blanket 8px vertical padding on every md descendant (`remark-node *`).
+   - Accent gradient peek behind code blocks (`.io-assist-code-theme::before`).
+   ─────────────────────────────────────────────────────────────────────────── */
+@layer base {
+    /* Lives in @layer base so Tailwind utilities (in the utilities layer) still
+       win for specific per-element padding (e.g. headings/code blocks). */
+    .io-assist-md * {
+        padding-top: 8px;
+        padding-bottom: 8px;
+    }
+
+    /* Code block — reset the blanket padding for all code-block descendants. */
+    .io-assist-md .io-assist-code-block * {
+        padding: 0;
+    }
+}
+
+@layer components {
+    .io-assist-md .io-assist-code-theme {
+        position: relative;
+        display: block;
+    }
+
+    /* Working context panel — clamp the JSON code block to a viewport-relative
+       height so the panel stays scrollable. Mirrors ng's working-context-panel.component.css. */
+    .working-context-panel .io-assist-code-theme > pre {
+        height: 30vh;
+        max-height: 620px;
+    }
+}
+
+/* ─── Tooltip arrow ──────────────────────────────────────────────────────────
+   Ports ng's app-tooltip.component.css. The arrow is a rotated square sitting on
+   the bubble edge; its left/top is set inline so it tracks the trigger centre.
+   ─────────────────────────────────────────────────────────────────────────── */
+.app-tooltip__arrow {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: var(--color-tooltip-background);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* TOP: tooltip above trigger → arrow points DOWN at bottom edge. */
+.app-tooltip__arrow--top {
+    bottom: -5px;
+    transform: translateX(-50%) rotate(45deg);
+    border-right: 1px solid var(--color-tooltip-border);
+    border-bottom: 1px solid var(--color-tooltip-border);
+}
+
+/* BOTTOM: tooltip below trigger → arrow points UP at top edge. */
+.app-tooltip__arrow--bottom {
+    top: -5px;
+    transform: translateX(-50%) rotate(45deg);
+    border-left: 1px solid var(--color-tooltip-border);
+    border-top: 1px solid var(--color-tooltip-border);
+}
+
+/* LEFT: tooltip left of trigger → arrow points RIGHT at right edge. */
+.app-tooltip__arrow--left {
+    right: -5px;
+    transform: translateY(-50%) rotate(45deg);
+    border-top: 1px solid var(--color-tooltip-border);
+    border-right: 1px solid var(--color-tooltip-border);
+}
+
+/* RIGHT: tooltip right of trigger → arrow points LEFT at left edge. */
+.app-tooltip__arrow--right {
+    left: -5px;
+    transform: translateY(-50%) rotate(45deg);
+    border-bottom: 1px solid var(--color-tooltip-border);
+    border-left: 1px solid var(--color-tooltip-border);
+}
+
+/* ─── Select dropdown ────────────────────────────────────────────────────────
+   Ports ng's app-select.component.css open animation.
+   ─────────────────────────────────────────────────────────────────────────── */
+@keyframes select-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.app-select__dropdown {
+    animation: select-in 120ms ease-in;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .app-select__dropdown {
+        animation: none;
+    }
+}
+
+/* ─── Accent gradient border ─────────────────────────────────────────────────
+   Ports ng's accentGradientBorder directive. Paints a 1px accent gradient ring
+   that follows the host's border-radius, using a mask cutout so only the border
+   edge shows (border-image cannot follow rounded corners). The host must own a
+   solid background; the ring sits behind the content via an isolated context.
+   ─────────────────────────────────────────────────────────────────────────── */
+.accent-gradient-border {
+    position: relative;
+    isolation: isolate;
+}
+
+.accent-gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    padding: 1px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(
+        90deg,
+        var(--color-app-accent-color-1),
+        var(--color-app-accent-color-2)
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+}
+
+/* ─── Input area glow ────────────────────────────────────────────────────────
+   Ports ng's input-area.component.css. A thin glow strip centred on the top
+   border edge, bleeding upward above the box. The content box sits above it.
+   ─────────────────────────────────────────────────────────────────────────── */
+.input-area__container::before {
+    content: '';
+    position: absolute;
+    left: 5%;
+    right: 5%;
+    top: -3px;
+    height: 12px;
+    pointer-events: none;
+    z-index: 0;
+    background:
+        radial-gradient(
+            ellipse 40% 100% at 15% 50%,
+            var(--color-app-accent-color-1),
+            transparent 100%
+        ),
+        radial-gradient(
+            ellipse 40% 100% at 85% 50%,
+            var(--color-app-accent-color-2),
+            transparent 100%
+        );
+    filter: blur(12px);
+    opacity: 0.75;
+}
+
+.input-area__content {
+    position: relative;
+    z-index: 1;
+}
+
+/* ─── Reload icon animation ──────────────────────────────────────────────────
+   Ports ng's HOVER_TILT_45_CLICK_SPIN_270 effect: hover tilts 45°, click spins
+   270° then settles back. Used by the message-footer ReloadButton.
+   ─────────────────────────────────────────────────────────────────────────── */
+.io-reload__icon {
+    display: inline-flex;
+    /* Fills the IconButton's <Icon> box so the 100%-sized SVG keeps its size. */
+    width: 100%;
+    height: 100%;
+    transition: transform 200ms ease;
+}
+
+.io-reload:not(:disabled):hover .io-reload__icon {
+    transform: rotate(45deg);
+}
+
+.io-reload__icon--spin {
+    /* Matches ng's spin-270-return: 270° clockwise then smoothly back to 0°. */
+    animation: io-reload-spin 550ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes io-reload-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    65% {
+        transform: rotate(270deg);
+    }
+    100% {
+        transform: rotate(0deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .io-reload__icon,
+    .io-reload__icon--spin {
+        transition: none;
+        animation: none;
+    }
+}

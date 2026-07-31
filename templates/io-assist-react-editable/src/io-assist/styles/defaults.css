@@ -1,0 +1,280 @@
+/* Use this object to define variables that you want to use across the application.
+   Prefix all variables with --app- to avoid conflicts with other libraries and to
+   make it clear that these are application specific variables.
+*/
+@layer base {
+    html,
+    body,
+    #root {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    :root {
+        /* General */
+        /* General [Colors] */
+        --app-red-700: #c92121;
+        --app-red-800: #b01d1d;
+        --app-orange: #f25f1f;
+        --app-blue: #4b92fb;
+        --app-light-blue: #d8ebfd;
+        --app-blue-toggle: #356ec4;
+        --app-yellow: #deaf37;
+        --app-neutrals-0: #ffffff;
+        --app-neutrals-25: #f7f7f7;
+        --app-neutrals-50: #f2f2f2;
+        --app-neutrals-75: #ededed;
+        --app-neutrals-100: #eaeaeb;
+        --app-neutrals-150: #dadbdd;
+        --app-neutrals-200: #caccce;
+        --app-neutrals-300: #b0b2b5;
+        --app-neutrals-400: #95989d;
+        --app-neutrals-500: #7b7e84;
+        --app-neutrals-600: #62656a;
+        --app-neutrals-650: #55585d;
+        --app-neutrals-700: #494b50;
+        --app-neutrals-750: #3d3f43;
+        --app-neutrals-800: #36383b;
+        --app-neutrals-850: #2e3033;
+        --app-neutrals-900: #26272a;
+        --app-neutrals-950: #18191b;
+        --app-neutrals-1000: #000000;
+
+        /* Accent [Colors] */
+        --app-accent-color-1: var(--app-orange);
+        --app-accent-color-2: var(--app-blue);
+        --app-accent-color-3: var(--app-yellow);
+
+        /* General [Spacings] */
+        --app-spacing-1: 2px;
+        --app-spacing-2: 4px;
+        --app-spacing-3: 6px;
+        --app-spacing-4: 8px;
+        --app-spacing-5: 10px;
+        --app-spacing-6: 12px;
+
+        /* General [Border Radius] */
+        --app-border-radius-sm: 8px;
+
+        /* General [Font Sizes] */
+        --app-font-size-10: 10px;
+        --app-font-size-12: 12px;
+
+        /* General [Line Heights] */
+        --app-line-height-13: 13px;
+
+        /* General [Letter Spacing] */
+        --app-letter-spacing-01: 0.1px;
+
+        /* Border */
+        /* Border [Colors] */
+        --app-border-error: var(--app-red-700);
+
+        /* Border [Sizes] */
+        --app-border-size-1: 1px;
+
+        /* Text [Weights] */
+        --app-font-weight-400: 400;
+        --app-font-weight-600: 600;
+
+        --app-default-box-shadow: 0 3px 11px 6px rgba(0, 0, 0, 0.16);
+
+        /* Prototype Colors */
+        --prototype-temp-color-50: #f9f9f9;
+        --prototype-temp-color-100: #f2f2f2;
+        --prototype-temp-color-200: #e5e5e5;
+        --prototype-temp-color-300: #cccccc;
+        --prototype-temp-color-400: #b3b3b3;
+        --prototype-temp-color-500: #999999;
+        --prototype-temp-color-600: #808080;
+        --prototype-temp-color-700: #666666;
+        --prototype-temp-color-800: #4d4d4d;
+        --prototype-temp-color-900: #333333;
+        --prototype-temp-color-1000: #1a1a1a;
+    }
+
+    .dark {
+        --app-background: var(--app-neutrals-900);
+        --app-background-secondary: var(--app-neutrals-850);
+        --app-border-default: var(--app-neutrals-700);
+        --app-border-disabled-default: var(--app-neutrals-850);
+        --app-input-border: var(--app-neutrals-750);
+        --app-button-border-default: var(--app-neutrals-500);
+        --app-background-disabled: var(--app-neutrals-900);
+        --app-text-disabled: var(--app-neutrals-600);
+        --app-icon-disabled: var(--app-neutrals-600);
+        --app-icon-background-hover: var(--app-neutrals-800);
+        --app-icon-background-disabled: var(--app-neutrals-700);
+        --app-thread-list-item-hover-background: var(--app-neutrals-800);
+        --app-text-black-white: var(--app-neutrals-0);
+        --app-border-hover: var(--app-neutrals-600);
+
+        /* Tooltip Component */
+        --app-tooltip-background: var(--app-neutrals-850);
+        --app-tooltip-border: var(--app-neutrals-700);
+        --app-tooltip-text: var(--app-neutrals-100);
+
+        /* Panel */
+        --app-panel-background: var(--app-neutrals-900);
+        --app-panel-border: var(--app-neutrals-700);
+
+        /* User Message */
+        --app-user-message-background: var(--app-neutrals-800);
+        --app-user-message-text: var(--app-neutrals-300);
+
+        /* Input Specific */
+        --app-input-background-disabled: var(--app-neutrals-900);
+        --app-input-background: var(--app-neutrals-850);
+        --app-input-background-hover: var(--app-neutrals-800);
+        --app-input-background-active: var(--app-neutrals-800);
+        --app-input-border: var(--app-neutrals-900);
+        --app-input-border-hover: var(--app-neutrals-750);
+        --app-input-border-active: var(--app-neutrals-600);
+        --app-input-text: var(--app-neutrals-200);
+        --app-input-text-active: var(--app-neutrals-0);
+        --app-input-icon: var(--app-neutrals-200);
+        --app-input-icon-active: var(--app-neutrals-0);
+        --app-input-icon-disabled: var(--app-neutrals-600);
+
+        /* Text Colors */
+        --app-text-states-disabled: var(--app-neutrals-600);
+        --app-text-states-hover: var(--app-neutrals-100);
+        --app-text-states-active: var(--app-neutrals-0);
+        --app-text-default: var(--app-neutrals-300);
+        --app-text-secondary: var(--app-neutrals-500);
+        --app-text-error: var(--app-red-700);
+
+        /* Toggle Component */
+        --app-toggle-background-disabled: var(--app-neutrals-750);
+        --app-toggle-background-enabled: var(--app-blue-toggle);
+        --app-toggle-background-hover-disabled: var(--app-neutrals-700);
+        --app-toggle-background-hover-enabled: var(--app-blue);
+        --app-toggle-circle: var(--app-neutrals-0);
+
+        /* Prototype Colors */
+        --app-proto-background: var(--prototype-temp-color-1000);
+        --app-proto-background-light: var(--prototype-temp-color-900);
+        --app-proto-border-default: var(--prototype-temp-color-800);
+        --app-proto-text-default: var(--prototype-temp-color-300);
+        --app-proto-text-disabled: var(--prototype-temp-color-600);
+    }
+
+    .light {
+        --app-background: var(--app-neutrals-0);
+        --app-background-secondary: var(--app-neutrals-25);
+        --app-border-default: var(--app-neutrals-150);
+        --app-border-disabled-default: var(--app-neutrals-100);
+        --app-input-border: var(--app-neutrals-200);
+        --app-button-border-default: var(--app-neutrals-200);
+        --app-background-disabled: var(--app-neutrals-50);
+        --app-text-disabled: var(--app-neutrals-400);
+        --app-icon-disabled: var(--app-neutrals-400);
+        --app-icon-background-hover: var(--app-neutrals-25);
+        --app-icon-background-disabled: var(--app-neutrals-100);
+        --app-thread-list-item-hover-background: var(--app-neutrals-50);
+        --app-text-black-white: var(--app-neutrals-1000);
+        --app-border-hover: var(--app-neutrals-150);
+
+        /* Tooltip Component */
+        --app-tooltip-background: var(--app-neutrals-0);
+        --app-tooltip-border: var(--app-neutrals-200);
+        --app-tooltip-text: var(--app-neutrals-800);
+
+        /* Panel */
+        --app-panel-background: var(--app-neutrals-0);
+        --app-panel-border: var(--app-neutrals-700);
+
+        /* User Message */
+        --app-user-message-background: var(--app-neutrals-50);
+        --app-user-message-text: var(--app-neutrals-700);
+
+        /* Input Specific */
+        --app-input-background-disabled: var(--app-neutrals-50);
+        --app-input-background: var(--app-neutrals-0);
+        --app-input-background-hover: var(--app-neutrals-100);
+        --app-input-background-active: var(--app-neutrals-25);
+        --app-input-border: var(--app-neutrals-150);
+        --app-input-border-hover: var(--app-neutrals-200);
+        --app-input-border-active: var(--app-neutrals-400);
+        --app-input-text: var(--app-neutrals-800);
+        --app-input-text-active: var(--app-neutrals-900);
+        --app-input-icon: var(--app-neutrals-700);
+        --app-input-icon-active: var(--app-neutrals-900);
+        --app-input-icon-disabled: var(--app-neutrals-400);
+
+        /* Text Colors */
+        --app-text-states-disabled: var(--app-neutrals-400);
+        --app-text-states-hover: var(--app-neutrals-800);
+        --app-text-states-active: var(--app-neutrals-900);
+        --app-text-default: var(--app-neutrals-700);
+        --app-text-secondary: var(--app-neutrals-500);
+        --app-text-error: var(--app-red-700);
+
+        /* Toggle Component */
+        --app-toggle-background-disabled: var(--app-neutrals-200);
+        --app-toggle-background-enabled: var(--app-blue-toggle);
+        --app-toggle-background-hover-disabled: var(--app-neutrals-300);
+        --app-toggle-background-hover-enabled: var(--app-blue);
+        --app-toggle-circle: var(--app-neutrals-0);
+
+        /* Prototype Colors */
+        --app-proto-background: var(--prototype-temp-color-50);
+        --app-proto-background-light: var(--prototype-temp-color-100);
+        --app-proto-border-default: var(--prototype-temp-color-300);
+        --app-proto-text-default: var(--prototype-temp-color-700);
+        --app-proto-text-disabled: var(--prototype-temp-color-400);
+    }
+
+    .custom-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+        scrollbar-gutter: stable both-edges;
+    }
+
+    .custom-scrollbar-no-gutter {
+        scrollbar-gutter: unset;
+    }
+
+    .custom-scrollbar-snap-right {
+        margin-right: -1.5%;
+        margin-left: -1.5%;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+        scrollbar-gutter: stable both-edges;
+    }
+
+    .custom-scrollbar-snap-right::-webkit-scrollbar {
+        margin-right: -1.5%;
+        margin-left: -1.5%;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-button {
+        display: none;
+        width: 0;
+        height: 0;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.25);
+        border-radius: 10px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(0, 0, 0, 0.35);
+    }
+
+    .safe-word-break {
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-break: normal;
+        hyphens: auto;
+    }
+}
