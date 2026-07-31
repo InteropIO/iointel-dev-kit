@@ -1,0 +1,16 @@
+<div
+    class="app-spinner"
+    [ngClass]="{
+        'flex items-center justify-center': true,
+    }"
+>
+    <div
+        class="app-spinner__circle"
+        [ngClass]="{
+            'rounded-full animate-spin border-t-proto-background-light border-proto-text-disabled': true,
+            'w-6 h-6 border-2': size() === APP_SPINNER_COMPONENT_SIZE.SMALL,
+            'w-12 h-12 border-4': size() === APP_SPINNER_COMPONENT_SIZE.MEDIUM,
+            'w-16 h-16 border-8': size() === APP_SPINNER_COMPONENT_SIZE.LARGE,
+        }"
+    ></div>
+</div>

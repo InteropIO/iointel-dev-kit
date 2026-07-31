@@ -1,0 +1,54 @@
+@let hasResult = message().result !== undefined && message().result !== null;
+@let isExpanded = message().isExpanded !== undefined ? message().isExpanded : false;
+
+<div
+    class="tool-message-wrapper"
+    data-testid="tool-message"
+    [ngClass]="{
+        'flex flex-col text-text-states-active justify-start py-2 px-[3px] text-[13px] font-weight-600 leading-[100%]': true,
+    }"
+>
+    <div class="tool-message__header-wrapper" [ngClass]="{ 'flex items-center justify-center gap-2 px-1': true }">
+        <app-icon
+            data-testid="tool-item-dot"
+            [title]="hasResult ? UI_STRINGS.TOOL_EXECUTION_SUCCESS : UI_STRINGS.TOOL_EXECUTION_PENDING"
+            [iconFill]="hasResult ? '--app-accent-color-1' : 'text-text-states-active'"
+            [hoverIconFill]="hasResult ? '--app-accent-color-1' : 'text-text-states-active'"
+            [size]="APP_ICON_SIZES.XXXS"
+            [variant]="hasResult ? APP_ICON_VARIANTS.CIRCLE_FILLED : APP_ICON_VARIANTS.CIRCLE_OUTLINE"
+        ></app-icon>
+
+        <div class="tool-message__header" data-testid="tool-item-header" tabindex="0" [ngClass]="{ 'flex flex-1 cursor-pointer': true }" (click)="handleToggle()" (keyup)="handleToggle()">
+            <div class="flex flex-1 ps-2 items-center">
+                {{ message().toolName }}
+            </div>
+
+            <app-icon [variant]="isExpanded ? APP_ICON_VARIANTS.CHEVRON_UP : APP_ICON_VARIANTS.CHEVRON_DOWN"></app-icon>
+        </div>
+    </div>
+
+    @if (isExpanded) {
+        <div
+            class="tool-message__detail-pane"
+            data-testid="tool-item-detail"
+            [ngClass]="{
+                'flex flex-col gap-4 list-none pt-2 px-2 w-full': true,
+            }"
+        >
+            <div
+                class="tool-message__detail-pane-section"
+                [ngClass]="{
+                    'px-3 border-l border-text-default': true,
+                }"
+            >
+                <div class="tool-message__detail-pane-section-content" [ngClass]="{ 'px-2': true }">
+                    <span>Input</span>
+                    <app-md-formatter [content]="handleArgsToJSONMarkdown()"></app-md-formatter>
+
+                    <span>Output</span>
+                    <app-md-formatter [content]="handleResultToJSONMarkdown()"></app-md-formatter>
+                </div>
+            </div>
+        </div>
+    }
+</div>

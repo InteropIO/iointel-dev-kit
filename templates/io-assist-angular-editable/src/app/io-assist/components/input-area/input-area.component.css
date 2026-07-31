@@ -1,0 +1,30 @@
+/* Thin glow strip centered on the top border edge, bleeding upward above the box. */
+.input-area__container::before {
+    content: '';
+    position: absolute;
+    left: 5%;
+    right: 5%;
+    top: -3px;
+    height: 12px;
+    pointer-events: none;
+    z-index: 0;
+    background:
+        radial-gradient(
+            ellipse 40% 100% at 15% 50%,
+            var(--color-app-accent-color-1),
+            transparent 100%
+        ),
+        radial-gradient(
+            ellipse 40% 100% at 85% 50%,
+            var(--color-app-accent-color-2),
+            transparent 100%
+        );
+    filter: blur(12px);
+    opacity: 0.75;
+}
+
+/* Box sits above the glow strip so any downward overlap is hidden. */
+.input-area__content {
+    position: relative;
+    z-index: 1;
+}

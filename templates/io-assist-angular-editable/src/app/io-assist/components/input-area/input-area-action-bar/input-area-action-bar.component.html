@@ -1,0 +1,30 @@
+<div
+    class="input-area-action-bar"
+    data-testid="input-area-action-bar"
+    [ngClass]="{
+        'flex flex-1 gap-0.5 items-center': true,
+    }"
+>
+    <app-icon
+        class="min-w-[32px]"
+        data-testid="prompt-panel-button"
+        [variant]="isPromptPanelDisplayed() ? APP_ICON_VARIANTS.PROMPT_PANEL_FILLED : APP_ICON_VARIANTS.PROMPT_PANEL"
+        [hoverVariant]="APP_ICON_VARIANTS.PROMPT_PANEL_FILLED"
+        [size]="isPromptPanelDisplayed() ? APP_ICON_SIZES.XS : APP_ICON_SIZES.S"
+        [hoverBackgroundColor]="'app-icon-background-hover'"
+        (onClick)="handlePromptPanelOverlayOpen()"
+    >
+    </app-icon>
+    <app-icon
+        class="min-w-[32px]"
+        data-testid="tool-panel-button"
+        [variant]="isToolPanelDisplayed() ? APP_ICON_VARIANTS.TOOL_PANEL_FILLED : APP_ICON_VARIANTS.TOOL_PANEL"
+        [hoverVariant]="APP_ICON_VARIANTS.TOOL_PANEL_FILLED"
+        [size]="isToolPanelDisplayed() ? APP_ICON_SIZES.XS : APP_ICON_SIZES.S"
+        [hoverBackgroundColor]="'app-icon-background-hover'"
+        (onClick)="handleToolPanelOverlayOpen()"
+    >
+    </app-icon>
+
+    <app-select class="min-w-[63px]" [selectId]="APP_SELECT_IDS.PERMISSION" [options]="PERMISSION_OPTIONS" />
+</div>

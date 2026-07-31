@@ -1,0 +1,7 @@
+export enum SAMPLING_STOP_REASONS {
+    END_TURN = "endTurn",
+    STOP_SEQUENCE = "stopSequence",
+    MAX_TOKENS = "maxTokens",
+}
+
+export type SamplingStopReasonType = SAMPLING_STOP_REASONS.END_TURN | SAMPLING_STOP_REASONS.STOP_SEQUENCE | SAMPLING_STOP_REASONS.MAX_TOKENS;

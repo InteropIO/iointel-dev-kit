@@ -1,0 +1,101 @@
+@if (label()) {
+    <span
+        class="app-input-label"
+        [ngClass]="{
+            'flex text-input-default text-sm mb-2': true,
+            'text-input-label-disabled': disabled(),
+            'sr-only': isLabelSrOnly(),
+        }"
+        >{{ label() }}</span
+    >
+}
+
+<div
+    class="app-input"
+    [ngClass]="{
+        'flex flex-col items-start justify-center w-full p-2 mb-1 rounded-input-radius border-[1px]': true,
+        'hover:bg-input-background-hover hover:border-input-border-hover': !disabled() && !error() && !isActive(),
+        'focus-within:bg-input-background-active focus-within:border-input-border-active': !disabled() && !error() && isActive(),
+        'bg-input-background-disabled border-none': disabled(),
+        'border-input-border bg-input-background': !error() && !disabled(),
+        'border-input-error-border': error(),
+    }"
+>
+    <div
+        class="app-input-wrapper__inner"
+        [ngClass]="{
+            'flex gap-spacing-2 items-center w-full': true,
+        }"
+    >
+        @if (showLeadingIcon()) {
+            <app-icon
+                class="app-input-wrapper__leading-icon"
+                [variant]="leadingIconVariant()"
+                [size]="iconsSize()"
+                [isDisabled]="disabled()"
+                [disabledIconFill]="'--app-input-icon-disabled'"
+                [iconFill]="isActive() ? '--app-input-icon-active' : '--app-input-icon'"
+                [isWrapped]="false"
+            ></app-icon>
+        }
+
+        <input
+            class="app-input-wrapper__field"
+            [ngClass]="{
+                'flex-1 min-w-0 bg-transparent border-0 outline-none font-default text-xs': true,
+                'text-input-text': !disabled() && !isActive(),
+                'text-input-text-active': isActive(),
+                'text-input-icon-disabled cursor-not-allowed': disabled(),
+            }"
+            [type]="type()"
+            [placeholder]="placeholder()"
+            [value]="value()"
+            [disabled]="disabled()"
+            (focus)="isActive.set(true)"
+            (blur)="isActive.set(false)"
+            (input)="onInput($event)"
+        />
+
+        @if (showTrailingIcon() && value()) {
+            <app-icon
+                data-testid="input-clear-button"
+                class="app-input-wrapper__trailing-icon"
+                [ngClass]="{
+                    'cursor-pointer': true,
+                }"
+                [variant]="trailingIconVariant()"
+                [size]="iconsSize()"
+                [isDisabled]="disabled()"
+                [disabledIconFill]="'app-input-icon-disabled'"
+                [iconFill]="isActive() ? 'app-input-icon-active' : 'app-input-icon'"
+                [isWrapped]="false"
+                (onClick)="clearContent()"
+            ></app-icon>
+        }
+    </div>
+</div>
+
+@if (error()) {
+    <div
+        class="app-input-error"
+        [ngClass]="{
+            'flex items-center justify-end w-full': true,
+        }"
+    >
+        <div
+            [ngClass]="{
+                'flex items-center justify-center shrink-0 pe-1': true,
+            }"
+        >
+            <app-icon [variant]="APP_ICON_VARIANTS.ERROR_CLOSE" [size]="APP_ICON_SIZES.XS" [isWrapped]="false" [iconFill]="'--app-red-700'" [hoverIconFill]="'--app-red-700'"></app-icon>
+        </div>
+        <p
+            class="app-input-error__text"
+            [ngClass]="{
+                'flex-1 min-w-0 font-default font-weight-weight-400 text-input-error text-input-error-text leading-input-error tracking-input-error': true,
+            }"
+        >
+            {{ error() }}
+        </p>
+    </div>
+}

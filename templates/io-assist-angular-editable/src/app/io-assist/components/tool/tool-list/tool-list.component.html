@@ -1,0 +1,81 @@
+@let isLoadingTools = isLoading();
+@let hasTools = tools().length > 0;
+@let hasFilteredTools = !isLoadingTools && filteredTools().length > 0;
+
+@if (!isLoadingTools && hasTools) {
+    <!-- Needs to be displayed above the tool list toggle icon -->
+    <app-input
+        data-testid="tool-filter-input"
+        [ngClass]="{
+            'sticky top-0 z-1': true,
+        }"
+        [placeholder]="UI_STRINGS.INPUT_TOOLTIP"
+        [showLeadingIcon]="true"
+        [showTrailingIcon]="true"
+        (onValueChange)="searchTerm.set($event)"
+    />
+}
+
+<div
+    class="tool-list"
+    data-testid="tool-panel"
+    [ngClass]="{
+        'flex flex-col items-center pt-2': true,
+    }"
+>
+    @if (isLoadingTools) {
+        <span
+            [ngClass]="{
+                'text-proto-text-default': true,
+            }"
+            >{{ UI_STRINGS.LOADING_TOOLS }}</span
+        >
+    }
+
+    @if (hasFilteredTools) {
+        @for (tool of filteredTools(); track tool.name) {
+            <tool-list-item
+                [ngClass]="{
+                    'w-full': true,
+                }"
+                [tool]="tool"
+            ></tool-list-item>
+        }
+    }
+
+    @if (hasTools && !hasFilteredTools) {
+        <span
+            data-testid="no-filtered-tools"
+            [ngClass]="{
+                'text-proto-text-default': true,
+            }"
+            >{{ UI_STRINGS.NO_FILTERED_TOOLS }}</span
+        >
+    }
+
+    @if (!hasTools && !isLoadingTools) {
+        <div
+            data-testid="no-tools"
+            [ngClass]="{
+                'flex flex-col items-center gap-2 text-center px-4': true,
+            }"
+        >
+            <span
+                [ngClass]="{
+                    'text-proto-text-default': true,
+                }"
+                >{{ UI_STRINGS.NO_TOOLS }}</span
+            >
+            <!-- TODO: Add link to documentation -->
+            <button
+                type="button"
+                [ngClass]="{
+                    'text-xs text-blue-500 hover:text-blue-600 underline cursor-pointer': true,
+                }"
+                (click)="onDocsLinkClick()"
+            >
+                {{ UI_STRINGS.NO_TOOLS_SEE_MORE }}
+            </button>
+        </div>
+    }
+</div>

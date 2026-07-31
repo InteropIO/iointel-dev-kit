@@ -1,0 +1,14 @@
+:host ::ng-deep .io-assist-code-theme::before {
+    background: none !important;
+    background-color: transparent !important;
+}
+
+:host ::ng-deep pre .language-json {
+    max-height: 320px;
+}
+
+@media (min-width: 1024px) {
+    :host ::ng-deep pre .language-json {
+        max-height: 400px;
+    }
+}

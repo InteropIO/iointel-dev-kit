@@ -1,0 +1,11 @@
+<div data-testid="working-context-panel" class="flex flex-1 flex-col p-4 gap-4">
+    <div class="flex items-center gap-2 mb-4 p-4 bg-app-background-secondary border border-border-default rounded">
+        <app-icon [variant]="APP_ICON_VARIANTS.INFO" [size]="APP_ICON_SIZES.M" [iconFill]="'--app-accent-color-1'" [isWrapped]="false"> </app-icon>
+
+        <p class="text-sm text-proto-text-default">
+            {{ UI_STRINGS.CALLOUT_TEXT }}
+        </p>
+    </div>
+
+    <app-md-formatter [content]="textToJSONMarkdown()"></app-md-formatter>
+</div>

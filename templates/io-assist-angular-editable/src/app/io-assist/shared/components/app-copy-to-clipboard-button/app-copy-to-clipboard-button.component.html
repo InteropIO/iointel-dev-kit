@@ -1,0 +1,16 @@
+<app-tooltip [tooltipPosition]="TOOLTIP_POSITIONS.TOP" [displayMode]="TOOLTIP_DISPLAY_MODES.EVENT" [forceVisible]="isCopiedSignal()">
+    <button tooltip-trigger class="app-copy-to-clipboard-button flex items-center justify-center cursor-pointer rounded-full" [attr.data-testid]="dataTestId() || null" (click)="handleCopyResponse()">
+        <!-- Icon: outline copy (default) / filled copy (hover) / tick (copied) -->
+        @if (!isCopiedSignal()) {
+            <app-icon [variant]="isHoveredSignal() ? APP_ICON_VARIANTS.COPY_HOVER : APP_ICON_VARIANTS.COPY" [tabIndex]="-1"></app-icon>
+        }
+
+        @if (isCopiedSignal()) {
+            <app-icon [title]="''" [variant]="APP_ICON_VARIANTS.CHECK" [tabIndex]="-1"></app-icon>
+        }
+    </button>
+
+    <span tooltip-content class="text-[9px] leading-[11px] tracking-[0.09px] text-text-states-hover">
+        {{ UI_STRINGS.COPIED }}
+    </span>
+</app-tooltip>

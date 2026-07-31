@@ -1,0 +1,29 @@
+<div
+    class="icon-wrapper"
+    [ngClass]="{
+        'pointer-events-none': true,
+        'cursor-pointer': isDisabled() === false,
+        'cursor-not-allowed': isDisabled() === true,
+    }"
+    [style.width.px]="sizeAsNumber()"
+    [style.height.px]="sizeAsNumber()"
+>
+    @let hasCustomInlineSvgIcon = hasCustomIcon() && isCustomIconInlineSvg() && customIconSanitizedSvg();
+    @let hasCustomImageIcon = hasCustomIcon() && shouldCustomIconRenderAsImage() && customIconImageUrl();
+    @let shouldShowVariantIcon = !hasCustomIcon();
+
+    <!-- Custom Icon: Inline SVG -->
+    @if (hasCustomInlineSvgIcon) {
+        <div #iconDiv data-testid="icon-svg-wrapper" class="icon-wrapper__svg w-full h-full flex justify-center items-center" [ngStyle]="getIconStyles()" [innerHTML]="customIconSanitizedSvg()"></div>
+    }
+
+    <!-- Custom Icon: Image (URL or Data URL) - Using CSS Mask for theming -->
+    @if (hasCustomImageIcon) {
+        <div #iconDiv data-testid="icon-image-wrapper" class="icon-wrapper__image w-full h-full" [ngStyle]="getImageIconMaskStyles()"></div>
+    }
+
+    <!-- Variant-based Icon -->
+    @if (shouldShowVariantIcon) {
+        <div #iconDiv data-testid="icon-svg-wrapper" class="icon-wrapper__svg" [ngClass]="getIconClasses()" [ngStyle]="getIconStyles()" [innerHTML]="iconSvgContent()"></div>
+    }
+</div>

@@ -1,5 +1,5 @@
 import { Component, signal } from "@angular/core";
-import { IoAssist, type IoAssistDynamicConfig } from "./io-assist/something";
+import { IoAssist, type IoAssistDynamicConfig } from "./io-assist";
 
 @Component({
     selector: "app-root",

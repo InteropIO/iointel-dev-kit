@@ -1,10 +1,10 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from "@angular/core";
 import IOBrowser from "@interopio/browser";
-import { provideIoAssist } from "./io-assist/something";
+import { provideIoAssist } from "./io-assist";
 import IOWorkspaces from "@interopio/workspaces-api";
 
-// this must be defined;
-const AGENT_SERVER_URL = "";
+// this must be defined; ships empty — you must set it to your agent server URL
+const AGENT_SERVER_URL = "http://localhost:4111";
 
 const createIOConnect: typeof IOBrowser = async (config) => {
     const io = await IOBrowser(config);

@@ -1,0 +1,36 @@
+@let chatUIReadyToDisplay = isIoReady() && isAppCoreServicesStarted();
+@let showAppCoreServicesError = isAppCoreServicesError() && !isAppCoreServicesPending();
+@let showError = !isIoReady() || showAppCoreServicesError;
+@let isOperationPending = isAppCoreServicesPending() && !isAppCoreServicesStarted();
+
+<div class="flex flex-1 w-full h-lvh bg-app-background font-default overflow-hidden">
+    @if (!chatUIReadyToDisplay) {
+        <div class="m-auto text-center">
+            @if (showError) {
+                @if (!isIoReady()) {
+                    <p class="text-sm text-gray-500">{{ UI_STRINGS.CANNOT_CONNECT_TO_IO }}</p>
+                }
+
+                @if (showAppCoreServicesError) {
+                    <p class="text-sm text-red-500">{{ appCoreServicesError() }}</p>
+                    <p class="text-sm text-gray-500 mt-2">{{ UI_STRINGS.IO_INTEL_INIT_ERROR }}</p>
+                    <!-- TODO: ADD PROPER DOCUMENTATION LINK -->
+                    <p class="text-sm text-gray-500 mt-2">{{ UI_STRINGS.DOCUMENTATION_LINK() }}</p>
+
+                    <button class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" (click)="refreshPage()">
+                        {{ UI_STRINGS.REFRESH }}
+                    </button>
+                }
+            }
+
+            @if (isOperationPending) {
+                <app-spinner [size]="APP_SPINNER_COMPONENT_SIZE.MEDIUM"></app-spinner>
+                <p class="text-sm text-gray-500 mt-2">{{ UI_STRINGS.INITIALIZING_SERVICES }}</p>
+            }
+        </div>
+    }
+
+    @if (chatUIReadyToDisplay) {
+        <chat />
+    }
+</div>

@@ -1,0 +1,102 @@
+<div
+    class="app-panel"
+    [ngClass]="{
+        'flex flex-col bg-panel-background rounded-2xl border border-panel-border shadow-panel-box-shadow w-auto md:min-w-[540px] min-w-[320px] max-w-[960px] max-h-[90vh] box-border overflow-hidden': true,
+    }"
+>
+    <!-- Panel Header -->
+    <div
+        class="app-panel__header"
+        [ngClass]="{
+            'flex justify-end text-text-black-white text-xl font-weight-600 gap-2 flex-shrink-0 px-6 pt-6': true,
+        }"
+    >
+        @if (title()) {
+            <span
+                [ngClass]="{
+                    'flex flex-1 items-center text-text-black-white leading-[24px] truncate': true,
+                }"
+                >{{ title() }}</span
+            >
+        }
+
+        @if (isHeaderCloseButtonDisplayed()) {
+            <app-icon
+                data-testid="panel-close-button"
+                [variant]="APP_ICON_VARIANTS.CLOSE"
+                [size]="APP_ICON_SIZES.M"
+                [iconFill]="'--app-text-black-white'"
+                [hoverIconFill]="'--app-text-black-white'"
+                (onClick)="onClose.emit()"
+            ></app-icon>
+        }
+    </div>
+
+    @if (description()) {
+        <div
+            class="app-panel__description"
+            [ngClass]="{
+                'flex-shrink-0 px-6 pt-3': true,
+            }"
+        >
+            <p
+                [ngClass]="{
+                    'text-text-secondary text-sm truncate': true,
+                }"
+            >
+                {{ description() }}
+            </p>
+        </div>
+    }
+
+    <!-- Scrollable wrapper for content -->
+    <div
+        class="app-panel__scrollable-wrapper"
+        [ngClass]="{
+            'flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar mt-3': true,
+        }"
+    >
+        <div
+            class="app-panel__scrollable-content"
+            [ngClass]="{
+                'px-3 pb-6': true,
+            }"
+        >
+            @if (htmlContent()) {
+                <div
+                    class="app-panel__html-content"
+                    [ngClass]="{
+                        'text-text-black-white text-sm': true,
+                    }"
+                    [innerHTML]="htmlContent()"
+                ></div>
+            }
+
+            <div
+                class="app-panel__content"
+                [ngClass]="{
+                    'text-text-black-white font-weight-400 break-words w-full': true,
+                }"
+            >
+                <ng-content select="[panel-content]"></ng-content>
+            </div>
+
+            <div #panelBodyContent></div>
+        </div>
+    </div>
+
+    <div
+        class="app-panel__footer"
+        [ngClass]="{
+            'empty:hidden flex justify-end gap-2 flex-shrink-0 w-full px-6 pb-6 pt-3': true,
+        }"
+    >
+        <ng-content select="[panel-footer]"></ng-content>
+
+        @if (footerButtons()) {
+            @for (button of footerButtons(); track button) {
+                <app-button [buttonType]="button.type" [disabled]="false" [testId]="button.testId ?? null" (onClick)="handleButtonClick(button)">{{ button.label }}</app-button>
+            }
+        }
+    </div>
+</div>

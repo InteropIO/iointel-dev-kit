@@ -1,0 +1,37 @@
+@let promptName = prompt().name;
+<!-- @let isAnyOperationPending = isUpdatePending() || isDeletePending(); -->
+<!-- @let favoriteListItemMode = isDisplayedInFavoriteList(); -->
+@let isFavorite = isCurrentPromptInFavorites();
+
+<div
+    class="flex flex-1 justify-between items-center p-2 gap-2 cursor-pointer min-w-0"
+    data-testid="prompt-list-item"
+    tabindex="0"
+    [ngClass]="{
+        'hover:bg-app-background-secondary rounded-md': !isDisplayedInFavoriteList(),
+        'h-[48px] hover:shadow-[0_0.5px_0.5px_0.5px_rgba(0,0,0,0.15)] rounded-2xl': isDisplayedInFavoriteList(),
+    }"
+    (click)="handlePromptSelect()"
+    (keyup)="handlePromptSelect()"
+>
+    <!-- Prompt Icon -->
+    <app-icon data-testid="prompt-icon" class="shrink-0" [variant]="APP_ICON_VARIANTS.PROMPT_PANEL" [customIcon]="customIcon()" [isHoveredExternal]="isHostHoveredSignal()"></app-icon>
+
+    <!-- Prompt Title -->
+    <span
+        class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-xs"
+        [ngClass]="{
+            'text-text-default': true,
+            'text-text-states-hover': isHostHoveredSignal(),
+        }"
+        >{{ promptName }}</span
+    >
+
+    <app-icon
+        data-testid="prompt-favorite-button"
+        class="p-2 ps-1 shrink-0"
+        [variant]="isFavorite ? APP_ICON_VARIANTS.STAR_FILLED : APP_ICON_VARIANTS.STAR_OUTLINE"
+        [isHoveredExternal]="isHostHoveredSignal()"
+        (click)="handlePromptToggleFavorite($event)"
+    ></app-icon>
+</div>

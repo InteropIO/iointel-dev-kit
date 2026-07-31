@@ -1,0 +1,4 @@
+export enum USER_TOOL_STATE {
+    IDLE = "IDLE",
+    ENABLING_DISABLING = "ENABLING_DISABLING",
+}

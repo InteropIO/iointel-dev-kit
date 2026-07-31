@@ -1,0 +1,39 @@
+@let isLoading = isFetchingThreads();
+@let hasNoThreads = !isLoading && threadsWithDivider().length === 0;
+@let hasThreads = !isLoading && threadsWithDivider().length > 0;
+
+@if (isLoading) {
+    <app-spinner
+        data-testid="threads-loading"
+        [ngClass]="{
+            'flex flex-1 justify-center items-center': true,
+        }"
+        [size]="APP_SPINNER_COMPONENT_SIZE.MEDIUM"
+    ></app-spinner>
+}
+
+@if (hasNoThreads) {
+    <p
+        data-testid="no-threads-message"
+        [ngClass]="{
+            'flex flex-1 justify-center items-center text-proto-text-default': true,
+        }"
+    >
+        {{ UI_STRINGS.NO_THREADS }}
+    </p>
+}
+
+@if (hasThreads) {
+    @for (threadWithDivider of threadsWithDivider(); track threadWithDivider.thread.id) {
+        @if (threadWithDivider.showDivider) {
+            <thread-history-list-item-divider
+                [ngClass]="{
+                    'p-2 pb-0': true,
+                }"
+                [dividerLabel]="threadWithDivider.divider"
+            ></thread-history-list-item-divider>
+        }
+
+        <thread-history-list-item [thread]="threadWithDivider.thread"></thread-history-list-item>
+    }
+}

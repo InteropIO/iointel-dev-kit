@@ -1,0 +1,45 @@
+<span
+    #triggerElement
+    class="flex"
+    (mouseenter)="isHoverEnabled() && showTooltip()"
+    (mouseleave)="isHoverEnabled() && hideTooltip()"
+    (focusin)="isHoverEnabled() && showTooltip()"
+    (focusout)="isHoverEnabled() && hideTooltip()"
+>
+    <ng-content select="[tooltip-trigger]"></ng-content>
+</span>
+
+<!-- Tooltip Template -->
+<ng-template #tooltipTemplate>
+    <div
+        #tooltipContainer
+        data-testid="app-tooltip"
+        class="app-tooltip__container fixed z-[999999] pointer-events-none transition-opacity duration-[120ms] max-w-[320px]"
+        [ngClass]="{
+            'opacity-0': !isPositioned(),
+            'opacity-100': isPositioned(),
+        }"
+        [ngStyle]="{ left: coordinates().x + 'px', top: coordinates().y + 'px' }"
+    >
+        <div
+            class="relative flex flex-col items-start gap-1 px-[4px] py-[3px] rounded-[4px] border border-tooltip-border bg-tooltip-background text-tooltip-text text-[9px] font-weight-400 tracking-[0.09px] leading-[11px]"
+        >
+            <ng-content select="[tooltip-content]"></ng-content>
+            <div
+                class="app-tooltip__arrow"
+                [ngClass]="{
+                    'app-tooltip__arrow--top': tooltipPosition() === TOOLTIP_POSITIONS.TOP,
+                    'app-tooltip__arrow--bottom': tooltipPosition() === TOOLTIP_POSITIONS.BOTTOM,
+                    'app-tooltip__arrow--left': tooltipPosition() === TOOLTIP_POSITIONS.LEFT,
+                    'app-tooltip__arrow--right': tooltipPosition() === TOOLTIP_POSITIONS.RIGHT,
+                }"
+                [ngStyle]="arrowStyle()"
+            ></div>
+        </div>
+    </div>
+</ng-template>
+
+<!-- Rendered tooltip -->
+@if (isVisible()) {
+    <ng-container *ngTemplateOutlet="tooltipTemplate"></ng-container>
+}

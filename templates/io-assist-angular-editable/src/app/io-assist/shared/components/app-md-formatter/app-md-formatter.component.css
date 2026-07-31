@@ -1,0 +1,505 @@
+/* Important: This css styles file uses ng-deep to override styles in child components and provide custom theme for our use case */
+
+/* General */
+:host {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    padding: 0px 2px;
+}
+
+/*
+ * These wildcard rules live in @layer base so that Tailwind utility classes
+ * used by child components always win (base < components < utilities).
+ * Elements without a competing utility still receive the base value.
+ */
+@layer base {
+    :host ::ng-deep remark-node * {
+        padding: 8px 0;
+    }
+
+    /* Code Block — reset the remark-node * padding for all code-block descendants */
+    :host ::ng-deep .io-assist-code-block * {
+        padding: 0;
+    }
+}
+
+:host ::ng-deep remark-node h1,
+:host ::ng-deep remark-node h2,
+:host ::ng-deep remark-node h3,
+:host ::ng-deep remark-node h4,
+:host ::ng-deep remark-node h5,
+:host ::ng-deep remark-node h6 {
+    font-family: Inter, sans-serif;
+    font-weight: 500;
+    color: var(--color-text-states-active);
+    margin-top: 20px;
+    padding: 0;
+    line-height: normal;
+}
+
+:host ::ng-deep remark-node h1 { font-size: 20px; line-height: 28px; }
+:host ::ng-deep remark-node h2 { font-size: 18px; line-height: 26px; }
+:host ::ng-deep remark-node h3 { font-size: 16px; line-height: 24px; }
+:host ::ng-deep remark-node h4 { font-size: 15px; line-height: 22px; }
+:host ::ng-deep remark-node h5 { font-size: 14px; line-height: 20px; }
+:host ::ng-deep remark-node h6 { font-size: 13px; line-height: 18px; }
+
+/* Body text — base span */
+:host ::ng-deep remark-node span:not(h1 span, h2 span, h3 span, h4 span, h5 span, h6 span, a span, .io-assist-code-block__copy *) {
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 20px;
+    color: var(--color-text-default);
+}
+
+/* Code Block — outer wrapper */
+:host ::ng-deep .io-assist-code-block {
+    position: relative;
+    width: 100%;
+    background: var(--color-app-background-secondary, #36383b);
+    border-radius: 16px;
+    padding: 16px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    margin: 8px 0;
+}
+
+/* Code Block — copy button: absolute top-right */
+:host ::ng-deep .io-assist-code-block__copy {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    z-index: 1;
+}
+
+/* Code Block — prism content */
+:host ::ng-deep .io-assist-code-theme {
+    display: block;
+    width: 100%;
+    padding-top: 16px;
+}
+
+:host ::ng-deep .io-assist-code-theme pre {
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    text-shadow: none;
+    outline: none;
+}
+
+:host ::ng-deep .io-assist-code-theme code {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 18px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 0;
+    text-shadow: none;
+}
+
+/* Prism syntax token colors — matches the Figma design */
+:host ::ng-deep .io-assist-code-theme .token {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    padding: 0;
+    background: transparent;
+    text-shadow: none;
+    color: var(--color-text-default, #caccce); /* default token color */
+}
+
+/* Keywords: import, export, from, const, let, var, function, class, interface, return, if, else, etc. */
+:host ::ng-deep .io-assist-code-theme .token.keyword,
+:host ::ng-deep .io-assist-code-theme .token.module,
+:host ::ng-deep .io-assist-code-theme .token.important,
+:host ::ng-deep .io-assist-code-theme .token.atrule {
+    color: #fb4bba;
+}
+
+/* Identifiers: function names, class names, variables used as values */
+:host ::ng-deep .io-assist-code-theme .token.function,
+:host ::ng-deep .io-assist-code-theme .token.class-name,
+:host ::ng-deep .io-assist-code-theme .token.variable,
+:host ::ng-deep .io-assist-code-theme .token.attr-name,
+:host ::ng-deep .io-assist-code-theme .token.property {
+    color: #4b92fb;
+}
+
+/* Strings and types */
+:host ::ng-deep .io-assist-code-theme .token.string,
+:host ::ng-deep .io-assist-code-theme .token.char,
+:host ::ng-deep .io-assist-code-theme .token.builtin,
+:host ::ng-deep .io-assist-code-theme .token.url,
+:host ::ng-deep .io-assist-code-theme .token.regex,
+:host ::ng-deep .io-assist-code-theme .token.attr-value {
+    color: #e39292;
+}
+
+/* Numbers, booleans */
+:host ::ng-deep .io-assist-code-theme .token.number,
+:host ::ng-deep .io-assist-code-theme .token.boolean {
+    color: #4b92fb;
+}
+
+/* Comments */
+:host ::ng-deep .io-assist-code-theme .token.comment,
+:host ::ng-deep .io-assist-code-theme .token.prolog,
+:host ::ng-deep .io-assist-code-theme .token.doctype,
+:host ::ng-deep .io-assist-code-theme .token.cdata {
+    color: #6a6d72;
+    font-style: italic;
+}
+
+/* Operators and punctuation — default gray */
+:host ::ng-deep .io-assist-code-theme .token.operator,
+:host ::ng-deep .io-assist-code-theme .token.punctuation,
+:host ::ng-deep .io-assist-code-theme .token.tag,
+:host ::ng-deep .io-assist-code-theme .token.entity {
+    color: var(--color-text-default, #caccce);
+}
+
+/* Ensure remark and remark-node form proper block formatting contexts */
+:host ::ng-deep remark {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+}
+
+:host ::ng-deep remark-node {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* Table Theming */
+:host ::ng-deep remark-node table {
+    margin: 8px 0;
+    width: 100%;
+    max-width: 100%;
+    border-collapse: collapse;
+    display: block;
+    overflow-x: auto;
+}
+
+:host ::ng-deep remark-node table thead {
+    text-align: left;
+}
+
+:host ::ng-deep remark-node table thead th {
+    padding: 12px 12px 12px 0;
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    color: var(--color-text-states-active);
+    border-bottom: 2px solid var(--color-panel-border);
+}
+
+:host ::ng-deep remark-node table thead th:last-child {
+    padding-right: 0;
+}
+
+:host ::ng-deep remark-node table tbody tr {
+    border-top: 1px solid var(--color-panel-border);
+}
+
+:host ::ng-deep remark-node td {
+    padding: 12px 12px 12px 0;
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 20px;
+    color: var(--color-text-default);
+}
+
+:host ::ng-deep remark-node td:last-child {
+    padding-right: 0;
+}
+
+/* Lists — shared base */
+:host ::ng-deep remark-node ul,
+:host ::ng-deep remark-node ol {
+    margin: 16px 0 8px 0;
+    padding: 0;
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 20px;
+    color: var(--color-text-default);
+    list-style: none;
+}
+
+/* Cancel the global remark-node * { padding: 8px 0 } for p/span inside li
+   — remark wraps li text in <p> when the li has block children, which would
+   push the text down and misalign it with the absolute bullet/number. */
+:host ::ng-deep remark-node li > p,
+:host ::ng-deep remark-node li > span {
+    padding: 0;
+    margin: 0;
+}
+
+/* Nested lists: reset margin */
+:host ::ng-deep remark-node li > ul,
+:host ::ng-deep remark-node li > ol {
+    margin: 0;
+}
+
+/* ── Unordered lists ─────────────────────────────── */
+
+:host ::ng-deep remark-node ul {
+    padding-left: 8px;
+}
+
+/* Nested UL indents */
+:host ::ng-deep remark-node li > ul {
+    padding-left: 16px;
+}
+
+:host ::ng-deep remark-node li > ul > li > ul {
+    padding-left: 24px;
+}
+
+/* All UL direct-child items */
+:host ::ng-deep remark-node ul > li {
+    position: relative;
+    padding: 6px 0 6px 14px;
+}
+
+/* Bullet: vertically centered with the first text line.
+   li padding-top = 6px, line-height = 20px → text center = 6 + 10 = 16px
+   Bullet is 6px tall → top = 16 - 3 = 13px */
+:host ::ng-deep remark-node ul > li::before {
+    content: '';
+    position: absolute;
+    left: 1px;
+    top: 13px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--color-text-default);
+}
+
+/* L3 bullet: hollow circle */
+:host ::ng-deep remark-node ul > li > ul > li > ul > li::before {
+    background-color: transparent;
+    border: 1.5px solid var(--color-text-default);
+}
+
+/* ── Ordered lists ───────────────────────────────── */
+
+:host ::ng-deep remark-node ol {
+    counter-reset: item;
+}
+
+/* Nested OL indents */
+:host ::ng-deep remark-node li > ol {
+    padding-left: 24px;
+}
+
+/* Only direct OL children are counted */
+:host ::ng-deep remark-node ol > li {
+    counter-increment: item;
+    position: relative;
+    padding: 6px 0 6px 20px;
+}
+
+/* L2 items need more room for "1.1." */
+:host ::ng-deep remark-node li > ol > li {
+    padding-left: 32px;
+}
+
+/* L3 items need more room for "1.1.1." */
+:host ::ng-deep remark-node li > ol > li > ol > li {
+    padding-left: 44px;
+}
+
+/* Number: top = li padding-top = 6px, aligns with start of text line */
+:host ::ng-deep remark-node ol > li::before {
+    content: counters(item, '.') '.';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+    color: var(--color-text-states-active);
+}
+
+/* Blockquote */
+:host ::ng-deep remark-node blockquote {
+    background: #2e3033;
+    border-radius: 4px;
+    padding: 16px 24px;
+    margin: 8px 0;
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+:host ::ng-deep remark-node blockquote::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 6px;
+    height: 100%;
+    border-radius: 4px 0 0 4px;
+    background: linear-gradient(
+        180deg,
+        var(--color-app-accent-color-1),
+        var(--app-blue, #4b92fb)
+    );
+}
+
+:host ::ng-deep remark-node blockquote p,
+:host ::ng-deep remark-node blockquote span {
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 20px;
+    color: var(--color-text-default, #caccce);
+    padding: 0;
+    margin: 0;
+}
+
+/* hr */
+:host ::ng-deep remark-node hr {
+    border: none;
+    z-index: 1;
+    position: relative;
+    margin-top: 16px;
+    padding-bottom: 8px;
+}
+
+:host ::ng-deep remark-node hr::before {
+    content: '';
+    background: var(--color-panel-border, #3a3c40);
+    position: absolute;
+    z-index: -1;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 1px;
+}
+
+/* Paragraph — body text */
+:host ::ng-deep remark-node p {
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 20px;
+    color: var(--color-text-default);
+    padding: 0;
+    margin: 0 0 8px 0;
+}
+
+:host ::ng-deep remark-node p:last-child {
+    margin-bottom: 0;
+}
+
+/* Body small — <small> tag: Inter Regular 12px/16px */
+:host ::ng-deep remark-node small {
+    font-family: Inter, sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 16px;
+    color: var(--color-text-default);
+    display: inline;
+    padding: 0;
+}
+
+/* Inline link: Inter Semi Bold 600, 14px/20px, blue, underlined */
+:host ::ng-deep remark-node a {
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+    color: var(--app-blue, #4b92fb);
+    text-decoration: underline;
+    text-decoration-skip-ink: none;
+    padding: 0;
+}
+
+/* Ensure spans inside links inherit link color, not the body span rule */
+:host ::ng-deep remark-node a span {
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    padding: 0;
+}
+
+:host ::ng-deep remark-node a:hover {
+    opacity: 0.85;
+}
+
+/* Strong / bold: Inter Bold 700, 14px/20px — color stays as body text */
+:host ::ng-deep remark-node strong {
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    font-style: normal;
+    line-height: 20px;
+    padding: 0;
+}
+
+:host ::ng-deep remark-node strong span {
+    font-weight: inherit;
+    padding: 0;
+}
+
+/* Em / italic: Inter Italic 400, 14px/20px */
+:host ::ng-deep remark-node em {
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 20px;
+    padding: 0;
+}
+
+/* Strikethrough: line-through, decoration-skip-ink: none */
+:host ::ng-deep remark-node del,
+:host ::ng-deep remark-node s {
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    font-style: normal;
+    line-height: 20px;
+    color: var(--color-text-default);
+    text-decoration: line-through;
+    text-decoration-style: solid;
+    text-decoration-skip-ink: none;
+    padding: 0;
+}
+
+/* Inline code: JetBrains Mono 13px/18px, blue, dark bg pill */
+:host ::ng-deep remark-node code:not(pre code) {
+    display: inline;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 18px;
+    color: var(--app-blue, #4b92fb);
+    background: var(--color-app-background-secondary);
+    border-radius: 2px;
+    padding: 0 2px;
+    vertical-align: baseline;
+}

@@ -1,0 +1,157 @@
+@import './_defaults.css';
+
+/*
+    Use this object to define variables that you need to get included
+    as a tailwind utility and use as class name directly.
+
+    Example usage:
+    ComponentName
+    ComponentName [Colors]
+    --keyword-variable-name: #hexcode/rgba/size/cssvariable;
+
+    Where:
+    --keyword = tailwind prefix which controls the visibility of the variable among
+                tailwind utilities. Once a tailwind utility is generated, you can use it
+                directly as a class name in your html.
+
+    cssvariable - Using css variables enables us to support dynamic theme by defining the
+                    colors in :only-of-type place using the .dark and .light classes
+                    + the ability to provide them as tailwind utilities.
+
+    More information on theme variables can be found here: https://tailwindcss.com/docs/theme#theme-variable-namespaces
+*/
+@theme {
+    /* General */
+    /* General [Colors] */
+    /* ... */
+    --color-app-background: var(--app-background);
+    --color-app-background-secondary: var(--app-background-secondary);
+    --color-app-accent-color-1: var(--app-accent-color-1);
+    --color-app-accent-color-2: var(--app-accent-color-2);
+    --color-app-accent-color-3: var(--app-accent-color-3);
+
+    /* General [Spacings] */
+    --spacing-spacing-1: var(--app-spacing-1);
+    --spacing-spacing-2: var(--app-spacing-2);
+    --spacing-spacing-3: var(--app-spacing-3);
+    --spacing-spacing-4: var(--app-spacing-4);
+    --spacing-spacing-5: var(--app-spacing-5);
+    --spacing-spacing-6: var(--app-spacing-6);
+
+    /* Font */
+    /* Font [Types] */
+    --font-default: 'Inter Variable', sans-serif;
+
+    /* Font [Colors] */
+    --color-text-states-disabled: var(--app-text-states-disabled);
+    --color-text-states-hover: var(--app-text-states-hover);
+    --color-text-states-active: var(--app-text-states-active);
+    --color-text-default: var(--app-text-default);
+    --color-text-secondary: var(--app-text-secondary);
+    --color-text-black-white: var(--app-text-black-white);
+    --color-text-danger: var(--app-red-700);
+
+    /* Thread History */
+    /* Thread History [Colors] */
+    --color-thread-list-item-hover-background: var(--app-thread-list-item-hover-background);
+
+    /* Font [Weights] */
+    --font-weight-weight-400: var(--app-font-weight-400);
+    --font-weight-weight-600: var(--app-font-weight-600);
+
+    /* Borders */
+    /* Borders [Colors] */
+    --color-border-default: var(--app-border-default);
+    --color-border-hover: var(--app-border-hover);
+
+    /* AppPanelComponent */
+    /* AppPanelComponent [Colors] */
+    --color-panel-background: var(--app-panel-background);
+    --color-panel-border: var(--app-panel-border);
+    --shadow-panel-box-shadow: var(--app-default-box-shadow);
+
+    /* AppButtonComponent */
+    /* AppButtonComponent [Colors] */
+    --color-button-submit-background: var(--app-blue);
+    --color-button-danger-background: var(--app-red-700);
+    --color-button-border: var(--app-neutrals-1000);
+    --color-button-border-default: var(--app-button-border-default);
+    --color-button-background-disabled: var(--app-background-disabled);
+    --color-button-text-disabled: var(--app-text-disabled);
+
+    /* UserMessageComponent */
+    /* UserMessageComponent [Colors] */
+    --color-user-message-background: var(--app-user-message-background);
+    --color-user-message-text: var(--app-user-message-text);
+
+    /* AppInputComponent */
+    /* AppInputComponent [Colors] */
+    --color-input-background-disabled: var(--app-input-background-disabled);
+    --color-input-border: var(--app-input-border);
+    --color-input-border-disabled: var(--app-border-disabled-default);
+    --color-input-default: var(--app-text-default);
+    --color-input-label-disabled: var(--app-text-states-disabled);
+    --color-input-background: var(--app-input-background);
+    --color-input-background-hover: var(--app-input-background-hover);
+    --color-input-background-active: var(--app-input-background-active);
+    --color-input-border: var(--app-input-border);
+    --color-input-border-hover: var(--app-input-border-hover);
+    --color-input-border-active: var(--app-input-border-active);
+    --color-input-text: var(--app-input-text);
+    --color-input-text-active: var(--app-input-text-active);
+    --color-input-icon: var(--app-input-icon);
+    --color-input-icon-active: var(--app-input-icon-active);
+    --color-input-icon-disabled: var(--app-input-icon-disabled);
+    --color-input-error-border: var(--app-border-error);
+    --color-input-error-text: var(--app-text-error);
+
+    /* AppInputComponent [Sizes] */
+    --border-width-input-border: var(--app-border-size-1);
+    --radius-input-radius: var(--app-border-radius-sm);
+    --font-size-input-text: var(--app-font-size-12);
+    --font-size-input-error: var(--app-font-size-10);
+    --line-height-input-error: var(--app-line-height-13);
+    --tracking-input-error: var(--app-letter-spacing-01);
+
+    /* AppIconComponent [Colors] */
+    --color-app-icon-background-hover: var(--app-icon-background-hover);
+    --color-app-icon-background-disabled: var(--app-icon-background-disabled);
+
+    /* AppToggleComponent */
+    /* AppToggleComponent [Colors] */
+    --color-toggle-background-disabled: var(--app-toggle-background-disabled);
+    --color-toggle-background-enabled: var(--app-toggle-background-enabled);
+    --color-toggle-background-hover-disabled: var(--app-toggle-background-hover-disabled);
+    --color-toggle-background-hover-enabled: var(--app-toggle-background-hover-enabled);
+    --color-toggle-circle: var(--app-toggle-circle);
+
+    /* AppTooltipComponent */
+    /* AppTooltipComponent [Colors] */
+    --color-tooltip-background: var(--app-tooltip-background);
+    --color-tooltip-border: var(--app-tooltip-border);
+    --color-tooltip-text: var(--app-tooltip-text);
+
+    /* Prototype Colors */
+    --color-proto-background: var(--app-proto-background);
+    --color-proto-background-light: var(--app-proto-background-light);
+    --color-proto-border-default: var(--app-proto-border-default);
+    --color-proto-text-default: var(--app-proto-text-default);
+    --color-proto-text-disabled: var(--app-proto-text-disabled);
+}
+
+/*
+    Global keyboard-focus indicator.
+    Uses :focus-visible so the outline only appears on keyboard navigation,
+    not on mouse/pointer clicks.
+    Input-like elements are excluded because browsers always match :focus-visible
+    on them (even on click); they handle focus styles at the component level.
+
+    Placed in @layer base so Tailwind utilities (e.g. outline-none) can override
+    it in components that provide their own focus styling.
+*/
+@layer base {
+    *:focus-visible:not(input):not(textarea):not(select) {
+        outline: 2px solid var(--app-border-hover);
+        outline-offset: -2px;
+    }
+}

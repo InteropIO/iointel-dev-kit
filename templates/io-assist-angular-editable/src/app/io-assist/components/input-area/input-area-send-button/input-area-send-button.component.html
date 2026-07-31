@@ -1,0 +1,42 @@
+@let showStopButton = isGeneratingResponse() && messageLength() > 0;
+@let disableInputButton = (!userQuery().trim() || isLoadingMessagesFromThread()) && !showStopButton;
+
+@let showDefaultIcon = !showStopButton && disableInputButton;
+@let showSendIcon = !showStopButton && !disableInputButton;
+
+@if (showDefaultIcon) {
+    <app-icon
+        data-testid="chat-send-button"
+        [isDisabled]="disableInputButton"
+        [backgroundColor]="'--app-icon-background-disabled'"
+        [disabledIconFill]="'--app-icon-disabled'"
+        [variant]="APP_ICON_VARIANTS.PAPER_PLANE"
+        [size]="APP_ICON_SIZES.S"
+    ></app-icon>
+}
+
+@if (showSendIcon) {
+    <app-icon
+        data-testid="chat-send-button"
+        [variant]="APP_ICON_VARIANTS.ARROW_UP"
+        [backgroundColor]="'--app-accent-color-1'"
+        [iconFill]="'--app-neutrals-0'"
+        [hoverIconFill]="'--app-neutrals-0'"
+        [hoverBackgroundColor]="'--app-accent-color-1'"
+        [size]="APP_ICON_SIZES.S"
+        (onClick)="handleSendMessage()"
+    ></app-icon>
+}
+
+@if (showStopButton) {
+    <app-icon
+        data-testid="chat-stop-button"
+        [variant]="APP_ICON_VARIANTS.RECTANGLE"
+        [backgroundColor]="'--app-accent-color-1'"
+        [iconFill]="'--app-neutrals-0'"
+        [hoverIconFill]="'--app-neutrals-0'"
+        [hoverBackgroundColor]="'--app-accent-color-1'"
+        [size]="APP_ICON_SIZES.S"
+        (onClick)="handleStopMessage()"
+    ></app-icon>
+}

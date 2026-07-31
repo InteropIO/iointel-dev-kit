@@ -1,4 +1,10 @@
-@import "@interopio/io-assist-ng/styles.css";
+/*
+ * io-assist's Tailwind styles + Inter font are built separately by
+ * src/app/io-assist/scripts/io-assist-angular-build.js into
+ * dist/io-assist-angular/browser/styles.css (mirroring
+ * @interopio/io-assist-ng's own dist/styles.css) and loaded via the
+ * <link rel="stylesheet"> in src/index.html, so they are not imported here.
+ */
 
 html,
 body {

@@ -1,0 +1,51 @@
+@let showLoadingSpinner = isGeneratingResponse() && message().id === lastUserMessage()?.id;
+@let showReloadButton = error() && message().id === lastUserMessage()?.id;
+@let showError = error() && message().id === lastUserMessage()?.id;
+
+<div
+    class="user-message"
+    data-testid="user-message"
+    [ngClass]="{
+        'flex flex-col justify-end': true,
+    }"
+>
+    <div class="user-message__inner" [ngClass]="{ 'flex items-end justify-end': true }">
+        <div
+            class="user-message__actions"
+            [ngClass]="{
+                'flex items-end px-2': true,
+            }"
+        >
+            @if (showLoadingSpinner) {
+                <app-spinner data-testid="loading-indicator" [size]="APP_SPINNER_COMPONENT_SIZE.SMALL" />
+            }
+
+            @if (showReloadButton) {
+                <app-icon [variant]="APP_ICON_VARIANTS.RELOAD" [size]="APP_ICON_SIZES.S" [animationEffect]="AnimationType.HOVER_TILT_45_CLICK_SPIN_270" (onClick)="reloadResponse()">Reload</app-icon>
+            }
+        </div>
+
+        <div class="user-message__content flex min-w-0">
+            <div
+                class="user-message__bubble"
+                [ngClass]="{
+                    'p-4 list-none text-[14px] leading-[18px] font-weight-400 text-user-message-text bg-user-message-background rounded-2xl max-w-[620px]': true,
+                    'min-w-0 whitespace-pre-wrap break-words': true,
+                }"
+            >
+                {{ message().content }}
+            </div>
+        </div>
+    </div>
+
+    @if (showError) {
+        <div
+            class="user-message__error"
+            [ngClass]="{
+                'flex justify-end py-1 text-text-default text-[13px] font-weight-400 leading-[100%]': true,
+            }"
+        >
+            {{ error() }}
+        </div>
+    }
+</div>

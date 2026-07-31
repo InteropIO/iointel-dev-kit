@@ -1,0 +1,5 @@
+export enum PANEL_BUTTON_ACTION_TYPE {
+    CLOSE = "CLOSE",
+    SUBMIT = "SUBMIT",
+    CUSTOM = "CUSTOM",
+}
