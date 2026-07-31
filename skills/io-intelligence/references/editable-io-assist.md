@@ -41,7 +41,7 @@ Do not describe the fork as a theme, plugin, or supported extension point unless
 
 There is still no scaffolding command. The planned five-preset scaffolder is not delivered in this skill release.
 
-The **React editable payload is delivered as a checked-in template**. `templates/io-assist-react-editable` carries the io.Assist React source at `src/io-assist`, with `src/io-assist/PROVENANCE.md` recording its origin repository, commit, package version, and customer-owned status. Copy that template to start a React editable application; it builds and runs as-is once `AGENT_SERVER_URL` is set in `src/App.tsx`.
+The **React editable payload is delivered as a checked-in template**. `templates/io-assist-react-editable` carries the io.Assist React source at `src/io-assist`, with `src/io-assist/PROVENANCE.md` recording its origin repository, commit, package version, and customer-owned status. Copy that template to start a React editable application. It builds and type-checks as-is, but it does **not** run standalone: like every io.Assist preset it requires a valid `AGENT_SERVER_URL` in `src/App.tsx` (an empty string fails AI Web's URL validation) **and** an io.Connect Browser Platform to host it, since `@interopio/browser` is a client that discovers a platform rather than creating one. Without a platform, io.Connect init fails and io.Assist never bootstraps. See the template's `README.md` for the run procedure.
 
 The **Angular editable payload is not materialized**. `templates/io-assist-angular-editable` is still a shell whose imports do not resolve.
 
