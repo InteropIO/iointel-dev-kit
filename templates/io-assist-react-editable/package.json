@@ -1,5 +1,5 @@
 {
-  "name": "io-assist-react-packaged",
+  "name": "io-assist-react-editable",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,13 +10,23 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "^5.0.0",
+    "@interopio/ai-web": "^1.1.2",
     "@interopio/browser": "^4.5.0",
     "@interopio/workspaces-api": "^4.5.0",
+    "prism-react-renderer": "^2.4.1",
     "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react-dom": "^19.2.6",
+    "react-markdown": "^9.0.1",
+    "remark-gfm": "^4.0.1",
+    "zustand": "^5.0.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@interopio/core": ">=6.0.0",
+    "@interopio/desktop": ">=6.0.0",
+    "@interopio/working-context": "^1.1.1",
+    "@tailwindcss/vite": "^4.1.13",
     "@types/node": "^24.12.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -25,6 +35,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "tailwindcss": "^4.1.13",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12"
