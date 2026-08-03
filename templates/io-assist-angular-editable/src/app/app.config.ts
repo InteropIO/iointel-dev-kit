@@ -1,6 +1,6 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from "@angular/core";
 import IOBrowser from "@interopio/browser";
-import { provideIoAssist } from "./io-assist";
+import { provideIoAssist } from "./io-assist/public-api";
 import IOWorkspaces from "@interopio/workspaces-api";
 
 // this must be defined; ships empty — you must set it to your agent server URL

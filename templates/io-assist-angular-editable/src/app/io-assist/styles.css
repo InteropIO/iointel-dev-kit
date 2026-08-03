@@ -1,5 +1,5 @@
 /* You can add global styles to this file, and also import other style files */
 @import 'prismjs/themes/prism-twilight.css';
 @import 'tailwindcss';
-@import './shared/styles/_utils.css';
+@import './lib/shared/styles/_utils.css';
 @import '@fontsource-variable/inter/wght.css';
