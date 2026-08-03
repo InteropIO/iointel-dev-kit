@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve --port 4103",
-    "build": "ng build",
+    "build": "node src/app/io-assist/scripts/io-assist-ng-build.js",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
