@@ -41,7 +41,7 @@ The skill includes a deterministic materializer for five official templates:
 - `io-assist-angular-editable`
 - `ai-web-vanilla`
 
-Template source remains outside the installed skill. The materializer retrieves exactly one selected directory from the immutable `V1.0` Git tag and records its provenance locally. AI coding agents should follow the skill's scaffolding workflow. To use the script directly from this repository:
+Template source remains outside the installed skill. The materializer retrieves exactly one selected directory from the immutable `V1.0.1` Git tag and records its provenance locally. AI coding agents should follow the skill's scaffolding workflow. To use the script directly from this repository:
 
 ```bash
 node skills/io-intelligence/scripts/materialize-template.mjs --list
@@ -50,7 +50,7 @@ node skills/io-intelligence/scripts/materialize-template.mjs \
   --target ./my-io-assist
 ```
 
-The generated applications are io.Connect clients. Their manifests and framework configuration define their commands and local ports. Starting a standalone web process does not by itself verify integrated behavior in io.Connect Browser or io.Connect Desktop.
+The generated applications are io.Connect clients. Their manifests and framework configuration define their commands and local ports. Every template intentionally ships with an empty `AGENT_SERVER_URL`; set it to a valid LLM agentic backend implementing the io.Intelligence Agent Protocol before starting the application. Starting a standalone web process does not by itself verify integrated behavior in io.Connect Browser or io.Connect Desktop.
 
 ## Documentation
 

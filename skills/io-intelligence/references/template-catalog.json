@@ -8,7 +8,7 @@
       "framework": "vanilla-js",
       "mode": "custom",
       "path": "templates/ai-web-vanilla",
-      "tag": "V1.0",
+      "tag": "V1.0.1",
       "ioConnectClient": true
     },
     "io-assist-angular-editable": {
@@ -17,7 +17,7 @@
       "framework": "angular",
       "mode": "editable",
       "path": "templates/io-assist-angular-editable",
-      "tag": "V1.0",
+      "tag": "V1.0.1",
       "ioConnectClient": true
     },
     "io-assist-angular-packaged": {
@@ -26,7 +26,7 @@
       "framework": "angular",
       "mode": "packaged",
       "path": "templates/io-assist-angular-packaged",
-      "tag": "V1.0",
+      "tag": "V1.0.1",
       "ioConnectClient": true
     },
     "io-assist-react-editable": {
@@ -35,7 +35,7 @@
       "framework": "react",
       "mode": "editable",
       "path": "templates/io-assist-react-editable",
-      "tag": "V1.0",
+      "tag": "V1.0.1",
       "ioConnectClient": true
     },
     "io-assist-react-packaged": {
@@ -44,7 +44,7 @@
       "framework": "react",
       "mode": "packaged",
       "path": "templates/io-assist-react-packaged",
-      "tag": "V1.0",
+      "tag": "V1.0.1",
       "ioConnectClient": true
     }
   }

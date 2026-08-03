@@ -287,7 +287,8 @@ async function materialize(catalog, id, targetInput) {
   process.stdout.write(
     `Materialized ${id} from ${catalog.repository}@${template.tag}:${template.path}\n` +
       `Target: ${targetPath}\n` +
-      `Provenance: ${join(targetPath, provenanceFileName)}\n`,
+      `Provenance: ${join(targetPath, provenanceFileName)}\n` +
+      "Required before start: set AGENT_SERVER_URL to a valid io.Intelligence Agent Protocol backend URL.\n",
   );
 }
 

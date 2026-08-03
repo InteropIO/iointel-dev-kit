@@ -38,11 +38,14 @@ If the requested delivery is ambiguous, establish the framework and choose packa
 5. If retrieval fails, report the failure and its evidence. Do not approximate the template from memory, copy another preset, or fetch from a branch.
 6. Work only in the materialized target. Do not inspect or download the other template directories unless the user separately asks to compare templates.
 7. Read the materialized manifest, lockfile, framework configuration, and relevant source before changing anything.
-8. When the task requires it, install dependencies with the package manager indicated by the materialized project.
-9. Discover the available start and build commands and configured development port from the materialized project. Do not assume command names or ports and do not invent a missing build command.
-10. Apply requested project-specific changes using the coding agent's normal tools and the official documentation for public APIs.
+8. Locate `AGENT_SERVER_URL` in the materialized source. It intentionally ships as an empty string. Obtain a valid URL from the user or existing project/environment evidence and set it to the LLM agentic backend that implements the io.Intelligence Agent Protocol. Do not invent a URL or silently retain the empty value.
+9. When the task requires it, install dependencies with the package manager indicated by the materialized project.
+10. Discover the available start and build commands and configured development port from the materialized project. Do not assume command names or ports and do not invent a missing build command.
+11. Apply requested project-specific changes using the coding agent's normal tools and the official documentation for public APIs.
 
 The materializer only retrieves source and records provenance. It does not install dependencies, start the application, run a build, register an io.Connect app, or validate project behavior.
+
+`AGENT_SERVER_URL` is a blocking startup prerequisite for every V1 template. Do not start the application until it contains a valid backend URL. Building the project may still be useful before that value is available, but build success does not establish backend connectivity.
 
 ## io.Connect execution boundary
 
