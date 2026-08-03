@@ -1,7 +1,7 @@
 /**
  * Steps:
- *   1. ng build         — compile the Angular library
- *   2. copy-fonts       — copy Inter woff2 files to dist/files/
+ *   1. copy-fonts       — copy Inter woff2 files to dist/files/
+ *   2. ng build         — compile the Angular library
  */
 
 const { execSync } = require("child_process");
