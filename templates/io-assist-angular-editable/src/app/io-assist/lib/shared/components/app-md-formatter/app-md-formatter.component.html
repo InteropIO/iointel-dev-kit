@@ -1,0 +1,15 @@
+<remark class="remark" [processor]="processor" [markdown]="content()">
+    <!-- Handles Code Blocks Rendering -->
+    <div *remarkTemplate="'code'; let node" class="io-assist-code-block">
+        <app-copy-to-clipboard-button class="io-assist-code-block__copy" [textToCopy]="node.value" />
+        <remark-prism class="io-assist-code-theme" [code]="node.value" [language]="node.lang" />
+    </div>
+
+    <!-- Custom Links Rendering -->
+    <span *remarkTemplate="'link'; let node">
+        <a style="color: var(--app-blue, #4b92fb)" [href]="node?.url" [title]="node.title ?? ''" [remarkNode]="node"> </a>
+    </span>
+
+    <!-- Handles Heading Rendering -->
+    <remark-heading *remarkTemplate="'heading'; let node" [node]="node"></remark-heading>
+</remark>

@@ -1,0 +1,3 @@
+import { APP_BUTTON_TYPES } from "./enum";
+
+export type AppButtonType = APP_BUTTON_TYPES.DEFAULT | APP_BUTTON_TYPES.SUBMIT | APP_BUTTON_TYPES.DANGER;

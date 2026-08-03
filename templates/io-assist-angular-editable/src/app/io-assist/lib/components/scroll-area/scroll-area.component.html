@@ -1,0 +1,29 @@
+<div
+    #scrollArea
+    data-testid="scroll-area"
+    class="scroll-area"
+    [ngClass]="{
+        'flex flex-1 flex-col min-h-0 min-w-0 overflow-x-hidden overflow-y-auto custom-scrollbar': true,
+    }"
+    (scroll)="handleOnScroll()"
+>
+    <ng-content></ng-content>
+
+    <div #spacerElement class="scroll-area__spacer"></div>
+</div>
+
+@if (!isCloseToBottom()) {
+    <app-icon
+        data-testid="scroll-to-bottom"
+        class="scroll-area__scroll-to-bottom-button"
+        [ngClass]="{
+            'absolute bottom-5 flex flex-1 justify-center items-center self-center cursor-pointer rounded-full shadow-xs transition-shadow shadow-border-default z-999': true,
+            'transition-opacity duration-500 ease-in-out': true,
+        }"
+        [variant]="APP_ICON_VARIANTS.ARROW_DOWN"
+        [size]="APP_ICON_SIZES.S"
+        [backgroundColor]="'--app-background-secondary'"
+        [hoverBackgroundColor]="'--app-background-secondary'"
+        (onClick)="scrollToBottom()"
+    ></app-icon>
+}

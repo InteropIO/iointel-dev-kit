@@ -1,0 +1,139 @@
+@let noAvailablePrompts = promptsToDisplay().length === 0;
+@let hasPrompts = promptsToDisplay().length > 0;
+@let isFavoriteOnlyList = showFavoriteOnly();
+@let shouldRenderInfoSection = noAvailablePrompts;
+@let hasCategories = promptGroups().length > 0;
+@let hasAnyPromptsInSystem = hasAnyPrompts();
+
+@if (!isFavoriteOnlyList && hasAnyPromptsInSystem) {
+    <app-input
+        data-testid="prompt-filter-input"
+        [ngClass]="{
+            'sticky top-0': true,
+        }"
+        [placeholder]="UI_STRINGS.INPUT_TOOLTIP"
+        [showLeadingIcon]="true"
+        [showTrailingIcon]="true"
+        (onValueChange)="searchTerm.set($event)"
+    />
+}
+
+<div
+    class="prompt-list"
+    data-testid="prompt-panel"
+    [ngClass]="{
+        'flex flex-col w-full h-full gap-[10px] py-2 pt-2 min-h-0': true,
+    }"
+>
+    @if (isFavoriteOnlyList) {
+        <div
+            class="prompt-list__header"
+            [ngClass]="{
+                'flex items-center p-2 w-full shrink-0': true,
+            }"
+        >
+            <span
+                [ngClass]="{
+                    'text-xs text-text-default tracking-wide': true,
+                }"
+                ><p>{{ UI_STRINGS.FAVORITE_PROMPTS }}</p></span
+            >
+        </div>
+    }
+
+    @if (shouldRenderInfoSection) {
+        <div
+            class="prompt-list__info"
+            [ngClass]="{
+                'flex justify-center items-center h-16': true,
+            }"
+        >
+            @if (noAvailablePrompts && !isFavoriteOnlyList && !hasAnyPromptsInSystem) {
+                <div
+                    [ngClass]="{
+                        'flex flex-col items-center gap-2 text-center px-4': true,
+                    }"
+                >
+                    <span
+                        [ngClass]="{
+                            'text-proto-text-default': true,
+                        }"
+                        >{{ UI_STRINGS.NO_PROMPTS_CONFIGURED }}</span
+                    >
+                    <!-- TODO: Add link to documentation -->
+                    <button
+                        type="button"
+                        [ngClass]="{
+                            'text-xs text-blue-500 hover:text-blue-600 underline cursor-pointer': true,
+                        }"
+                        (click)="onDocsLinkClick()"
+                    >
+                        {{ UI_STRINGS.NO_PROMPTS_SEE_MORE }}
+                    </button>
+                </div>
+            }
+
+            @if (noAvailablePrompts && !isFavoriteOnlyList && hasAnyPromptsInSystem) {
+                <span
+                    [ngClass]="{
+                        'text-proto-text-default': true,
+                    }"
+                    >{{ UI_STRINGS.NO_PROMPTS }}</span
+                >
+            }
+
+            @if (noAvailablePrompts && isFavoriteOnlyList) {
+                <span
+                    [ngClass]="{
+                        'text-proto-text-default': true,
+                    }"
+                    >{{ UI_STRINGS.NO_FAVORITE_PROMPTS }}</span
+                >
+            }
+        </div>
+    }
+
+    <div
+        class="prompt-list__items"
+        [ngClass]="{
+            'flex flex-col gap-3 w-full min-h-0 ': true,
+            'md:flex-row md:flex-wrap md:justify-center gap-3': isFavoriteOnlyList,
+            'overflow-y-auto overflow-x-hidden custom-scrollbar': !isFavoriteOnlyList,
+        }"
+    >
+        @if (hasPrompts) {
+            <!-- Render with categories when not in favorite mode and has category groups -->
+            @if (!isFavoriteOnlyList && hasCategories) {
+                @for (group of promptGroups(); track group.category) {
+                    <!-- Category header -->
+                    <div
+                        class="prompt-category-header"
+                        data-testid="prompt-category-header"
+                        [ngClass]="{
+                            'flex items-center px-2 py-1 mb-1': true,
+                        }"
+                    >
+                        <span
+                            [ngClass]="{
+                                'text-[10px] font-normal text-text-default leading-[13px] tracking-[0.1px]': true,
+                            }"
+                            >{{ group.category }}</span
+                        >
+                    </div>
+
+                    <!-- Prompts in this category -->
+                    @for (prompt of group.prompts; track prompt.name) {
+                        <prompt-list-item [prompt]="prompt" [isDisplayedInFavoriteList]="false"></prompt-list-item>
+                    }
+                }
+            }
+
+            <!-- Render without categories for favorite mode -->
+            @if (isFavoriteOnlyList) {
+                @for (prompt of promptsToDisplay(); track prompt.name) {
+                    <prompt-list-item [prompt]="prompt" [isDisplayedInFavoriteList]="true"></prompt-list-item>
+                }
+            }
+        }
+    </div>
+</div>

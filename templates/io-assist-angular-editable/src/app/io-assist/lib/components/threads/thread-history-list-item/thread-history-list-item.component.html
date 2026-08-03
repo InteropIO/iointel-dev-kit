@@ -1,0 +1,72 @@
+@let isCurrentlyActive = activeThreadId() === thread().id;
+@let isTryingToDeleteThread = thread().state === THREAD_STATE.DELETING;
+@let isTryingToRenameThread = thread().state === THREAD_STATE.RENAMING;
+@let isThreadActionPending = isThreadStreaming() || isTryingToDeleteThread || isTryingToRenameThread;
+@let hasNotification = hasCompletionNotification();
+@let showNotificationBadge = hasNotification && !isCurrentlyActive;
+
+<div
+    data-testid="thread-list-item"
+    class="flex flex-1 justify-start gap-2 px-4 h-8 rounded-md hover:bg-thread-list-item-hover-background group"
+    tabindex="0"
+    [ngClass]="{
+        'bg-thread-list-item-hover-background': isCurrentlyActive,
+    }"
+    (keyup.enter)="handleThreadSelection()"
+    (click)="handleThreadSelection()"
+>
+    <div class="flex items-center gap-2 cursor-pointer p-2 flex-1 min-w-0">
+        @if (!isEditModeEnabled()) {
+            <div
+                class="flex items-center text-xs text-text-default flex-1 min-w-0 overflow-hidden"
+                [ngClass]="{
+                    'text-text-states-active': isCurrentlyActive,
+                }"
+            >
+                @if (showNotificationBadge) {
+                    <span data-testid="thread-list-item-notification" class="w-2 h-2 rounded-full bg-orange-500 mr-2 flex-shrink-0" title="New response available"></span>
+                }
+
+                <span class="truncate block" [attr.title]="thread().title">
+                    {{ thread().title }}
+                </span>
+
+                @if (isThreadActionPending) {
+                    <app-spinner data-testid="thread-list-item-spinner" class="pl-2 flex-shrink-0" tabindex="-1" [size]="APP_SPINNER_COMPONENT_SIZE.SMALL"></app-spinner>
+                }
+            </div>
+        }
+
+        @if (isEditModeEnabled()) {
+            <input
+                #threadNameInput
+                data-testid="thread-name-input"
+                class="flex-1 px-2 border border-proto-border-default rounded text-proto-text-default"
+                [value]="thread().title"
+                (blur)="handleRenameOnBlur(threadNameInput.value)"
+                (keydown.enter)="handleEditModeDisable(); onRenameThread(threadNameInput.value)"
+                (keydown.escape)="handleEditModeDisable(); $event.stopPropagation()"
+            />
+        }
+
+        <!-- Thread Action Buttons -->
+        <div class="hidden group-hover:flex gap-2 ml-auto" [ngClass]="{ flex: isCurrentlyActive, hidden: !isCurrentlyActive }">
+            <app-icon
+                data-testid="thread-edit-button"
+                [variant]="APP_ICON_VARIANTS.EDIT"
+                [tabIndex]="isCurrentlyActive ? 0 : -1"
+                [size]="APP_ICON_SIZES.S"
+                [isDisabled]="isThreadActionPending"
+                (onClick)="handleEditModeEnable()"
+            />
+            <app-icon
+                data-testid="thread-delete-button"
+                [variant]="APP_ICON_VARIANTS.DELETE"
+                [tabIndex]="isCurrentlyActive ? 0 : -1"
+                [size]="APP_ICON_SIZES.S"
+                [isDisabled]="isCurrentlyActive || isThreadActionPending"
+                (onClick)="onDeleteThread(thread()); $event.stopPropagation()"
+            />
+        </div>
+    </div>
+</div>

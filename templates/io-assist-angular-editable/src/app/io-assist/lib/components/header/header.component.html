@@ -1,0 +1,54 @@
+@let showHomeButton = isLoadingMessages() || messageLength() > 0;
+@let showThreadPanelToggleButton = !isThreadHistoryDisplayed();
+@let hasNotification = hasAnyCompletionNotification();
+
+<div
+    class="header"
+    [ngClass]="{
+        'flex flex-1 justify-start px-4 py-2 gap-2 self-stretch': true,
+    }"
+>
+    @if (showThreadPanelToggleButton || showHomeButton) {
+        <div
+            [ngClass]="{
+                flex: true,
+            }"
+        >
+            @if (showThreadPanelToggleButton) {
+                <div class="relative">
+                    <app-icon data-testid="thread-toggle-button" [variant]="APP_ICON_VARIANTS.THREAD_HISTORY" (click)="displayThreadHistory()"></app-icon>
+
+                    @if (hasNotification) {
+                        <span class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-orange-500" title="New responses available"></span>
+                    }
+                </div>
+            }
+
+            @if (showHomeButton) {
+                <app-tooltip [tooltipPosition]="TOOLTIP_POSITIONS.BOTTOM">
+                    <app-icon tooltip-trigger data-testid="home-button" [variant]="APP_ICON_VARIANTS.HOME" (click)="displayHome()"></app-icon>
+                    <span tooltip-content class="text-xs whitespace-nowrap">{{ UI_STRINGS.HEADER_COMPONENT.HOME_TOOLTIP }}</span>
+                </app-tooltip>
+            }
+        </div>
+    }
+
+    <!-- Context Area -->
+    @if (isWorkingContextEnabled()) {
+        <app-tooltip [tooltipPosition]="TOOLTIP_POSITIONS.BOTTOM">
+            <button
+                tooltip-trigger
+                data-testid="working-context-button"
+                [ngClass]="{
+                    'flex justify-center items-center px-2 py-[3.5px] border-[1px] rounded-[8px] text-text-default cursor-pointer': true,
+                    'hover:text-text-states-hover hover:text-states-hover': true,
+                    'font-weight-400 text-[10px] leading-[13px]': true,
+                }"
+                (click)="handleWorkingContextPanelOpen()"
+            >
+                {{ UI_STRINGS.WORKING_CONTEXT_PANEL_COMPONENT.VIEW_WORKING_CONTEXT_BUTTON }}
+            </button>
+            <span tooltip-content class="text-xs max-w-[260px] text-wrap">{{ UI_STRINGS.HEADER_COMPONENT.CONTEXT_TOOLTIP }}</span>
+        </app-tooltip>
+    }
+</div>

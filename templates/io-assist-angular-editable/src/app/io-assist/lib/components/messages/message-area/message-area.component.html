@@ -1,0 +1,40 @@
+<scroll-area [isForceScrollToBottomEnabled]="isSuccessFetchedFromThread()" [shouldExpandSpacer]="isLastUserMessage()" [elementToObserve]="messageAreaRef() ?? null">
+    @if (isLoadingMessagesFromThread()) {
+        <div
+            [ngClass]="{
+                'flex flex-1 justify-center items-center p-4': true,
+            }"
+        >
+            <app-spinner data-testid="thread-messages-loading" [size]="APP_SPINNER_COMPONENT_SIZE.MEDIUM"></app-spinner>
+        </div>
+    }
+
+    <div
+        #messageArea
+        class="message-area"
+        [ngClass]="{
+            'flex flex-1 flex-col gap-8 w-full min-w-[200px] max-w-[920px] mx-auto px-3': true,
+            'md:max-w-[720px]': true,
+            '[&>*:last-child]:pb-8': true,
+        }"
+    >
+        @for (message of allMessages(); track message.id) {
+            @if (message.role === UI_MESSAGE_ROLES.USER) {
+                <user-message [message]="message"></user-message>
+                <!-- Handles tool messages inside -->
+            }
+
+            @if (message.role === UI_MESSAGE_ROLES.ASSISTANT) {
+                <assistant-message [message]="message"></assistant-message>
+
+                @for (instance of getMcpAppsForResponse(message.responseForUserQueryId); track instance.id) {
+                    <mcp-app-resource [appInstance]="instance"></mcp-app-resource>
+                }
+            }
+
+            @if (showToolTraceForMessage(message.id)) {
+                <tool-trace-message [parentMessage]="message.id"></tool-trace-message>
+            }
+        }
+    </div>
+</scroll-area>

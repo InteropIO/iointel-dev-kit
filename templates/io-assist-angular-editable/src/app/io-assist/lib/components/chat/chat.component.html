@@ -1,0 +1,95 @@
+@let showMessageArea = isLoadingMessages() || messageLength() > 0;
+@let showWelcomeMessage = !showMessageArea;
+@let showFavoritePrompts = !showMessageArea && hasFavoritePrompts();
+
+<div
+    [ngClass]="{
+        'flex flex-1 min-h-0 overflow-hidden': true,
+    }"
+>
+    @if (isThreadHistoryDisplayed()) {
+        <thread-history></thread-history>
+    }
+
+    <div
+        [ngClass]="{
+            'flex flex-col flex-1 min-h-0 min-w-0 items-center justify-end': true,
+        }"
+    >
+        <!-- Chat Header -->
+        <header></header>
+
+        <!-- Chat Main Content -->
+        <div
+            [ngClass]="{
+                'flex flex-col flex-1 min-h-0 min-w-0 pb-0 w-full overflow-x-hidden overflow-y-auto custom-scrollbar': true,
+                'pt-24 md:pt-20 gap-12 md:gap-14': !showMessageArea,
+                'pt-0 gap-0': showMessageArea,
+            }"
+        >
+            @if (showWelcomeMessage) {
+                <div
+                    [ngClass]="{
+                        'flex flex-col gap-3 items-center px-4 pt-[160px]': true,
+                    }"
+                >
+                    <h2
+                        data-testid="welcome-message"
+                        [ngClass]="{
+                            'text-[28px] font-bold text-text-states-active text-center': true,
+                            'md:text-[44px]': true,
+                        }"
+                    >
+                        {{ UI_STRINGS.GENERAL.WELCOME_MESSAGE(loggedInUser()) }}
+                    </h2>
+                </div>
+            }
+
+            <div
+                [ngClass]="{
+                    'flex flex-1 min-h-0 min-w-0 flex-col items-center custom-scrollbar-snap-right': true,
+                    'gap-6': !showMessageArea,
+                    'gap-0': showMessageArea,
+                }"
+            >
+                @if (showMessageArea) {
+                    <message-area
+                        [ngClass]="{
+                            'flex-1 flex flex-col min-h-0 min-w-0 w-full': true,
+                        }"
+                    ></message-area>
+                }
+
+                <input-area
+                    [ngClass]="{
+                        'flex max-w-[920px] w-full px-4': true,
+                        'md:max-w-[720px]': true,
+                    }"
+                ></input-area>
+
+                @if (showFavoritePrompts) {
+                    <favorite-prompt-list
+                        [ngClass]="{
+                            'max-w-[920px] w-full px-4': true,
+                        }"
+                    ></favorite-prompt-list>
+                }
+
+                <div
+                    [ngClass]="{
+                        'flex justify-center items-end text-center p-4': true,
+                        'pt-4': showMessageArea,
+                        'flex-1 pt-0': !showMessageArea,
+                    }"
+                >
+                    <span
+                        [ngClass]="{
+                            'text-xs text-text-default tracking-wide': true,
+                        }"
+                        >{{ UI_STRINGS.GENERAL.AI_CONTENT_INFO }}</span
+                    >
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

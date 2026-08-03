@@ -1,0 +1,34 @@
+@let toolName = tool().name;
+<div
+    data-testid="tool-list-item"
+    class="flex justify-between content-center items-center px-2 py-1 gap-2 cursor-pointer rounded-md"
+    tabindex="0"
+    [ngClass]="{
+        'hover:bg-app-background-secondary': isHovered(),
+    }"
+>
+    <app-toggle data-testid="tool-toggle" [isChecked]="isEnabled()" (onToggle)="handleToolToggle(tool())" />
+
+    <!-- Tool Title -->
+    <span
+        class="flex flex-1 text-text-default text-xs"
+        [ngClass]="{
+            'text-text-states-hover': isHovered(),
+        }"
+        >{{ toolName }}</span
+    >
+
+    <!-- Tool Info -->
+    <app-tooltip [tooltipPosition]="TOOLTIP_POSITIONS.TOP">
+        <app-icon
+            tooltip-trigger
+            data-testid="tool-info-icon"
+            [variant]="APP_ICON_VARIANTS.INFO"
+            [iconFill]="!isHovered() ? '--app-text-default' : '--app-text-states-active'"
+            [hoverBackgroundColor]="'--app-icon-background-hover'"
+            [size]="APP_ICON_SIZES.XS"
+        ></app-icon>
+
+        <tool-info tooltip-content [tool]="tool()"></tool-info>
+    </app-tooltip>
+</div>

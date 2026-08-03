@@ -1,0 +1,22 @@
+<div
+    class="message-footer"
+    data-testid="message-footer"
+    [ngClass]="{
+        'flex flex-1 gap-[2px] items-center pt-2': true,
+    }"
+>
+    <app-copy-to-clipboard-button [data-testid]="'message-footer-copy-button'" [textToCopy]="handleResponseToText()"> </app-copy-to-clipboard-button>
+    <app-tooltip [tooltipPosition]="TOOLTIP_POSITIONS.TOP" [triggerOffset]="6" [disabled]="!isGeneratingResponse()">
+        <app-icon
+            tooltip-trigger
+            [data-testid]="'message-footer-regenerate-button'"
+            [variant]="APP_ICON_VARIANTS.RELOAD"
+            [animationEffect]="AnimationType.HOVER_TILT_45_CLICK_SPIN_270"
+            [isDisabled]="isGeneratingResponse()"
+            (onClick)="handleRegenerateResponse()"
+        ></app-icon>
+        @if (isGeneratingResponse()) {
+            <span tooltip-content class="whitespace-nowrap">{{ UI_STRINGS.MESSAGE_FOOTER_COMPONENT.RELOAD_DISABLED_TOOLTIP }}</span>
+        }
+    </app-tooltip>
+</div>

@@ -1,0 +1,48 @@
+export enum APP_ICON_SIZES {
+    XXXS = "6px",
+    XXS = "10px",
+    XS = "12px",
+    S = "16px",
+    M = "20px",
+    L = "24px",
+    XL = "32px",
+}
+
+export enum APP_ICON_VARIANTS {
+    DEFAULT = "default",
+    THREAD_HISTORY = "thread-history",
+    PROMPT_PANEL = "prompt-panel",
+    PROMPT_PANEL_FILLED = "prompt-panel-filled",
+    TOOL_PANEL = "tool-panel",
+    TOOL_PANEL_FILLED = "tool-panel-filled",
+    HOME = "home",
+    CLOSE = "close",
+    LOGOUT = "logout",
+    PAPER_PLANE = "paper-plane",
+    ARROW_UP = "arrow-up",
+    ARROW_DOWN = "arrow-down",
+    RECTANGLE = "rectangle",
+    STAR_OUTLINE = "star-outline",
+    STAR_FILLED = "star-filled",
+    EDIT = "edit",
+    DELETE = "delete",
+    SEARCH = "search",
+    INFO = "info",
+    CHECK = "check",
+    RELOAD = "reload",
+    COPY = "copy",
+    COPY_HOVER = "copy-hover",
+    CHEVRON_DOWN = "chevron-down",
+    CHEVRON_UP = "chevron-up",
+    CHEVRON_RIGHT = "chevron-right",
+    CIRCLE_FILLED = "circle-filled",
+    CIRCLE_OUTLINE = "circle-outline",
+    ERROR_CLOSE = "error-close",
+    HAND = "hand",
+    HAND_EDIT = "hand-edit",
+}
+
+export enum APP_ICON_BACKGROUND_SHAPES {
+    RECTANGLE = "rectangle",
+    CIRCLE = "circle",
+}

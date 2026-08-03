@@ -1,0 +1,112 @@
+@let uiMessage = currentToolTraceState()?.uiMessage ?? "No UI Message";
+@let executedTools = currentToolTraceState()?.executedTools ?? [];
+@let isExpanded = currentToolTraceState()?.isExpanded ?? false;
+@let toolTraceId = currentToolTraceState()?.stateForMessageId ?? "";
+@let showFooter = shouldDisplayFooter() && responseForUserQueryId() !== undefined;
+
+@if (isExpanded) {
+    <div
+        class="tool-trace-message"
+        data-testid="tool-trace-message"
+        [accentGradientBorder]="isExpanded"
+        [id]="'tool-trace-message-' + parentMessage()"
+        [ngClass]="{
+            'relative flex flex-col flex-1 gap-2 text-text-default rounded-[8px]': true,
+        }"
+    >
+        <!-- Main content container -->
+        <div
+            class="tool-trace-message__content"
+            [ngClass]="{
+                'relative flex flex-col gap-2 px-4 py-6': true,
+            }"
+        >
+            <div
+                class="tool-trace-message__header"
+                tabindex="0"
+                [ngClass]="{
+                    'flex items-center gap-2 cursor-pointer hover:text-text-states-active': true,
+                    'cursor-default': executedTools.length === 0,
+                    'flex-row-reverse justify-end': isExpanded,
+                }"
+                (click)="toggleExpanded()"
+                (keyup.enter)="toggleExpanded()"
+                (keyup.space)="toggleExpanded()"
+            >
+                <span class="tool-trace-message__title" data-testid="tool-trace-title">{{ uiMessage }}</span>
+
+                @if (executedTools.length > 0) {
+                    <app-icon
+                        class="tool-trace-message__expand-icon"
+                        data-testid="tool-trace-expand-icon"
+                        [iconFill]="isExpanded ? '--app-accent-color-1' : '--app-text-default'"
+                        [hoverIconFill]="isExpanded ? '--app-accent-color-1' : '--app-text-states-active'"
+                        [title]="isExpanded ? UI_STRINGS.COLLAPSE_BUTTON_TEXT : UI_STRINGS.EXPAND_BUTTON_TEXT"
+                        [variant]="isExpanded ? APP_ICON_VARIANTS.CHEVRON_DOWN : APP_ICON_VARIANTS.CHEVRON_RIGHT"
+                    ></app-icon>
+                }
+            </div>
+
+            @if (isExpanded && executedTools.length > 0) {
+                <div class="tool-trace-message__body" data-testid="tool-trace-body">
+                    @for (tool of executedTools; track $index) {
+                        <tool-message [message]="tool" [parentToolTraceId]="toolTraceId"></tool-message>
+                    }
+                </div>
+
+                <div class="tool-trace-message__footer">
+                    <app-button testId="tool-trace-close-button" (onClick)="toggleExpanded()">{{ UI_STRINGS.CLOSE_BUTTON_TEXT }}</app-button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@if (!isExpanded) {
+    <div
+        class="tool-trace-message"
+        data-testid="tool-trace-message"
+        [id]="'tool-trace-message-' + parentMessage()"
+        [ngClass]="{
+            'relative flex flex-col flex-1 gap-2 text-text-default rounded-[8px]': true,
+        }"
+    >
+        <!-- Main content container -->
+        <div
+            class="tool-trace-message__content"
+            [ngClass]="{
+                'relative flex flex-col gap-2 px-4 py-6': true,
+            }"
+        >
+            <div
+                class="tool-trace-message__header"
+                tabindex="0"
+                [ngClass]="{
+                    'flex items-center gap-2 cursor-pointer hover:text-text-states-active': true,
+                    'cursor-default': executedTools.length === 0,
+                    'flex-row-reverse justify-end': isExpanded,
+                }"
+                (click)="toggleExpanded()"
+                (keyup.enter)="toggleExpanded()"
+                (keyup.space)="toggleExpanded()"
+            >
+                <span class="tool-trace-message__title" data-testid="tool-trace-title">{{ uiMessage }}</span>
+
+                @if (executedTools.length > 0) {
+                    <app-icon
+                        class="tool-trace-message__expand-icon"
+                        data-testid="tool-trace-expand-icon"
+                        [iconFill]="isExpanded ? '--app-accent-color-1' : '--app-text-default'"
+                        [hoverIconFill]="isExpanded ? '--app-accent-color-1' : '--app-text-states-active'"
+                        [title]="isExpanded ? UI_STRINGS.COLLAPSE_BUTTON_TEXT : UI_STRINGS.EXPAND_BUTTON_TEXT"
+                        [variant]="isExpanded ? APP_ICON_VARIANTS.CHEVRON_DOWN : APP_ICON_VARIANTS.CHEVRON_RIGHT"
+                    ></app-icon>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@if (showFooter) {
+    <message-footer [messageFooterId]="responseForUserQueryId()!"></message-footer>
+}

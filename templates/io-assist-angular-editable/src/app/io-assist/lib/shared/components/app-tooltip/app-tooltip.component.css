@@ -1,0 +1,50 @@
+.app-tooltip__arrow {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: var(--color-tooltip-background);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* TOP: tooltip above trigger → arrow points DOWN at bottom edge.
+   left is set dynamically via [ngStyle] to track the trigger center. */
+.app-tooltip__arrow--top {
+    bottom: -5px;
+    transform: translateX(-50%) rotate(45deg);
+    border-right: 1px solid var(--color-tooltip-border);
+    border-bottom: 1px solid var(--color-tooltip-border);
+}
+
+/* BOTTOM: tooltip below trigger → arrow points UP at top edge.
+   left is set dynamically via [ngStyle] to track the trigger center. */
+.app-tooltip__arrow--bottom {
+    top: -5px;
+    transform: translateX(-50%) rotate(45deg);
+    border-left: 1px solid var(--color-tooltip-border);
+    border-top: 1px solid var(--color-tooltip-border);
+}
+
+/* LEFT: tooltip left of trigger → arrow points RIGHT at right edge.
+   top is set dynamically via [ngStyle] to track the trigger center. */
+.app-tooltip__arrow--left {
+    right: -5px;
+    transform: translateY(-50%) rotate(45deg);
+    border-top: 1px solid var(--color-tooltip-border);
+    border-right: 1px solid var(--color-tooltip-border);
+}
+
+/* RIGHT: tooltip right of trigger → arrow points LEFT at left edge.
+   top is set dynamically via [ngStyle] to track the trigger center. */
+.app-tooltip__arrow--right {
+    left: -5px;
+    transform: translateY(-50%) rotate(45deg);
+    border-bottom: 1px solid var(--color-tooltip-border);
+    border-left: 1px solid var(--color-tooltip-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .app-tooltip__container {
+        transition: none;
+    }
+}

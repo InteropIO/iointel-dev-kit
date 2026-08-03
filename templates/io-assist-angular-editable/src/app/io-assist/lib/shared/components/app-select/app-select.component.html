@@ -1,0 +1,91 @@
+<div class="relative flex flex-col gap-spacing-2">
+    @if (label()) {
+        <span class="text-[10px] text-text-secondary leading-[13px]">{{ label() }}</span>
+    }
+
+    <button
+        #triggerEl
+        type="button"
+        aria-haspopup="listbox"
+        [attr.aria-expanded]="isOpen()"
+        [attr.aria-controls]="selectId() + '-listbox'"
+        [ngClass]="{
+            'flex items-center gap-spacing-2 py-spacing-4 px-spacing-4 rounded-[8px] text-input-text text-[12px] leading-none cursor-pointer w-full transition-colors outline-none hover:text-text-states-active': true,
+            'text-text-states-active': isOpen() || isTriggerFocused(),
+            'bg-thread-list-item-hover-background': !outline() && (isOpen() || isTriggerFocused()),
+            'bg-transparent hover:bg-thread-list-item-hover-background': !outline() && !isOpen() && !isTriggerFocused(),
+        }"
+        (mouseenter)="isTriggerHovered.set(true)"
+        (mouseleave)="isTriggerHovered.set(false)"
+        (pointerdown)="onTriggerPointerDown()"
+        (focus)="onTriggerFocus()"
+        (blur)="onTriggerBlur()"
+        (click)="toggle()"
+    >
+        <span class="flex-1 truncate">{{ displayTitle() }}</span>
+
+        <div class="flex justify-center items-center w-[16px] h-[16px]">
+            <app-icon [tabIndex]="-1" [variant]="chevronVariant()" [size]="APP_ICON_SIZES.XXS" [isWrapped]="false" [isHoveredExternal]="isTriggerHovered() || isOpen()" />
+        </div>
+    </button>
+
+    @if (isOpen()) {
+        <div
+            #dropdownEl
+            role="listbox"
+            class="fixed z-[999999] flex flex-col bg-app-background-secondary border border-border-default rounded-[8px] shadow-panel-box-shadow w-max max-h-[45vh] overflow-y-auto py-[3px] gap-[1px] app-select__dropdown"
+            [id]="selectId() + '-listbox'"
+            [ngStyle]="dropdownStyle()"
+        >
+            @for (option of options(); track option.value ?? option.title; let i = $index) {
+                <div
+                    role="option"
+                    class="flex items-center w-full px-1 py-px cursor-pointer"
+                    tabindex="0"
+                    [id]="selectId() + '-opt-' + i"
+                    [attr.aria-selected]="isSelected(option)"
+                    [attr.aria-describedby]="option.description ? selectId() + '-desc-' + i : null"
+                    (mouseenter)="hoveredOptionTitle.set(option.title)"
+                    (mouseleave)="hoveredOptionTitle.set(null)"
+                    (click)="select(option)"
+                    (keyup.enter)="select(option)"
+                >
+                    <div
+                        class="group flex items-center gap-1 w-full p-1 rounded-[4px] transition-colors hover:bg-[var(--app-blue)]"
+                        [style.backgroundColor]="focusedIndex() === i ? 'var(--app-blue)' : null"
+                    >
+                        <!-- Icon column — always rendered when any option has an icon to keep rows aligned. -->
+                        @if (hasAnyIcon()) {
+                            <div class="w-4 shrink-0 flex items-center justify-center text-white text-[10px] font-light leading-4" [ngClass]="{ 'order-last': invertOrder() }">
+                                @if (option.icon) {
+                                    <app-icon [variant]="option.icon" [size]="APP_ICON_SIZES.XXS" [isWrapped]="false" [isHoveredExternal]="hoveredOptionTitle() === option.title" />
+                                }
+                            </div>
+                        }
+
+                        <!-- Title + description -->
+                        <div class="flex-1 flex flex-col gap-0 min-w-0">
+                            <span class="truncate text-xs font-normal leading-4 text-input-text group-hover:text-white" [title]="option.title">{{ option.title }}</span>
+
+                            @if (option.description) {
+                                <span
+                                    class="truncate text-[9px] font-normal leading-[11px] tracking-[0.09px] text-text-secondary group-hover:text-[var(--app-light-blue)]"
+                                    [id]="selectId() + '-desc-' + i"
+                                    [title]="option.description"
+                                    >{{ option.description }}</span
+                                >
+                            }
+                        </div>
+
+                        <!-- Check column — fixed width so layout never shifts. -->
+                        <div class="w-4 h-4 shrink-0 flex items-center justify-center leading-[16px]" [ngClass]="{ 'order-first': invertOrder() }">
+                            @if (isSelected(option)) {
+                                <app-icon [variant]="APP_ICON_VARIANTS.CHECK" [size]="APP_ICON_SIZES.XXS" [isWrapped]="false" [isHoveredExternal]="hoveredOptionTitle() === option.title" />
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

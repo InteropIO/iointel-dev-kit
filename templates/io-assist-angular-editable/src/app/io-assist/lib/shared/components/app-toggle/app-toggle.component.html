@@ -1,0 +1,49 @@
+<div
+    class="app-toggle"
+    [ngClass]="{
+        'relative inline-flex items-center w-[34px] h-[16px] rounded-full transition-colors duration-300 ease-in-out': true,
+        'hover:bg-toggle-background-hover-disabled': !isChecked() && !isDisabled(),
+        'hover:bg-toggle-background-hover-enabled': isChecked() && !isDisabled(),
+        'cursor-pointer': !isDisabled(),
+        'cursor-not-allowed opacity-50': isDisabled(),
+        'bg-toggle-background-disabled': !isChecked(),
+        'bg-toggle-background-enabled': isChecked(),
+    }"
+    [attr.role]="'switch'"
+    [attr.aria-checked]="isChecked()"
+    [attr.aria-disabled]="isDisabled()"
+    [attr.tabindex]="isDisabled() ? -1 : 0"
+    (click)="handleToggle()"
+    (keydown)="handleKeyDown($event)"
+>
+    <div
+        class="app-toggle__icon-wrapper"
+        [ngClass]="{
+            'flex flex-1 justify-end transition-all duration-300': true,
+            'justify-start': isChecked(),
+        }"
+    >
+        <app-icon
+            class="app-toggle__icon"
+            [ngClass]="{
+                'm-[4px]': true,
+            }"
+            [variant]="isChecked() ? APP_ICON_VARIANTS.CHECK : APP_ICON_VARIANTS.CLOSE"
+            [size]="APP_ICON_SIZES.XXS"
+            [iconFill]="'--app-neutrals-0'"
+            [hoverIconFill]="'--app-neutrals-0'"
+            [isWrapped]="false"
+        >
+        </app-icon>
+    </div>
+
+    <!-- Toggle Circle -->
+    <div
+        class="app-toggle__circle"
+        [ngClass]="{
+            'absolute w-[12px] h-[12px] bg-toggle-circle rounded-full transition-all duration-300 ease-in-out flex items-center justify-center': true,
+            'left-[2px]': !isChecked(),
+            'left-[20px]': isChecked(),
+        }"
+    ></div>
+</div>

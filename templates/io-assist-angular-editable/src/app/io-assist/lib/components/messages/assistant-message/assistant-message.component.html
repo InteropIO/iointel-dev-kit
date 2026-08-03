@@ -1,0 +1,15 @@
+@let shouldDisplayFooter = message().displayFooter && message().responseForUserQueryId && message().content !== "";
+
+<div
+    class="assistant-message"
+    data-testid="assistant-message"
+    [ngClass]="{
+        'flex flex-col flex-1 min-w-0 max-w-full self-stretch text-text-states-active font-weight-400 leading-[19px] safe-word-break': true,
+    }"
+>
+    <app-md-formatter [content]="message().content ?? ''"></app-md-formatter>
+
+    @if (shouldDisplayFooter) {
+        <message-footer [messageFooterId]="message().responseForUserQueryId ?? ''"></message-footer>
+    }
+</div>

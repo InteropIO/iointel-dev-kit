@@ -1,0 +1,68 @@
+<div
+    class="input-area"
+    data-testid="input-area"
+    [ngClass]="{
+        'w-full': true,
+    }"
+>
+    <div
+        class="input-area__container"
+        [ngClass]="{
+            relative: true,
+        }"
+    >
+        <!-- Main input container -->
+        <div
+            class="input-area__content bg-app-background"
+            [accentGradientBorder]="!isAnimationComplete()"
+            [ngClass]="{
+                'relative rounded-2xl': true,
+            }"
+        >
+            <div
+                [ngClass]="{
+                    'flex flex-col gap-4 p-4 rounded-2xl': true,
+                }"
+            >
+                <!-- Text input area -->
+                <div
+                    class="input-area__textarea-wrapper"
+                    [ngClass]="{
+                        'flex gap-3 items-start px-2': true,
+                    }"
+                >
+                    <textarea
+                        #inputTextArea
+                        placeholder="{{ UI_STRINGS.INPUT_PLACEHOLDER }}"
+                        data-testid="chat-input-field"
+                        class="input-area__textarea"
+                        rows="1"
+                        [ngClass]="{
+                            'flex-1 custom-scrollbar custom-scrollbar-snap-right text-text-default text-sm leading-4 h-auto min-h-[17px] max-h-[260px] resize-none border-none outline-none overflow-y-auto whitespace-pre-wrap': true,
+                            'placeholder:text-text-states-default': true,
+                            'hover:text-text-states-active': true,
+                        }"
+                        [value]="inputValue()"
+                        (input)="handleInputChange($event)"
+                        (keydown)="handleKeyDown($event)"
+                    ></textarea>
+                </div>
+                <!-- Footer with toolbar and send button -->
+                <div
+                    class="input-area__footer"
+                    [ngClass]="{
+                        'flex gap-3 items-center justify-between': true,
+                    }"
+                >
+                    <input-area-action-bar
+                        [ngClass]="{
+                            'flex-1': true,
+                        }"
+                    ></input-area-action-bar>
+
+                    <input-area-send-button [userQuery]="inputValue()" (onSend)="setInputValue('')"></input-area-send-button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
