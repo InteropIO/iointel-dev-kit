@@ -8,6 +8,8 @@ Use when building or extending a custom assistant or copilot with `@interopio/ai
 
 Create a project-native frontend that owns its UX while preserving the Agent Protocol, thread, MCP, context, tool, and MCP App behavior expected by AI Web.
 
+For a new framework-free application, read [Template Scaffolding](scaffolding.md) and materialize `ai-web-vanilla`. For an existing application or another framework, follow the project-native implementation workflow below instead of replacing it with the Vanilla starter.
+
 ## Mental model
 
 AI Web is a frontend assistant runtime, not a chat component. `IoAiWebFactory(io, config)` returns namespaces for:

@@ -1,6 +1,6 @@
 ---
 name: io-intelligence
-description: Build, extend, explain, or diagnose AI assistants in io.Connect with io.Intelligence. Use for the io.Assist Anywhere guide or ACME Banking sample; io.Assist React or Angular; @interopio/ai-web custom frontends; @interopio/mcp-core, mcp-web, or mcp-http; Working Context; MCP Apps; sampling; elicitation; @interopio/ai-mastra-bridge; the io.Intelligence Agent Protocol; AG-UI bridge behavior; missing tools or applications; streaming and thread problems; or package and topology selection.
+description: Build, scaffold, extend, explain, or diagnose AI assistants in io.Connect with io.Intelligence. Use for official React, Angular, editable io.Assist, or Vanilla AI Web templates; the io.Assist Anywhere guide or ACME Banking sample; io.Assist React or Angular; @interopio/ai-web custom frontends; @interopio/mcp-core, mcp-web, or mcp-http; Working Context; MCP Apps; sampling; elicitation; @interopio/ai-mastra-bridge; the io.Intelligence Agent Protocol; AG-UI bridge behavior; missing tools or applications; streaming and thread problems; or package and topology selection.
 ---
 
 # io.Intelligence
@@ -9,11 +9,12 @@ Use this skill as the io.Intelligence reasoning and workflow layer. Inspect the 
 
 ## Apply the source contract
 
-1. Treat [docs-ai.interop.io](https://docs-ai.interop.io/) as the definitive source for supported public behavior.
-2. Use [llms.txt](https://docs-ai.interop.io/llms.txt) or [references/documentation-index.md](references/documentation-index.md) to locate the exact Markdown pages needed.
-3. Use [references/public-api-map.md](references/public-api-map.md) to find API-reference pages, then read those pages for current signatures and configuration.
-4. Treat local manifests, installed declarations, project code, logs, network streams, and runtime observations as evidence about the current integration, not as authority for undocumented product behavior.
-5. Assume V1 skill knowledge, current official documentation, and installed io.Intelligence packages are aligned. If they conflict, report an unsupported alignment mismatch; do not invent compatibility advice.
+1. Treat [docs-ai.interop.io](https://docs-ai.interop.io/) as the definitive source for supported public io.Intelligence behavior.
+2. Use the official [io.Connect documentation](https://docs.interop.io/) for io.Connect Browser or Desktop platform behavior such as application registration and launch.
+3. Use [llms.txt](https://docs-ai.interop.io/llms.txt) or [references/documentation-index.md](references/documentation-index.md) to locate the exact io.Intelligence Markdown pages needed.
+4. Use [references/public-api-map.md](references/public-api-map.md) to find API-reference pages, then read those pages for current signatures and configuration.
+5. Treat local manifests, installed declarations, project code, logs, network streams, and runtime observations as evidence about the current integration, not as authority for undocumented product behavior.
+6. Assume V1 skill knowledge, current official documentation, and installed io.Intelligence packages are aligned. If they conflict, report an unsupported alignment mismatch; do not invent compatibility advice.
 
 ## Work from the actual project
 
@@ -31,6 +32,7 @@ Always read [references/core.md](references/core.md), then load only the task-sp
 
 | Task | Read |
 | --- | --- |
+| Create, scaffold, or materialize an official application template | [references/scaffolding.md](references/scaffolding.md), then the selected delivery reference below |
 | Start, follow, understand, or troubleshoot the io.Assist Anywhere guide | [references/io-assist-anywhere-guide.md](references/io-assist-anywhere-guide.md) |
 | Expose or consume MCP capabilities; choose Web, HTTP, or Core | [references/mcp-integration.md](references/mcp-integration.md) |
 | Add ready-made React or Angular io.Assist | [references/packaged-io-assist.md](references/packaged-io-assist.md) |
@@ -68,11 +70,15 @@ Always read [references/core.md](references/core.md), then load only the task-sp
 
 For an io.Assist Anywhere request, establish the current chapter and the user's React/Angular path first. Read the exact current chapter, then use the guide companion and only the product references relevant to that chapter.
 
+For a scaffolding request, select exactly one preset through `scaffolding.md` and run the bundled materializer. Do not inspect unselected template source or recreate a failed download from prose.
+
 ## Respect current delivery boundaries
 
 - React and Angular io.Assist are the ready-made frontend choices.
 - AI Web is the lower-level choice for a fully custom frontend.
 - AI Mastra Bridge is the provided Mastra implementation of the Agent Protocol; other backends implement the protocol directly.
 - Project inspection and diagnosis are LLM-led. Do not search for a deterministic io.Intelligence project inspector.
-- The official five-preset scaffolder and editable-source extraction flow are planned but not delivered in this skill release. Do not claim a scaffolding command exists.
-- Do not reconstruct the full io.Assist implementation from prose. Until the official editable flow exists, treat materialization as an explicit source-ownership task that requires an approved source.
+- The official materializer supports five presets: packaged and editable io.Assist for React and Angular, plus a Vanilla JavaScript custom AI Web application.
+- Template source comes from the immutable Git tag recorded in the bundled catalog. Do not substitute a branch, a different tag, or an AI-generated approximation.
+- Editable io.Assist output is a one-way, customer-owned fork. Do not promise automatic upstream synchronization.
+- All templates are io.Connect clients. Follow the runtime evidence boundary in `scaffolding.md` before claiming that behavior was inspected.

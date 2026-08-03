@@ -84,9 +84,11 @@ The Angular provider validates static configuration during bootstrap; resolve th
 - MCP Apps enabled without UI capability or sandbox proxy
 - Container sizing makes a healthy assistant appear blank or clipped
 
-## Current scaffolding boundary
+## Start from an official template
 
-The planned scaffolder will eventually create packaged React and Angular applications. It is not delivered in this skill release. Implement the current project integration using the official framework pages and project-native conventions; do not invoke or invent a scaffolding command.
+For a new packaged application, read [Template Scaffolding](scaffolding.md) and materialize `io-assist-react-packaged` or `io-assist-angular-packaged`. Choose the framework before retrieval and inspect the materialized project for its actual commands, ports, and io.Connect setup.
+
+For an existing project, integrate the package using the official framework pages and project-native conventions; do not replace the project with a starter unless the user requests it.
 
 ## Official documentation
 

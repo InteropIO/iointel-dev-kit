@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/InteropIO/iointel-dev-kit.git",
+  "templates": {
+    "ai-web-vanilla": {
+      "displayName": "Vanilla JavaScript AI Web",
+      "description": "Framework-free io.Connect client with a custom assistant UI built directly on AI Web.",
+      "framework": "vanilla-js",
+      "mode": "custom",
+      "path": "templates/ai-web-vanilla",
+      "tag": "V1.0",
+      "ioConnectClient": true
+    },
+    "io-assist-angular-editable": {
+      "displayName": "Editable Angular io.Assist",
+      "description": "Angular io.Connect client containing source-owned io.Assist code for customization.",
+      "framework": "angular",
+      "mode": "editable",
+      "path": "templates/io-assist-angular-editable",
+      "tag": "V1.0",
+      "ioConnectClient": true
+    },
+    "io-assist-angular-packaged": {
+      "displayName": "Packaged Angular io.Assist",
+      "description": "Angular io.Connect client using the published io.Assist package.",
+      "framework": "angular",
+      "mode": "packaged",
+      "path": "templates/io-assist-angular-packaged",
+      "tag": "V1.0",
+      "ioConnectClient": true
+    },
+    "io-assist-react-editable": {
+      "displayName": "Editable React io.Assist",
+      "description": "React io.Connect client containing source-owned io.Assist code for customization.",
+      "framework": "react",
+      "mode": "editable",
+      "path": "templates/io-assist-react-editable",
+      "tag": "V1.0",
+      "ioConnectClient": true
+    },
+    "io-assist-react-packaged": {
+      "displayName": "Packaged React io.Assist",
+      "description": "React io.Connect client using the published io.Assist package.",
+      "framework": "react",
+      "mode": "packaged",
+      "path": "templates/io-assist-react-packaged",
+      "tag": "V1.0",
+      "ioConnectClient": true
+    }
+  }
+}

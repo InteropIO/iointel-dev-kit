@@ -37,20 +37,15 @@ The editable application is a customer-owned fork:
 
 Do not describe the fork as a theme, plugin, or supported extension point unless the official package documentation defines it that way.
 
-## Current delivery boundary
+## Materialize the approved source
 
-The planned Phase 2 scaffolder will obtain the React or Angular editable payload from the corresponding io.Assist npm package and arrange the local application. That flow is not implemented in the current skill release.
+Read [Template Scaffolding](scaffolding.md) and use the bundled materializer to retrieve `io-assist-react-editable` or `io-assist-angular-editable`. These catalog entries identify the approved source at an immutable Git tag.
 
-Until an approved editable source payload is available:
-
-- do not reconstruct io.Assist from this skill;
-- do not reverse-engineer compiled package output;
-- do not invent a repository-fetching contract;
-- ask the user to identify or approve the source to materialize.
+Do not reconstruct io.Assist from this skill, reverse-engineer compiled package output, substitute the packaged preset, or fetch a branch if materialization fails. Report the failure and preserve the one-way source-ownership decision.
 
 ## Architecture to preserve
 
-When approved source is available, locate and understand:
+After materialization, locate and understand:
 
 - AI Web initialization and lifetime;
 - static versus dynamic configuration;
@@ -79,7 +74,7 @@ Change the smallest coherent area. Avoid bypassing the AI Web and Agent Protocol
 
 ## Record provenance
 
-Preserve, where available:
+Keep `.io-intelligence-template.json` at the generated project root and preserve:
 
 - io.Assist framework and source package;
 - source package version;

@@ -42,7 +42,7 @@ Choose AI Web when the product must own layout, thread presentation, message ren
 
 ### Editable io.Assist
 
-Choose a source-owned io.Assist only when packaged configuration is insufficient but the existing experience remains the desired base. This is a one-way fork: the customer owns subsequent changes. The planned ejecting scaffolder is not part of the current release.
+Choose a source-owned io.Assist only when packaged configuration is insufficient but the existing experience remains the desired base. This is a one-way fork: the customer owns subsequent changes. Official React and Angular editable templates can be retrieved through the skill's materializer.
 
 ## Choose the MCP transport
 
