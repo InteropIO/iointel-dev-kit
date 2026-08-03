@@ -32,9 +32,7 @@ The same skill is intended to work unchanged in Agent Skills-compatible coding a
 
 V1 assumes that the installed skill, current official documentation, and locally available io.Intelligence packages describe the same product state. It does not detect package versions or select historical guidance.
 
-The planned scaffolder for packaged React, packaged Angular, editable React, editable Angular, and Vanilla JavaScript custom-mode applications is a later phase and is not included in this repository state. There is no scaffolding command.
-
-Starting-point applications for those presets live in `templates/`, to be copied manually. Of these, `io-assist-react-editable` is the source-owned React fork: it carries the io.Assist React source at `src/io-assist` with provenance recorded in `src/io-assist/PROVENANCE.md`. `io-assist-angular-editable` is still an unfinished shell.
+The first delivery contains the knowledge skill only. The planned scaffolder for packaged React, packaged Angular, editable React, editable Angular, and Vanilla JavaScript custom-mode applications is a later phase and is not included in this repository state.
 
 ## Documentation
 

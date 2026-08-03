@@ -74,6 +74,5 @@ For an io.Assist Anywhere request, establish the current chapter and the user's 
 - AI Web is the lower-level choice for a fully custom frontend.
 - AI Mastra Bridge is the provided Mastra implementation of the Agent Protocol; other backends implement the protocol directly.
 - Project inspection and diagnosis are LLM-led. Do not search for a deterministic io.Intelligence project inspector.
-- The official five-preset scaffolder is planned but not delivered in this skill release. Do not claim a scaffolding command exists.
-- The React editable payload is delivered as a checked-in template at `templates/io-assist-react-editable` (io.Assist React source under `src/io-assist`). The Angular editable payload is not materialized. See `editable-io-assist.md`.
-- Do not reconstruct the full io.Assist implementation from prose. Where no approved editable source is already present, treat materialization as an explicit source-ownership task that requires an approved source.
+- The official five-preset scaffolder and editable-source extraction flow are planned but not delivered in this skill release. Do not claim a scaffolding command exists.
+- Do not reconstruct the full io.Assist implementation from prose. Until the official editable flow exists, treat materialization as an explicit source-ownership task that requires an approved source.
