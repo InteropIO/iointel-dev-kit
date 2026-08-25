@@ -175,6 +175,10 @@ export class IOAiWebService {
             config.context = contextConfig;
         }
 
+        if (aiWebConfig.codeMode) {
+            config.codeMode = aiWebConfig.codeMode;
+        }
+
         return config;
     }
 

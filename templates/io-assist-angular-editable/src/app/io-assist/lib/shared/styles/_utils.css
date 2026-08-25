@@ -1,4 +1,4 @@
-@import './_defaults.css';
+@import "./_defaults.css";
 
 /*
     Use this object to define variables that you need to get included
@@ -40,7 +40,7 @@
 
     /* Font */
     /* Font [Types] */
-    --font-default: 'Inter Variable', sans-serif;
+    --font-default: "Inter Variable", "DM Sans", Arial, sans-serif;
 
     /* Font [Colors] */
     --color-text-states-disabled: var(--app-text-states-disabled);
@@ -56,8 +56,9 @@
     --color-thread-list-item-hover-background: var(--app-thread-list-item-hover-background);
 
     /* Font [Weights] */
-    --font-weight-weight-400: var(--app-font-weight-400);
-    --font-weight-weight-600: var(--app-font-weight-600);
+    --font-weight-weight-250: var(--app-font-weight-250);
+    --font-weight-weight-350: var(--app-font-weight-350);
+    --font-weight-weight-550: var(--app-font-weight-550);
 
     /* Borders */
     /* Borders [Colors] */
@@ -150,7 +151,31 @@
     it in components that provide their own focus styling.
 */
 @layer base {
-    *:focus-visible:not(input):not(textarea):not(select) {
+    io-assist {
+        font-weight: var(--app-font-weight-350);
+    }
+
+    io-assist h1,
+    io-assist h2,
+    io-assist h3,
+    io-assist h4,
+    io-assist h5,
+    io-assist h6 {
+        font-weight: var(--app-font-weight-550);
+        color: var(--app-text-states-active);
+    }
+
+    io-assist b,
+    io-assist strong {
+        font-weight: var(--app-font-weight-550);
+    }
+
+    io-assist input,
+    io-assist textarea {
+        font-weight: var(--app-font-weight-350);
+    }
+
+    io-assist *:focus-visible:not(input):not(textarea):not(select) {
         outline: 2px solid var(--app-border-hover);
         outline-offset: -2px;
     }

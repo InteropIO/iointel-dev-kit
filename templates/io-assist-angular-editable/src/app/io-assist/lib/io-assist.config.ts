@@ -36,6 +36,7 @@ export type IoAssistStaticConfig = {
 export type AIWebConfig = {
     agentServer: Omit<IoAiWeb.WebConfig["agentServer"], "headers">;
     mcp?: IoAiWeb.WebConfig["mcp"];
+    codeMode?: IoAiWeb.WebConfig["codeMode"];
 };
 
 export const IO_ASSIST_CONFIG = new InjectionToken<IoAssistStaticConfig>("IO_ASSIST_CONFIG");

@@ -3,8 +3,8 @@
    make it clear that these are application specific variables.
 */
 @layer base {
-    html,
-    body {
+    io-assist {
+        display: block;
         margin: 0;
         padding: 0;
         width: 100%;
@@ -82,8 +82,9 @@
         /* ... */
 
         /* Text [Weights] */
-        --app-font-weight-400: 400;
-        --app-font-weight-600: 600;
+        --app-font-weight-250: 250;
+        --app-font-weight-350: 350;
+        --app-font-weight-550: 550;
 
         /* Text [Sizes] */
         /* ... */
@@ -114,9 +115,6 @@
         --app-button-border-default: var(--app-neutrals-500);
         --app-background-disabled: var(--app-neutrals-900);
         --app-text-disabled: var(--app-neutrals-600);
-        --app-icon-disabled: var(--app-neutrals-600);
-        --app-icon-background-hover: var(--app-neutrals-800);
-        --app-icon-background-disabled: var(--app-neutrals-700);
         --app-thread-list-item-hover-background: var(--app-neutrals-800);
         --app-text-black-white: var(--app-neutrals-0);
         --app-border-hover: var(--app-neutrals-600);
@@ -147,9 +145,16 @@
         --app-text-states-disabled: var(--app-neutrals-600);
         --app-text-states-hover: var(--app-neutrals-100);
         --app-text-states-active: var(--app-neutrals-0);
-        --app-text-default: var(--app-neutrals-300);
+        --app-text-default: var(--app-neutrals-200);
         --app-text-secondary: var(--app-neutrals-500);
         --app-text-error: var(--app-red-700);
+
+        /* Icon Colors */
+        --app-icon-default: var(--app-neutrals-200);
+        --app-icon-hover: var(--app-neutrals-0);
+        --app-icon-disabled: var(--app-neutrals-600);
+        --app-icon-background-hover: var(--app-neutrals-800);
+        --app-icon-background-disabled: var(--app-neutrals-700);
 
         /* Toggle Component */
         --app-toggle-background-disabled: var(--app-neutrals-750);
@@ -181,9 +186,6 @@
         --app-button-border-default: var(--app-neutrals-200);
         --app-background-disabled: var(--app-neutrals-50);
         --app-text-disabled: var(--app-neutrals-400);
-        --app-icon-disabled: var(--app-neutrals-400);
-        --app-icon-background-hover: var(--app-neutrals-25);
-        --app-icon-background-disabled: var(--app-neutrals-100);
         --app-thread-list-item-hover-background: var(--app-neutrals-50);
         --app-text-black-white: var(--app-neutrals-1000);
         --app-border-hover: var(--app-neutrals-150);
@@ -212,11 +214,18 @@
 
         /* Text Colors */
         --app-text-states-disabled: var(--app-neutrals-400);
-        --app-text-states-hover: var(--app-neutrals-800);
+        --app-text-states-hover: var(--app-neutrals-900);
         --app-text-states-active: var(--app-neutrals-900);
-        --app-text-default: var(--app-neutrals-700);
+        --app-text-default: var(--app-neutrals-800);
         --app-text-secondary: var(--app-neutrals-500);
         --app-text-error: var(--app-red-700);
+
+        /* Icon Colors */
+        --app-icon-default: var(--app-neutrals-800);
+        --app-icon-hover: var(--app-neutrals-1000);
+        --app-icon-disabled: var(--app-neutrals-400);
+        --app-icon-background-hover: var(--app-neutrals-25);
+        --app-icon-background-disabled: var(--app-neutrals-100);
 
         /* Toggle Component */
         --app-toggle-background-disabled: var(--app-neutrals-200);
