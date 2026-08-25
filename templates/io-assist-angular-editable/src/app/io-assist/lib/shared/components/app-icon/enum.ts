@@ -44,5 +44,6 @@ export enum APP_ICON_VARIANTS {
 
 export enum APP_ICON_BACKGROUND_SHAPES {
     RECTANGLE = "rectangle",
+    ROUNDED_RECTANGLE = "rounded-rectangle",
     CIRCLE = "circle",
 }

@@ -2,7 +2,7 @@ import { CommonModule } from "@angular/common";
 import { Component, inject, WritableSignal } from "@angular/core";
 
 import { AppIconComponent } from "../../../shared/components/app-icon/app-icon.component";
-import { APP_ICON_SIZES, APP_ICON_VARIANTS } from "../../../shared/components/app-icon/enum";
+import { APP_ICON_SIZES, APP_ICON_VARIANTS, APP_ICON_BACKGROUND_SHAPES } from "../../../shared/components/app-icon/enum";
 import { AppSelectComponent } from "../../../shared/components/app-select/app-select.component";
 import { APP_SELECT_IDS } from "../../../shared/components/app-select/app-select.service";
 import { AppSelectOption } from "../../../shared/components/app-select/types";
@@ -40,6 +40,7 @@ export class InputAreaActionBarComponent {
     protected readonly UI_STRINGS = UI_STRINGS;
     protected readonly APP_ICON_VARIANTS = APP_ICON_VARIANTS;
     protected readonly APP_ICON_SIZES = APP_ICON_SIZES;
+    protected readonly APP_ICON_BACKGROUND_SHAPES = APP_ICON_BACKGROUND_SHAPES;
     protected readonly PERMISSION_OPTIONS = PERMISSION_OPTIONS;
     protected readonly APP_SELECT_IDS = APP_SELECT_IDS;
 
