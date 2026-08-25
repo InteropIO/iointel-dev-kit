@@ -9,7 +9,7 @@ import IOWorkspaces from "@interopio/workspaces-api";
 import "./App.css";
 
 // this must be defined;
-const AGENT_SERVER_URL = "";
+const AGENT_SERVER_URL = "http://localhost:4111";
 
 const createIOConnect: typeof IOBrowser = async (config) => {
   const io = await IOBrowser(config);
