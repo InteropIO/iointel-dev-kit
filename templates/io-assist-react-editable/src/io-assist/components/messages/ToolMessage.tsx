@@ -35,7 +35,7 @@ export const ToolMessage: React.FC<Props> = ({ tool, parentToolTraceId, onToggle
     const resultMd = useMemo(() => resultToJSONMarkdown(tool.result), [tool.result]);
 
     return (
-        <div data-testid="tool-message" className="flex flex-col justify-start py-2 px-[3px] text-[13px] font-weight-weight-600 leading-[100%] text-text-states-active">
+        <div data-testid="tool-message" className="flex flex-col justify-start py-2 px-[3px] text-[13px] font-weight-550 leading-[100%] text-text-states-active">
             <div className="flex items-center gap-2 px-1">
                 <span
                     data-testid="tool-item-dot"

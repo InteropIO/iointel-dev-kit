@@ -3,7 +3,7 @@ import React from "react";
 import { UI_STRINGS } from "../../constants/uiStrings";
 
 type Props = {
-    agentName: string;
+    agentName?: string;
 };
 
 export const WelcomeHeading: React.FC<Props> = ({ agentName }) => (
