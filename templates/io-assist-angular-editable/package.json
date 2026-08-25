@@ -23,7 +23,7 @@
     "@interopio/browser": "^4.5.0",
     "@interopio/desktop": "^6.21.0",
     "@interopio/ng": ">=6.0.1",
-    "@interopio/working-context": "^1.1.1",
+    "@interopio/working-context": "^1.1.2",
     "@interopio/workspaces-api": "^4.5.0",
     "@ngrx/effects": ">=20.0.1",
     "@ngrx/store": ">=20.0.1",
