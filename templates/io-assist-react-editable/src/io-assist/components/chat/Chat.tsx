@@ -31,7 +31,7 @@ export const Chat: React.FC = () => {
     const showMessageArea = hasMessages || isLoadingThread;
     const showWelcomeMessage = !showMessageArea;
     const showFavoritePrompts = showWelcomeMessage && favoritePromptNames.length > 0;
-    const agentName = dynamicConfig.user.name ?? dynamicConfig.user.id;
+    const agentName = dynamicConfig.user.name;
 
     // Auto-close sidebar when the viewport shrinks below md (parity with ng's
     // ResponsiveUIService effect). Intentionally depends only on `isMobile` so
@@ -65,7 +65,7 @@ export const Chat: React.FC = () => {
     const innerColumnClassNames = ["flex flex-1 min-h-0 min-w-0 flex-col items-center w-full custom-scrollbar-snap-right", showMessageArea ? "gap-0" : "gap-6"].join(" ");
 
     return (
-        <div data-testid="io-assist-root" className="flex h-full w-full overflow-hidden bg-app-background">
+        <div data-testid="io-assist-root" className="io-assist-root flex h-full w-full overflow-hidden bg-app-background">
             <div data-testid="chat" className="flex flex-1 min-h-0 overflow-hidden">
                 {isThreadHistoryVisible && isMobile && (
                     <div role="presentation" className="fixed inset-0 z-20 bg-black/45" onClick={closeSidebar} onKeyDown={(e) => e.key === "Escape" && closeSidebar()} />

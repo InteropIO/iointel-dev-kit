@@ -33,13 +33,13 @@ export const UserMessage: React.FC<Props> = ({ message, isLast = false, isGenera
                 </div>
 
                 <div className="flex min-w-0">
-                    <div className="p-4 list-none text-[14px] leading-[18px] font-weight-weight-400 text-user-message-text bg-user-message-background rounded-2xl max-w-[620px] min-w-0 whitespace-pre-wrap break-words">
+                    <div className="p-4 list-none text-[14px] leading-[18px] font-weight-350 text-user-message-text bg-user-message-background rounded-2xl max-w-[620px] min-w-0 whitespace-pre-wrap break-words">
                         {message.content ?? ""}
                     </div>
                 </div>
             </div>
 
-            {showError && <div className="flex justify-end py-1 text-text-default text-[13px] font-weight-weight-400 leading-[100%]">{error}</div>}
+            {showError && <div className="flex justify-end py-1 text-text-default text-[13px] font-weight-350 leading-[100%]">{error}</div>}
         </div>
     );
 };

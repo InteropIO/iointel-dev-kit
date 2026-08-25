@@ -18,6 +18,12 @@ export const ToolListItem: React.FC<Props> = ({ tool, onToggle }) => {
         <div
             data-testid="tool-list-item"
             data-tool-name={tool.name}
+            // Upstream disables jsx-a11y/no-noninteractive-tabindex here; this template's
+            // ESLint config does not load that plugin (no ESLint 10 support), so the
+            // directive is dropped and only its rationale is kept: the row itself has no
+            // click action (toggle/tooltip are separately focusable children); tabIndex
+            // only ports ng's tool-list-item.component.html focusability.
+            tabIndex={0}
             className={["flex justify-between items-center px-2 py-1 gap-2 cursor-pointer rounded-md w-full", isHovered ? "bg-app-background-secondary" : ""].filter(Boolean).join(" ")}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
@@ -30,7 +36,7 @@ export const ToolListItem: React.FC<Props> = ({ tool, onToggle }) => {
                 content={
                     <div className="flex justify-center bg-app-background-secondary text-text-default border border-border-default p-4 rounded-md leading-[17px] text-xs min-w-[240px] max-w-[320px]">
                         <div>
-                            <span className="text-text-states-active font-weight-600">Server name: </span>
+                            <span className="text-text-states-active font-weight-550">Server name: </span>
                             {tool.mcpServerName}
                         </div>
                     </div>

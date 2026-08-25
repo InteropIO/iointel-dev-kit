@@ -76,8 +76,9 @@
         --app-border-size-1: 1px;
 
         /* Text [Weights] */
-        --app-font-weight-400: 400;
-        --app-font-weight-600: 600;
+        --app-font-weight-250: 250;
+        --app-font-weight-350: 350;
+        --app-font-weight-550: 550;
 
         --app-default-box-shadow: 0 3px 11px 6px rgba(0, 0, 0, 0.16);
 
@@ -104,6 +105,8 @@
         --app-button-border-default: var(--app-neutrals-500);
         --app-background-disabled: var(--app-neutrals-900);
         --app-text-disabled: var(--app-neutrals-600);
+        --app-icon-default: var(--app-neutrals-200);
+        --app-icon-hover: var(--app-neutrals-0);
         --app-icon-disabled: var(--app-neutrals-600);
         --app-icon-background-hover: var(--app-neutrals-800);
         --app-icon-background-disabled: var(--app-neutrals-700);
@@ -170,6 +173,8 @@
         --app-button-border-default: var(--app-neutrals-200);
         --app-background-disabled: var(--app-neutrals-50);
         --app-text-disabled: var(--app-neutrals-400);
+        --app-icon-default: var(--app-neutrals-800);
+        --app-icon-hover: var(--app-neutrals-1000);
         --app-icon-disabled: var(--app-neutrals-400);
         --app-icon-background-hover: var(--app-neutrals-25);
         --app-icon-background-disabled: var(--app-neutrals-100);
