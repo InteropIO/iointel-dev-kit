@@ -14,7 +14,7 @@ const AGENT_SERVER_URL = '';
 const createIOConnect: typeof IOBrowser = async (config) => {
   const io = await IOBrowser(config);
 
-  (window as any).io = io;
+  (window as unknown as { io: typeof io }).io = io;
 
   return io
 }
