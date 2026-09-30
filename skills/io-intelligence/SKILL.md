@@ -30,33 +30,34 @@ Always read [references/core.md](references/core.md), then load only the task-sp
 
 ### Primary task routing
 
-| Task | Read |
-| --- | --- |
-| Create, scaffold, or materialize an official application template | [references/scaffolding.md](references/scaffolding.md), then the selected delivery reference below |
-| Start, follow, understand, or troubleshoot the io.Assist Anywhere guide | [references/io-assist-anywhere-guide.md](references/io-assist-anywhere-guide.md) |
-| Expose or consume MCP capabilities; choose Web, HTTP, or Core | [references/mcp-integration.md](references/mcp-integration.md) |
-| Add ready-made React or Angular io.Assist | [references/packaged-io-assist.md](references/packaged-io-assist.md) |
-| Build a custom assistant frontend with AI Web | [references/custom-ai-web.md](references/custom-ai-web.md) |
-| Materialize or customize a source-owned io.Assist | [references/editable-io-assist.md](references/editable-io-assist.md) |
-| Implement the Agent Protocol for another backend runtime | [references/backend-adapter.md](references/backend-adapter.md) |
+| Task                                                                    | Read                                                                                               |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Create, scaffold, or materialize an official application template       | [references/scaffolding.md](references/scaffolding.md), then the selected delivery reference below |
+| Start, follow, understand, or troubleshoot the io.Assist Anywhere guide | [references/io-assist-anywhere-guide.md](references/io-assist-anywhere-guide.md)                   |
+| Expose or consume MCP capabilities; choose Web, HTTP, or Core           | [references/mcp-integration.md](references/mcp-integration.md)                                     |
+| Add ready-made React or Angular io.Assist                               | [references/packaged-io-assist.md](references/packaged-io-assist.md)                               |
+| Build a custom assistant frontend with AI Web                           | [references/custom-ai-web.md](references/custom-ai-web.md)                                         |
+| Materialize or customize a source-owned io.Assist                       | [references/editable-io-assist.md](references/editable-io-assist.md)                               |
+| Implement the Agent Protocol for another backend runtime                | [references/backend-adapter.md](references/backend-adapter.md)                                     |
 
 ### Optional capability routing
 
-| Capability | Read |
-| --- | --- |
-| Use Mastra as the backend | [references/mastra-backend.md](references/mastra-backend.md) |
-| Add live business context | [references/working-context.md](references/working-context.md) |
-| Host interactive MCP UI resources | [references/mcp-apps.md](references/mcp-apps.md) |
-| Handle sampling or elicitation | [references/sampling-elicitation.md](references/sampling-elicitation.md) |
+| Capability                        | Read                                                                     |
+| --------------------------------- | ------------------------------------------------------------------------ |
+| Use Mastra as the backend         | [references/mastra-backend.md](references/mastra-backend.md)             |
+| Add live business context         | [references/working-context.md](references/working-context.md)           |
+| Orchestrate tools through code    | [references/code-mode.md](references/code-mode.md)                       |
+| Host interactive MCP UI resources | [references/mcp-apps.md](references/mcp-apps.md)                         |
+| Handle sampling or elicitation    | [references/sampling-elicitation.md](references/sampling-elicitation.md) |
 
 ### Diagnostic routing
 
-| Symptom area | Read |
-| --- | --- |
-| MCP connection, discovery, tool, application, or workspace visibility | [references/diagnose-mcp.md](references/diagnose-mcp.md) |
-| AI Web initialization, runs, threads, tools, resources, or MCP Apps | [references/diagnose-ai-web.md](references/diagnose-ai-web.md) |
-| React or Angular io.Assist bootstrap, rendering, user config, or behavior | [references/diagnose-io-assist.md](references/diagnose-io-assist.md) |
-| Agent Protocol routes, SSE events, tool loops, persistence, or discovery | [references/diagnose-agent-protocol.md](references/diagnose-agent-protocol.md) |
+| Symptom area                                                              | Read                                                                           |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| MCP connection, discovery, tool, application, or workspace visibility     | [references/diagnose-mcp.md](references/diagnose-mcp.md)                       |
+| AI Web initialization, runs, threads, tools, resources, or MCP Apps       | [references/diagnose-ai-web.md](references/diagnose-ai-web.md)                 |
+| React or Angular io.Assist bootstrap, rendering, user config, or behavior | [references/diagnose-io-assist.md](references/diagnose-io-assist.md)           |
+| Agent Protocol routes, SSE events, tool loops, persistence, or discovery  | [references/diagnose-agent-protocol.md](references/diagnose-agent-protocol.md) |
 
 ## Follow the task workflow
 
