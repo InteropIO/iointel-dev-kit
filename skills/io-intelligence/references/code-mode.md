@@ -2,75 +2,54 @@
 
 ## Use this reference when
 
-Use when an assistant should orchestrate tools by writing JavaScript that runs in an isolated QuickJS WebAssembly sandbox, instead of issuing one direct tool call per step.
+Use this reference when advising on Code Mode integration, configuration, or behavior. Treat the official documentation below as the source of truth; this reference organizes the relevant sources and the questions to verify against them.
 
 ## Desired outcome
 
-Enable Code Mode at exactly one layer that serves the assistant, deliver the matching WASM file to that host, and let the model use the `getTools`, `getToolDefinition`, and `executeCode` meta-tools to discover and call the registered tools, with the host keeping control of tool access.
+Enable Code Mode at exactly one layer that serves the assistant, deliver the matching WASM file to that host, and let the model use the `getTools`, `getToolDefinition`, and `executeCode` meta-tools to discover and call registered tools, with the host keeping control of tool access.
 
-## Choose the integration path
+## Documentation guidelines
 
-### AI Web or io.Assist
+Read the relevant official documentation before relying on Code Mode details or giving implementation guidance. Read the API page for the tool contract before writing an adapter. Do not copy package versions from documentation examples; resolve versions from the npm registry or the range required by installed host packages. Before concluding a package is missing, inspect `node_modules` directly, including junctions and symbolic links that file globbing may skip. Before relying on a package file path shown in the docs, verify that it resolves within the installed package.
 
-Provide the browser factory from `@interopio/code-mode/browser` and its config through the AI Web `codeMode` configuration. io.Assist forwards this through its underlying AI Web static config. AI Web virtualizes the combined tool catalog of every connected MCP server and declares `capabilities.experimental.codeMode` to connected MCP Core servers. Prefer this path whenever AI Web owns the LLM-facing request.
+If the documentation does not specify an answer, say so or verify it in the installed host code rather than presenting an assumption as fact. Before basing a policy on a tool field, confirm in both the documentation and installed host code that the host populates it; a type declaration alone is insufficient.
 
-### MCP Core
-
-Configure `server.codeMode` in `@interopio/mcp-core` only when the connecting MCP clients cannot provide Code Mode themselves, such as third-party assistants or IDEs. Programs can reach only that server's tools. Clients that declare Code Mode support receive the plain tool list instead.
-
-### Standalone
-
-Use `@interopio/code-mode` directly when the host owns its model loop. Create a session, register host tools, and pass `getSystemInstruction()` and `session.getLlmTools()` to the model SDK. This path does not require AI Web, MCP Core, io.Assist, or io.Connect.
-
-## Evidence to collect
-
-- Which layer owns the LLM-facing tool list: AI Web, an MCP Core server, or the host's own model loop
-- Whether Code Mode is already enabled on another layer serving the same assistant
-- Browser or Node.js host, and the matching entry point (`/browser` or `/node`)
-- Where the WASM file is served or stored, and whether it matches the installed `@interopio/code-mode` version
-- Content security policy or deployment constraints that affect WASM loading or CDN use
-- Tools that should be hidden, require approval, or need input rewriting
-- Tools that open an interactive UI, such as MCP Apps
-- Actual meta-tools the model receives and the tool names returned by `getTools`
-- Session ownership and lifetime for standalone hosts
+Inspect the project before asking integration questions. For an io.Assist project with no other MCP clients, use the AI Web documentation without asking which integration layer to choose. Do not introduce tool policies the user did not request, and wait for answers to requested policy questions before enabling Code Mode.
 
 ## Implementation order
 
 1. Identify the layer closest to the LLM and confirm no other layer runs Code Mode for the same assistant.
-2. Install `@interopio/code-mode` and choose the browser or Node.js entry point for that host.
-3. Deliver `@interopio/code-mode/dist/emscripten-module.wasm` to a browser-served URL or filesystem path; use a version-pinned CDN URL only when the deployment allows it.
-4. Configure the factory in AI Web, MCP Core, or a standalone session.
-5. Add `toolFilter` and `interceptors.onToolCall` policies before exposing side-effecting tools.
-6. Confirm the model receives exactly one set of `getTools`, `getToolDefinition`, and `executeCode` meta-tools.
-7. Run a multi-step request and confirm the outcome rather than expecting a particular tool-call transcript.
-8. For standalone hosts, pass the run's `signal` and optional `context` to `executeCode`, and remove the session when its owner goes away.
+2. Inspect `node_modules` directly for the relevant packages, including junctions and symbolic links; do not infer that a package is absent from glob results alone. Resolve `@interopio/code-mode` from the npm registry or the version range required by the installed AI Web/MCP Core packages; never copy a version from a docs example.
+3. Choose the browser or Node.js entry point based on the host and the API documentation.
+4. Verify documented package file paths against the installed package before using them. Deliver the package's WASM file to a browser-served URL or filesystem path as documented; use a version-pinned CDN URL only when deployment allows it.
+5. Configure the factory in AI Web, MCP Core, or a standalone session according to the relevant API documentation.
+6. Apply only user-requested `toolFilter` and `interceptors.onToolCall` policies, after confirming their behavior and inputs in the docs and installed host code.
+7. Confirm the model receives the documented Code Mode meta-tools.
+8. Run a multi-step request and confirm the outcome rather than expecting a particular tool-call transcript.
+9. For standalone hosts, follow the API documentation for execution signals, context, and session cleanup.
 
 ## Important invariants
 
-- Enable Code Mode on only one layer per assistant; AI Web rejects a session with more than one Code Mode provider.
-- AI Web requires the browser factory; the MCP Core API reference uses the Node.js factory for its server.
-- `wasmLocation` is a URL in the browser and a filesystem path in Node.js.
-- The WASM file must match the installed package version; copy it again after upgrading.
-- `toolFilter` removes a tool from both discovery and execution.
-- `onToolCall` can allow a call, deny it with a reason, or run it with replacement input.
-- Defaults: `timeout` 30000 ms, `memoryLimit` 128 MB.
-- Per-execution `context` reaches `onToolCall` as `callContext` and tools as `options.context`; sandbox code cannot read or forge it.
-- `getLlmTools()` captures the current registry; call it again after `setTools()` for future runs.
-- Removing a session aborts its in-flight execution without affecting other sessions or the shared sandbox.
-- Sandbox code cannot display UI, so interactive tools such as MCP Apps remain available directly.
-- Isolation does not make underlying tools safe; the host still validates inputs and enforces authorization.
+- Enable Code Mode on only one layer per assistant; verify this constraint in the integration documentation.
+- Use the host-appropriate entry point and WASM location described by the API documentation.
+- Keep the WASM file aligned with the installed package version.
+- Verify documented `toolFilter` and `onToolCall` behavior before configuring policies; confirm policy fields are populated by the host.
+- Do not treat sandbox isolation as authorization; verify host-side validation and access-control responsibilities in the docs and installed code.
 
 ## Common wrong turns
 
-- Enabling Code Mode on several MCP servers used by the same Code Mode-unaware client, producing clashing meta-tools
-- Enabling server-side Code Mode on an MCP Core server that AI Web already virtualizes
-- Importing the Node.js entry point in a browser app, or the reverse
-- Serving the WASM file from a path that differs from `wasmLocation`, or leaving a stale file after an upgrade
-- Using an unpinned CDN URL for the WASM asset
-- Treating the sandbox as authorization instead of adding filters, interceptors, and tool-side validation
-- Hardcoding tool names in generated code instead of using the names returned by `getTools`
-- Expecting sandboxed code to open MCP App UI
-- Debugging model behavior before proving the meta-tools and WASM load correctly
+- Enabling Code Mode at multiple layers for the same assistant
+- Configuring MCP Core when AI Web already owns the LLM-facing tool catalog
+- Using the browser entry point in a Node.js host, or vice versa
+- Serving a WASM file from a location that differs from the configured location, or leaving a stale file after an upgrade
+- Copying an example package version instead of checking the npm registry or installed host package range
+- Assuming a package is absent because globbing did not traverse a `node_modules` junction or symbolic link
+- Using a documented package file path without confirming it resolves in the installed package
+- Treating sandbox isolation as authorization
+- Writing policies based on declared fields without confirming the host populates them
+- Stating behavior as fact when the documentation does not specify it
+- Asking which integration path to use when the project context already settles it
+- Adding unrequested tool policies or enabling Code Mode before requested policy questions are answered
 
 ## Official documentation
 
