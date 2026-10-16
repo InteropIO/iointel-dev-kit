@@ -44,7 +44,7 @@ const components: Components = {
         const isInline = !className && typeof children === "string" && !children.includes("\n");
         if (isInline) {
             return (
-                <code className="bg-app-background-secondary px-1.5 py-0.5 rounded text-sm font-mono text-text-states-active" {...props}>
+                <code className="bg-app-background-secondary px-1.5 py-0.5 rounded text-sm font-mono text-[var(--app-blue)]" {...props}>
                     {children}
                 </code>
             );
@@ -59,7 +59,7 @@ const components: Components = {
             <a
                 href={href}
                 title={title ?? ""}
-                className="text-[14px] font-semibold leading-5 text-[var(--app-blue)] underline [text-decoration-skip-ink:none] hover:opacity-[0.85]"
+                className="text-[14px] font-weight-550 leading-5 text-[var(--app-blue)] underline [text-decoration-skip-ink:none] hover:opacity-[0.85]"
                 target="_blank"
                 rel="noopener noreferrer"
             >
@@ -74,7 +74,7 @@ const components: Components = {
         return <thead className="text-left">{children}</thead>;
     },
     th({ children }) {
-        return <th className="py-3 pr-3 pl-0 last:pr-0 font-medium text-[14px] leading-5 text-text-states-active border-b-2 border-panel-border">{children}</th>;
+        return <th className="py-3 pr-3 pl-0 last:pr-0 font-weight-550 text-[14px] leading-5 text-text-states-active border-b-2 border-panel-border">{children}</th>;
     },
     td({ children }) {
         return <td className="py-3 pr-3 pl-0 last:pr-0 text-[14px] leading-5 text-text-default">{children}</td>;
@@ -87,43 +87,47 @@ const components: Components = {
         );
     },
     ul({ children }) {
-        return <ul className="list-disc pl-5 mt-4 mb-2 text-[14px] font-normal leading-5 text-text-default">{children}</ul>;
+        return <ul className="text-[14px] font-weight-350 leading-5 text-text-default">{children}</ul>;
     },
     ol({ children }) {
-        return <ol className="list-decimal pl-5 mt-4 mb-2 text-[14px] font-normal leading-5 text-text-default">{children}</ol>;
+        return <ol className="text-[14px] font-weight-350 leading-5 text-text-default">{children}</ol>;
     },
     li({ children }) {
-        return <li className="py-1">{children}</li>;
+        return <li>{children}</li>;
     },
     blockquote({ children }) {
-        return <blockquote className="p-4 my-4 rounded-2xl text-text-default flex flex-col gap-1 relative border border-app-accent-color-1">{children}</blockquote>;
+        return (
+            <blockquote className="relative flex flex-col gap-1 py-4 px-6 my-2 rounded-[4px] text-text-default bg-[#2e3033] before:content-[''] before:absolute before:left-0 before:inset-y-0 before:w-1.5 before:rounded-l-[4px] before:bg-[linear-gradient(180deg,var(--color-app-accent-color-1),var(--app-blue))]">
+                {children}
+            </blockquote>
+        );
     },
     hr() {
         return <hr className="my-4 border-0 border-t border-panel-border" />;
     },
     p({ children }) {
-        return <p className="text-[14px] font-normal leading-5 text-text-default my-2 first:mt-0 last:mb-0">{children}</p>;
+        return <p className="text-[14px] font-weight-350 leading-5 text-text-default my-2 first:mt-0 last:mb-0">{children}</p>;
     },
     strong({ children }) {
-        return <strong className="font-semibold">{children}</strong>;
+        return <strong className="font-weight-550">{children}</strong>;
     },
     h1({ children }) {
-        return <h1 className="font-default font-medium text-text-states-active py-0 mt-5 text-[20px] leading-[28px]">{children}</h1>;
+        return <h1 className="font-default font-weight-550 text-text-states-active py-0 mt-5 text-[20px] leading-[28px]">{children}</h1>;
     },
     h2({ children }) {
-        return <h2 className="font-default font-medium text-text-states-active py-0 mt-5 text-[18px] leading-[26px]">{children}</h2>;
+        return <h2 className="font-default font-weight-550 text-text-states-active py-0 mt-5 text-[18px] leading-[26px]">{children}</h2>;
     },
     h3({ children }) {
-        return <h3 className="font-default font-medium text-text-states-active py-0 mt-5 text-[16px] leading-[24px]">{children}</h3>;
+        return <h3 className="font-default font-weight-550 text-text-states-active py-0 mt-5 text-[16px] leading-[24px]">{children}</h3>;
     },
     h4({ children }) {
-        return <h4 className="font-default font-medium text-text-states-active py-0 mt-5 text-[15px] leading-[22px]">{children}</h4>;
+        return <h4 className="font-default font-weight-550 text-text-states-active py-0 mt-5 text-[15px] leading-[22px]">{children}</h4>;
     },
     h5({ children }) {
-        return <h5 className="font-default font-medium text-text-states-active py-0 mt-5 text-[14px] leading-5">{children}</h5>;
+        return <h5 className="font-default font-weight-550 text-text-states-active py-0 mt-5 text-[14px] leading-5">{children}</h5>;
     },
     h6({ children }) {
-        return <h6 className="font-default font-medium text-text-states-active py-0 mt-5 text-[13px] leading-[18px]">{children}</h6>;
+        return <h6 className="font-default font-weight-550 text-text-states-active py-0 mt-5 text-[13px] leading-[18px]">{children}</h6>;
     },
 };
 

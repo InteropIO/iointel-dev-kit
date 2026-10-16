@@ -70,14 +70,7 @@ export const MessageArea: React.FC<Props> = ({ onReloadResponse, className }) =>
                 <div className="flex flex-1 justify-center items-center p-4">
                     <div className="flex gap-1">
                         {[0, 1, 2].map((i) => (
-                            <div
-                                key={i}
-                                className="size-1.5 rounded-full bg-app-accent-color-1"
-                                style={{
-                                    animationDelay: `${i * 0.15}s`,
-                                    animation: `rise 0.6s cubic-bezier(0.16,1,0.3,1) ${i * 0.15}s infinite alternate`,
-                                }}
-                            />
+                            <div key={i} className="loading-dot size-1.5 rounded-full bg-app-accent-color-1" style={{ animationDelay: `${i * 0.15}s` }} />
                         ))}
                     </div>
                 </div>

@@ -33,11 +33,11 @@ export const ThreadHistoryPanel: React.FC<ThreadHistoryPanelProps> = ({ userName
 
             {hasUsername && (
                 <div data-testid="thread-user-profile" className="flex items-center gap-3 px-4 py-3 mt-auto border-t border-border-default">
-                    <div data-testid="thread-user-avatar" className="flex items-center justify-center size-6 rounded-full bg-app-accent-color-1 text-white font-semibold text-[12px] flex-shrink-0">
+                    <div data-testid="thread-user-avatar" className="flex items-center justify-center size-6 rounded-full bg-app-accent-color-1 text-white font-weight-550 text-[12px] flex-shrink-0">
                         {userInitial}
                     </div>
                     <div className="flex flex-col flex-1 min-w-0">
-                        <span data-testid="thread-user-name" className="text-text-default text-[12px] leading-[12px] font-normal truncate" title={userName}>
+                        <span data-testid="thread-user-name" className="text-text-default text-[12px] leading-[12px] font-weight-350 truncate" title={userName}>
                             {userName}
                         </span>
                     </div>

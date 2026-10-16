@@ -86,6 +86,10 @@ function buildWebConfig(staticConfig: IoAssistStaticConfig, dynamicConfig: IoAss
         config.context = staticConfig.workingContext;
     }
 
+    if (staticConfig.aiWebConfig.codeMode) {
+        config.codeMode = staticConfig.aiWebConfig.codeMode;
+    }
+
     return config;
 }
 

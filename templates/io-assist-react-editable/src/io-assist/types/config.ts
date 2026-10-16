@@ -39,6 +39,7 @@ export type IoAssistStaticConfig = {
     aiWebConfig: {
         agentServer: IoAiWeb.AgentServerConfig;
         mcp?: IoAiWeb.MCPConfig;
+        codeMode?: IoAiWeb.CodeModeConfig;
     };
     defaultAgentName?: string;
     workingContext?: IoAiWeb.WorkingContextConfig;

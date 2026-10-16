@@ -2,13 +2,50 @@ import React, { useState } from "react";
 
 import { useIoAssistStore } from "../../context/IoAssistContext";
 import { useIoConnectApi } from "../../hooks/useIoConnectApi";
-import type { Prompt } from "../../types";
+import type { IconResource, Prompt } from "../../types";
 import { Icon } from "../shared/Icon";
-import { PromptDotIcon, StarIcon, StarFilledIcon } from "../shared/icons";
+import { PromptPanelIcon, StarIcon, StarFilledIcon } from "../shared/icons";
 
 type Props = {
     prompt: Prompt;
     isDisplayedInFavoriteList: boolean;
+};
+
+const getIconMaskUrl = (iconResource: IconResource): string => {
+    if (iconResource.type === "svg") {
+        return `url(${JSON.stringify(`data:image/svg+xml,${encodeURIComponent(iconResource.data)}`)})`;
+    }
+
+    return `url(${JSON.stringify(iconResource.data)})`;
+};
+
+const PromptItemIcon: React.FC<{ iconResource?: IconResource }> = ({ iconResource }) => {
+    if (!iconResource) {
+        return (
+            <Icon size={12}>
+                <PromptPanelIcon />
+            </Icon>
+        );
+    }
+
+    const maskImage = getIconMaskUrl(iconResource);
+
+    return (
+        <span
+            aria-hidden="true"
+            className="block size-3 bg-current"
+            style={{
+                WebkitMaskImage: maskImage,
+                maskImage,
+                WebkitMaskPosition: "center",
+                maskPosition: "center",
+                WebkitMaskRepeat: "no-repeat",
+                maskRepeat: "no-repeat",
+                WebkitMaskSize: "contain",
+                maskSize: "contain",
+            }}
+        />
+    );
 };
 
 export const PromptListItem: React.FC<Props> = ({ prompt, isDisplayedInFavoriteList }) => {
@@ -56,10 +93,8 @@ export const PromptListItem: React.FC<Props> = ({ prompt, isDisplayedInFavoriteL
                 }}
                 title={prompt.description || undefined}
             >
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full text-text-default">
-                    <Icon size={16}>
-                        <PromptDotIcon />
-                    </Icon>
+                <span data-testid="prompt-icon" className={["flex size-6 shrink-0 items-center justify-center", isHovered ? "text-text-states-hover" : "text-text-default"].join(" ")}>
+                    <PromptItemIcon iconResource={prompt.iconResource} />
                 </span>
 
                 <span className={["flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-xs", isHovered ? "text-text-states-hover" : "text-text-default"].join(" ")}>{prompt.name}</span>
@@ -71,7 +106,7 @@ export const PromptListItem: React.FC<Props> = ({ prompt, isDisplayedInFavoriteL
                     aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
                     title={isFavorite ? "Remove from favorites" : "Add to favorites"}
                     className={[
-                        "p-2 ps-1 shrink-0 inline-flex items-center justify-center cursor-pointer bg-transparent border-0",
+                        "size-6 p-2 ps-1 shrink-0 inline-flex items-center justify-center cursor-pointer bg-transparent border-0",
                         isFavorite ? "text-yellow-400" : isHovered ? "text-text-default hover:text-yellow-400" : "text-text-states-disabled",
                     ].join(" ")}
                     onClick={handleToggleFavorite}

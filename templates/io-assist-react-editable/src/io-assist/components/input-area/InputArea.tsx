@@ -143,7 +143,7 @@ export const InputArea: React.FC<Props> = ({ onSend, onAbort, className }) => {
             <div className="input-area__container relative w-full">
                 <div className="input-area__content accent-gradient-border relative rounded-2xl bg-app-background">
                     <div className="flex flex-col gap-4 p-4">
-                        <div className="flex gap-3 items-start px-2">
+                        <div className="flex gap-3 items-start ps-[1px] pt-1">
                             <textarea
                                 ref={textareaRef}
                                 data-testid="chat-input-field"
@@ -203,20 +203,19 @@ const ActionBar: React.FC = () => {
 
     const [hovered, setHovered] = useState<"prompt" | "tool" | null>(null);
 
-    // Match ng: size depends only on whether the panel is displayed (XS when open, S otherwise) —
-    // it must NOT shrink on hover. The icon variant, however, swaps to the filled glyph on hover.
     const promptDisplayed = activePanelContent === PANEL_CONTENT.PROMPTS;
     const toolDisplayed = activePanelContent === PANEL_CONTENT.TOOLS;
     const promptFilled = promptDisplayed || hovered === "prompt";
     const toolFilled = toolDisplayed || hovered === "tool";
 
     return (
-        <div className="flex flex-1 gap-0.5 items-center">
+        <div className="flex flex-1 gap-1 items-center">
             <IconButton
-                size={promptDisplayed ? 12 : 16}
-                containerSize={promptDisplayed ? 24 : 32}
+                size={12}
+                containerSize={24}
                 testId="prompt-panel-button"
-                className="hover:bg-app-icon-background-hover"
+                shape="rounded-rectangle"
+                aria-pressed={promptDisplayed}
                 onClick={() => setActivePanelContent(PANEL_CONTENT.PROMPTS)}
                 onMouseEnter={() => setHovered("prompt")}
                 onMouseLeave={() => setHovered(null)}
@@ -226,10 +225,11 @@ const ActionBar: React.FC = () => {
                 {promptFilled ? <PromptPanelFilledIcon /> : <PromptPanelIcon />}
             </IconButton>
             <IconButton
-                size={toolDisplayed ? 12 : 16}
-                containerSize={toolDisplayed ? 24 : 32}
+                size={12}
+                containerSize={24}
                 testId="tool-panel-button"
-                className="hover:bg-app-icon-background-hover"
+                shape="rounded-rectangle"
+                aria-pressed={toolDisplayed}
                 onClick={() => setActivePanelContent(PANEL_CONTENT.TOOLS)}
                 onMouseEnter={() => setHovered("tool")}
                 onMouseLeave={() => setHovered(null)}

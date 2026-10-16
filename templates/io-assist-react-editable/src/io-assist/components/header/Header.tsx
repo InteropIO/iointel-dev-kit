@@ -72,7 +72,7 @@ export const Header: React.FC = () => {
                     <button
                         type="button"
                         data-testid="working-context-button"
-                        className="flex justify-center items-center px-2 py-[3.5px] border-[1px] rounded-[8px] text-text-default cursor-pointer hover:text-text-states-hover font-weight-400 text-[10px] leading-[13px]"
+                        className="flex justify-center items-center px-2 py-[3.5px] border-[1px] rounded-[8px] text-text-default cursor-pointer hover:text-text-states-hover font-weight-350 text-[10px] leading-[13px]"
                         onClick={handleWorkingContextOpen}
                     >
                         {UI_STRINGS.WORKING_CONTEXT_PANEL_COMPONENT.VIEW_WORKING_CONTEXT_BUTTON}
