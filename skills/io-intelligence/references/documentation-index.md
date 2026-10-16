@@ -13,6 +13,9 @@ Derived from [https://docs-ai.interop.io/llms.txt](https://docs-ai.interop.io/ll
 | Working Context | [Overview](https://docs-ai.interop.io/modules/working-context/overview.md) | Module overview |
 | Working Context | [Capabilities](https://docs-ai.interop.io/modules/working-context/capabilities.md) | Capabilities |
 | Working Context | [Integration](https://docs-ai.interop.io/modules/working-context/integration.md) | Integration guide |
+| Code Mode | [Overview](https://docs-ai.interop.io/modules/code-mode/overview.md) | Module overview |
+| Code Mode | [Capabilities](https://docs-ai.interop.io/modules/code-mode/capabilities.md) | Capabilities |
+| Code Mode | [Integration](https://docs-ai.interop.io/modules/code-mode/integration.md) | Integration path selection |
 | AI Web | [Overview](https://docs-ai.interop.io/modules/ai-web/overview.md) | Module overview |
 | AI Web | [Capabilities](https://docs-ai.interop.io/modules/ai-web/capabilities.md) | Capabilities |
 | io.Assist | [Overview](https://docs-ai.interop.io/modules/io-assist-ng/overview.md) | React and Angular module overview |
@@ -46,6 +49,9 @@ Derived from [https://docs-ai.interop.io/llms.txt](https://docs-ai.interop.io/ll
 | `@interopio/working-context` | [Overview](https://docs-ai.interop.io/api-reference/working-context/overview.md) | Factory and runtime API |
 | `@interopio/working-context` | [Schema Configuration](https://docs-ai.interop.io/api-reference/working-context/schema-configuration.md) | Schema reference |
 | `@interopio/working-context` | [Examples](https://docs-ai.interop.io/api-reference/working-context/examples.md) | Examples |
+| `@interopio/code-mode` | [Overview](https://docs-ai.interop.io/api-reference/code-mode/overview.md) | Factory, sessions, and meta-tools |
+| `@interopio/code-mode` | [Configuration](https://docs-ai.interop.io/api-reference/code-mode/configuration.md) | Sandbox and tool policies |
+| `@interopio/code-mode` | [Examples](https://docs-ai.interop.io/api-reference/code-mode/examples.md) | Examples |
 | `@interopio/ai-web` | [Overview](https://docs-ai.interop.io/api-reference/ai-web/overview.md) | API overview |
 | `@interopio/ai-web` | [API Reference](https://docs-ai.interop.io/api-reference/ai-web/api-reference.md) | Factory and runtime namespaces |
 | `@interopio/ai-web` | [Configuration](https://docs-ai.interop.io/api-reference/ai-web/configuration.md) | Configuration |
@@ -81,9 +87,10 @@ Derived from [https://docs-ai.interop.io/llms.txt](https://docs-ai.interop.io/ll
 | 4 | [Create io.Assist](https://docs-ai.interop.io/guides/io-assist-anywhere/create-io-assist.md) |
 | 5 | [Add Working Context](https://docs-ai.interop.io/guides/io-assist-anywhere/add-working-context.md) |
 | 6 | [Update App Definitions](https://docs-ai.interop.io/guides/io-assist-anywhere/updating-app-definitions.md) |
-| 7 | [Add MCP Apps](https://docs-ai.interop.io/guides/io-assist-anywhere/add-support-for-mcp-apps.md) |
-| 8 | [Remove the External MCP Web Server](https://docs-ai.interop.io/guides/io-assist-anywhere/remove-external-mcp-web-server.md) |
-| 9 | [Extend for Desktop](https://docs-ai.interop.io/guides/io-assist-anywhere/extend-for-io-connect-desktop.md) |
-| 10 | [Dedicated Desktop MCP HTTP Server](https://docs-ai.interop.io/guides/io-assist-anywhere/dedicated-io-connect-desktop-mcp-http-server.md) |
-| 11 | [Custom UI Using AI Web](https://docs-ai.interop.io/guides/io-assist-anywhere/custom-ui-skin-using-ai-web.md) |
-| 12 | [Conclusion](https://docs-ai.interop.io/guides/io-assist-anywhere/conclusion.md) |
+| 7 | [Add Code Mode](https://docs-ai.interop.io/guides/io-assist-anywhere/add-code-mode.md) |
+| 8 | [Enable MCP Apps](https://docs-ai.interop.io/guides/io-assist-anywhere/add-support-for-mcp-apps.md) |
+| 9 | [Host MCP Web in io.Assist](https://docs-ai.interop.io/guides/io-assist-anywhere/remove-external-mcp-web-server.md) |
+| 10 | [Support io.Connect Desktop](https://docs-ai.interop.io/guides/io-assist-anywhere/extend-for-io-connect-desktop.md) |
+| 11 | [Desktop MCP HTTP Server](https://docs-ai.interop.io/guides/io-assist-anywhere/dedicated-io-connect-desktop-mcp-http-server.md) |
+| 12 | [Build a Custom Assistant UI](https://docs-ai.interop.io/guides/io-assist-anywhere/custom-ui-skin-using-ai-web.md) |
+| 13 | [Conclusion](https://docs-ai.interop.io/guides/io-assist-anywhere/conclusion.md) |
