@@ -69,9 +69,16 @@ const AgentServerConfigSchema = z.object({
  */
 const IOConnectNgSettingsSchema = z.record(z.string(), z.any());
 
+// Validation of the inner config is handled by the code mode lib itself.
+const CodeModeConfigSchema = z.object({
+    factory: z.function().args(z.any()).returns(z.promise(z.any())).describe("A factory function to create the code mode API instance."),
+    config: z.any().describe("Configuration object for the code mode factory."),
+}) as ZodType<IoAiWeb.CodeModeConfig>;
+
 const AIWebConfigSchema = z.object({
     agentServer: AgentServerConfigSchema,
     mcp: MCPConfigSchema.optional(),
+    codeMode: CodeModeConfigSchema.optional(),
 }) as ZodType<AIWebConfig>;
 
 /**

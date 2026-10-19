@@ -2,26 +2,26 @@
     class="input-area-action-bar"
     data-testid="input-area-action-bar"
     [ngClass]="{
-        'flex flex-1 gap-0.5 items-center': true,
+        'flex flex-1 gap-1 items-center': true,
     }"
 >
     <app-icon
-        class="min-w-[32px]"
+        class="min-w-[24px]"
         data-testid="prompt-panel-button"
         [variant]="isPromptPanelDisplayed() ? APP_ICON_VARIANTS.PROMPT_PANEL_FILLED : APP_ICON_VARIANTS.PROMPT_PANEL"
         [hoverVariant]="APP_ICON_VARIANTS.PROMPT_PANEL_FILLED"
-        [size]="isPromptPanelDisplayed() ? APP_ICON_SIZES.XS : APP_ICON_SIZES.S"
-        [hoverBackgroundColor]="'app-icon-background-hover'"
+        [size]="APP_ICON_SIZES.XS"
+        [hoverBackgroundShape]="APP_ICON_BACKGROUND_SHAPES.ROUNDED_RECTANGLE"
         (onClick)="handlePromptPanelOverlayOpen()"
     >
     </app-icon>
     <app-icon
-        class="min-w-[32px]"
+        class="min-w-[24px]"
         data-testid="tool-panel-button"
         [variant]="isToolPanelDisplayed() ? APP_ICON_VARIANTS.TOOL_PANEL_FILLED : APP_ICON_VARIANTS.TOOL_PANEL"
         [hoverVariant]="APP_ICON_VARIANTS.TOOL_PANEL_FILLED"
-        [size]="isToolPanelDisplayed() ? APP_ICON_SIZES.XS : APP_ICON_SIZES.S"
-        [hoverBackgroundColor]="'app-icon-background-hover'"
+        [size]="APP_ICON_SIZES.XS"
+        [hoverBackgroundShape]="APP_ICON_BACKGROUND_SHAPES.ROUNDED_RECTANGLE"
         (onClick)="handleToolPanelOverlayOpen()"
     >
     </app-icon>
