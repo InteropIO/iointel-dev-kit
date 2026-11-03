@@ -5,7 +5,7 @@ export function compileMatcher(source: string): (text: string) => boolean {
   const re = REGEX_SOURCE.exec(source);
   if (re) {
     // g and y make RegExp.test stateful across calls, so they are dropped.
-    const regex = new RegExp(re[1]!, re[2]!.replace(/[gy]/g, ''));
+    const regex = new RegExp(re[1]!, re[2]!.replace(/[gy]/g, ""));
     return (text) => regex.test(text);
   }
   return (text) => text.includes(source);

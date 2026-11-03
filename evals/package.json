@@ -7,10 +7,12 @@
     "eval:approve": "tsx src/cli.ts approve",
     "test": "vitest run",
     "test:contract": "vitest run --config vitest.contract.config.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write src test *.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
+    "prettier": "^3.9.10",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vitest": "^3.2.7"

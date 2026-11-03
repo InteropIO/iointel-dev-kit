@@ -1,87 +1,107 @@
-import type { CheckResult } from '../checks/checks.js';
-import type { CaseKind } from '../cases/schema.js';
-import type { FlowDiff } from '../flow/compare.js';
-import type { FlowSnapshot, JudgeLine, StopReason, TriggerDetection } from '../types.js';
+import type { CheckResult } from "../checks/checks.js";
+import type { CaseKind } from "../cases/schema.js";
+import type { FlowDiff } from "../flow/compare.js";
+import type {
+  FlowSnapshot,
+  JudgeLine,
+  StopReason,
+  TriggerDetection,
+} from "../types.js";
 
 export interface RunRecord {
-  caseId: string;
-  target: string;
+  readonly caseId: string;
+  readonly target: string;
   /** 0-based repeat index. */
-  index: number;
+  readonly index: number;
   /** false for the skill-removed runs added by --baseline. */
-  withSkill: boolean;
-  skipped: boolean;
-  skipReason?: string;
-  pass: boolean;
-  triggered: boolean;
-  triggerDetection?: TriggerDetection;
-  checks: CheckResult[];
-  judge?: JudgeLine[];
-  stopReason?: StopReason;
-  error?: string;
-  costUsd: number | null;
-  flow?: FlowSnapshot;
+  readonly withSkill: boolean;
+  readonly skipped: boolean;
+  readonly skipReason?: string;
+  readonly pass: boolean;
+  readonly triggered: boolean;
+  readonly triggerDetection?: TriggerDetection;
+  readonly checks: readonly CheckResult[];
+  readonly judge?: readonly JudgeLine[];
+  readonly stopReason?: StopReason;
+  readonly error?: string;
+  readonly costUsd: number | null;
+  readonly flow?: FlowSnapshot;
   /** Relative to the run's results folder. */
-  transcriptFile?: string;
+  readonly transcriptFile?: string;
 }
 
 export interface CaseReport {
-  caseId: string;
-  kind: CaseKind;
-  target: string;
-  network: boolean;
+  readonly caseId: string;
+  readonly kind: CaseKind;
+  readonly target: string;
+  readonly network: boolean;
   /** null when every run was skipped. */
-  pass: boolean | null;
-  threshold: number;
-  ran: number;
-  skipped: number;
-  passRate: number | null;
-  triggerRate: number | null;
-  costUsd: number;
-  costUnknown: boolean;
+  readonly pass: boolean | null;
+  readonly threshold: number;
+  readonly ran: number;
+  readonly skipped: number;
+  readonly passRate: number | null;
+  readonly triggerRate: number | null;
+  readonly costUsd: number;
+  readonly costUnknown: boolean;
   /** Repeat indices whose flow differs from the majority. */
-  oddRuns: number[];
-  runs: RunRecord[];
+  readonly oddRuns: readonly number[];
+  readonly runs: readonly RunRecord[];
   /** Present when --baseline was used. */
-  withoutSkill?: { ran: number; passRate: number | null; triggerRate: number | null; runs: RunRecord[] };
+  readonly withoutSkill?: {
+    readonly ran: number;
+    readonly passRate: number | null;
+    readonly triggerRate: number | null;
+    readonly runs: readonly RunRecord[];
+  };
 }
 
-export type ComparisonStatus = 'regressed' | 'improved' | 'unchanged' | 'new' | 'removed';
+export type ComparisonStatus =
+  "regressed" | "improved" | "unchanged" | "new" | "removed";
 
 export interface CaseComparison {
-  caseId: string;
-  target: string;
-  status: ComparisonStatus;
-  passRate: { before: number | null; after: number | null };
-  triggerRate: { before: number | null; after: number | null };
+  readonly caseId: string;
+  readonly target: string;
+  readonly status: ComparisonStatus;
+  readonly passRate: {
+    readonly before: number | null;
+    readonly after: number | null;
+  };
+  readonly triggerRate: {
+    readonly before: number | null;
+    readonly after: number | null;
+  };
   /** Majority flow vs. the reference's majority flow; absent when either side has no flows. */
-  flowDiff?: FlowDiff;
+  readonly flowDiff?: FlowDiff;
 }
 
 export interface RunReport {
-  runId: string;
-  startedAt: string;
-  finishedAt: string;
-  options: {
-    kind?: string;
-    caseId?: string;
-    target?: string;
-    repeat?: number;
-    concurrency: number;
-    maxCostUsd?: number;
-    withoutSkill: boolean;
+  readonly runId: string;
+  readonly startedAt: string;
+  readonly finishedAt: string;
+  readonly options: {
+    readonly kind?: string;
+    readonly caseId?: string;
+    readonly target?: string;
+    readonly repeat?: number;
+    readonly concurrency: number;
+    readonly maxCostUsd?: number;
+    readonly withoutSkill: boolean;
   };
-  reference: { kind: 'baseline' | 'previous-run' | 'none'; runId?: string };
-  cases: CaseReport[];
-  comparison: CaseComparison[];
-  totals: {
-    costUsd: number;
-    costUnknown: boolean;
-    costByTarget: Record<string, number>;
-    runs: number;
-    skipped: number;
-    casesPassed: number;
-    casesFailed: number;
+  readonly reference: {
+    readonly kind: "baseline" | "previous-run" | "none";
+    readonly runId?: string;
   };
-  resultsPath: string;
+  readonly cases: readonly CaseReport[];
+  readonly comparison: readonly CaseComparison[];
+  readonly totals: {
+    readonly costUsd: number;
+    readonly costUnknown: boolean;
+    readonly costByTarget: Readonly<Record<string, number>>;
+    readonly runs: number;
+    readonly skipped: number;
+    readonly casesPassed: number;
+    readonly casesFailed: number;
+  };
+  readonly resultsPath: string;
 }

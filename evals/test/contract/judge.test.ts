@@ -1,14 +1,18 @@
 // Opt-in contract test for the real judge: `npm run test:contract` (needs ANTHROPIC_API_KEY in .env).
-import { describe, expect, it } from 'vitest';
-import { AnthropicJudge } from '../../src/judge/anthropic-judge.js';
+import { describe, expect, it } from "vitest";
+import { AnthropicJudge } from "../../src/judge/anthropic-judge.js";
 
-const judge = new AnthropicJudge();
+const judge = AnthropicJudge.getInstance();
 
-describe.skipIf(judge.checkReady() !== undefined)('Anthropic judge', () => {
-  it('passes a satisfied rubric line and fails an unsatisfied one', async () => {
+describe.skipIf(judge.checkReady() !== undefined)("Anthropic judge", () => {
+  it("passes a satisfied rubric line and fails an unsatisfied one", async () => {
     const result = await judge.grade({
-      rubric: ['Recommends the @interopio/mcp-web package', 'Explains how to configure an Angular router'],
-      finalMessage: 'Install @interopio/mcp-web in your browser app and register the tool at startup; io.Assist discovers it.',
+      rubric: [
+        "Recommends the @interopio/mcp-web package",
+        "Explains how to configure an Angular router",
+      ],
+      finalMessage:
+        "Install @interopio/mcp-web in your browser app and register the tool at startup; io.Assist discovers it.",
       transcript: [],
     });
 

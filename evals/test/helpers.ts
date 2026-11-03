@@ -1,12 +1,23 @@
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
-import os from 'node:os';
-import path from 'node:path';
-import { stringify } from 'yaml';
-import { runEval, type RunEvalDeps, type RunEvalOptions } from '../src/engine/run-eval.js';
-import { GitWorkspaceManager } from '../src/workspace/workspace.js';
-import type { AgentAdapter, AgentRunInput, AgentRunResult, Judge, JudgeInput, JudgeResult } from '../src/types.js';
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { stringify } from "yaml";
+import {
+  runEval,
+  type RunEvalDeps,
+  type RunEvalOptions,
+} from "../src/engine/index.js";
+import { GitWorkspaceManager } from "../src/workspace/workspace.js";
+import type {
+  AgentAdapter,
+  AgentRunInput,
+  AgentRunResult,
+  Judge,
+  JudgeInput,
+  JudgeResult,
+} from "../src/types.js";
 
-export const SKILL_INSTALL = '.claude/skills/io-intelligence';
+export const SKILL_INSTALL = ".claude/skills/io-intelligence";
 
 export interface TestEnv {
   root: string;
@@ -18,28 +29,36 @@ export interface TestEnv {
   writeCase(c: Record<string, unknown>): Promise<void>;
   writeFixture(name: string, files: Record<string, string>): Promise<void>;
   options(extra?: Partial<RunEvalOptions>): RunEvalOptions;
-  deps(extra: Partial<RunEvalDeps> & Pick<RunEvalDeps, 'adapters'>): RunEvalDeps;
+  deps(
+    extra: Partial<RunEvalDeps> & Pick<RunEvalDeps, "adapters">,
+  ): RunEvalDeps;
 }
 
 export async function makeEnv(): Promise<TestEnv> {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'evals-test-'));
+  const root = await mkdtemp(path.join(os.tmpdir(), "evals-test-"));
   const env = {
     root,
-    casesDir: path.join(root, 'cases'),
-    resultsDir: path.join(root, 'results'),
-    baselineFile: path.join(root, 'baseline.json'),
-    skillDir: path.join(root, 'skill'),
-    fixturesDir: path.join(root, 'fixtures'),
+    casesDir: path.join(root, "cases"),
+    resultsDir: path.join(root, "results"),
+    baselineFile: path.join(root, "baseline.json"),
+    skillDir: path.join(root, "skill"),
+    fixturesDir: path.join(root, "fixtures"),
   };
   await mkdir(env.casesDir, { recursive: true });
   await mkdir(env.skillDir, { recursive: true });
-  await writeFile(path.join(env.skillDir, 'SKILL.md'), '---\nname: io-intelligence\ndescription: test skill\n---\n');
+  await writeFile(
+    path.join(env.skillDir, "SKILL.md"),
+    "---\nname: io-intelligence\ndescription: test skill\n---\n",
+  );
 
-  let clock = Date.parse('2026-11-02T10:00:00.000Z');
+  let clock = Date.parse("2026-11-02T10:00:00.000Z");
   return {
     ...env,
     async writeCase(c) {
-      await writeFile(path.join(env.casesDir, `${String(c.id)}.yaml`), stringify(c));
+      await writeFile(
+        path.join(env.casesDir, `${String(c.id)}.yaml`),
+        stringify(c),
+      );
     },
     async writeFixture(name, files) {
       for (const [file, content] of Object.entries(files)) {
@@ -56,7 +75,10 @@ export async function makeEnv(): Promise<TestEnv> {
       ...extra,
     }),
     deps: (extra) => ({
-      workspace: new GitWorkspaceManager({ skillDir: env.skillDir, fixturesDir: env.fixturesDir }),
+      workspace: new GitWorkspaceManager({
+        skillDir: env.skillDir,
+        fixturesDir: env.fixturesDir,
+      }),
       // Each run gets a later timestamp, so run ids sort in call order.
       now: () => new Date((clock += 1000)),
       ...extra,
@@ -64,14 +86,21 @@ export async function makeEnv(): Promise<TestEnv> {
   };
 }
 
-export type Script = (input: AgentRunInput, call: number) => Partial<AgentRunResult> | Promise<Partial<AgentRunResult>>;
+export type Script = (
+  input: AgentRunInput,
+  call: number,
+) => Partial<AgentRunResult> | Promise<Partial<AgentRunResult>>;
 
 export interface FakeAdapter extends AgentAdapter {
   calls: AgentRunInput[];
 }
 
 /** An adapter whose results are scripted per call. Defaults: skill triggered, no steps, $0.10. */
-export function fakeAdapter(script: Script = () => ({}), tool = 'fake', ready?: string): FakeAdapter {
+export function fakeAdapter(
+  script: Script = () => ({}),
+  tool = "fake",
+  ready?: string,
+): FakeAdapter {
   const calls: AgentRunInput[] = [];
   return {
     tool,
@@ -83,14 +112,22 @@ export function fakeAdapter(script: Script = () => ({}), tool = 'fake', ready?: 
       const scripted = await script(input, calls.length - 1);
       const triggered = scripted.skillTriggered ?? true;
       return {
-        finalMessage: '',
+        finalMessage: "",
         transcript: [],
         skillTriggered: triggered,
-        triggerDetection: 'skill-tool',
-        flow: triggered ? [{ kind: 'skill-loaded', skill: 'io-intelligence', via: 'skill-tool' }] : [],
+        triggerDetection: "skill-tool",
+        flow: triggered
+          ? [
+              {
+                kind: "skill-loaded",
+                skill: "io-intelligence",
+                via: "skill-tool",
+              },
+            ]
+          : [],
         turns: 1,
         costUsd: 0.1,
-        stopReason: 'done',
+        stopReason: "done",
         ...scripted,
       };
     },
@@ -102,7 +139,10 @@ export interface FakeJudge extends Judge {
 }
 
 /** A judge that passes every line unless `failing` matches the line text. */
-export function fakeJudge(failing: (line: string) => boolean = () => false, costUsd: number | null = 0.05): FakeJudge {
+export function fakeJudge(
+  failing: (line: string) => boolean = () => false,
+  costUsd: number | null = 0.05,
+): FakeJudge {
   const calls: JudgeInput[] = [];
   return {
     calls,
@@ -110,7 +150,11 @@ export function fakeJudge(failing: (line: string) => boolean = () => false, cost
     async grade(input): Promise<JudgeResult> {
       calls.push(input);
       return {
-        lines: input.rubric.map((text) => ({ text, pass: !failing(text), reason: failing(text) ? 'missed' : 'ok' })),
+        lines: input.rubric.map((text) => ({
+          text,
+          pass: !failing(text),
+          reason: failing(text) ? "missed" : "ok",
+        })),
         costUsd,
       };
     },

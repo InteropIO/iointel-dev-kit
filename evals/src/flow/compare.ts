@@ -1,7 +1,7 @@
-import type { FlowStep } from '../types.js';
-import { describeStep } from './normalize.js';
+import type { FlowStep } from "../types.js";
+import { describeStep } from "./normalize.js";
 
-export function flowKey(steps: FlowStep[]): string {
+function flowKey(steps: readonly FlowStep[]): string {
   return JSON.stringify(steps);
 }
 
@@ -9,31 +9,43 @@ export function flowKey(steps: FlowStep[]): string {
  * Groups repeats by identical flows. Runs outside the largest group are odd
  * (ties go to the group seen first). Returns indices into `flows`.
  */
-export function findOddRuns(flows: FlowStep[][]): { majority: number[]; odd: number[] } {
+export function findOddRuns(flows: readonly (readonly FlowStep[])[]): {
+  majority: number[];
+  odd: number[];
+} {
   const groups = new Map<string, number[]>();
   flows.forEach((steps, i) => {
     const key = flowKey(steps);
     groups.set(key, [...(groups.get(key) ?? []), i]);
   });
   let majority: number[] = [];
-  for (const members of groups.values()) if (members.length > majority.length) majority = members;
+  for (const members of groups.values())
+    if (members.length > majority.length) majority = members;
   const odd = flows.map((_, i) => i).filter((i) => !majority.includes(i));
   return { majority, odd };
 }
 
 export interface FlowDiff {
-  added: string[];
-  removed: string[];
+  readonly added: readonly string[];
+  readonly removed: readonly string[];
 }
 
 /** Step-level diff (longest common subsequence) between a baseline flow and a current flow. */
-export function diffFlows(baseline: FlowStep[], current: FlowStep[]): FlowDiff {
+export function diffFlows(
+  baseline: readonly FlowStep[],
+  current: readonly FlowStep[],
+): FlowDiff {
   const a = baseline.map(describeStep);
   const b = current.map(describeStep);
-  const lcs: number[][] = Array.from({ length: a.length + 1 }, () => new Array<number>(b.length + 1).fill(0));
+  const lcs: number[][] = Array.from({ length: a.length + 1 }, () =>
+    new Array<number>(b.length + 1).fill(0),
+  );
   for (let i = a.length - 1; i >= 0; i--)
     for (let j = b.length - 1; j >= 0; j--)
-      lcs[i]![j] = a[i] === b[j] ? lcs[i + 1]![j + 1]! + 1 : Math.max(lcs[i + 1]![j]!, lcs[i]![j + 1]!);
+      lcs[i]![j] =
+        a[i] === b[j]
+          ? lcs[i + 1]![j + 1]! + 1
+          : Math.max(lcs[i + 1]![j]!, lcs[i]![j + 1]!);
 
   const added: string[] = [];
   const removed: string[] = [];
@@ -49,8 +61,4 @@ export function diffFlows(baseline: FlowStep[], current: FlowStep[]): FlowDiff {
   removed.push(...a.slice(i));
   added.push(...b.slice(j));
   return { added, removed };
-}
-
-export function isEmptyDiff(d: FlowDiff): boolean {
-  return d.added.length === 0 && d.removed.length === 0;
 }
