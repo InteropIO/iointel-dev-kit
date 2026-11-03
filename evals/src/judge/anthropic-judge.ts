@@ -1,13 +1,13 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import type { Judge, JudgeInput, JudgeLine, JudgeResult } from "../types.js";
+import type { Evals } from "../shared/contracts.js";
 
 /**
  * Grades rubric lines with a fixed Opus 5.5 model, so scores stay comparable across runs and targets.
  * Holds one API client for the process: use AnthropicJudge.getInstance().
  */
-export class AnthropicJudge implements Judge {
+export class AnthropicJudge implements Evals.Judge.Grader {
   private static instance: AnthropicJudge | undefined;
   private static readonly MODEL = "claude-opus-5-5";
   // USD per million tokens for claude-opus-5-5.
@@ -47,7 +47,7 @@ Give a one-line reason for every verdict, citing the evidence.`;
       : "ANTHROPIC_API_KEY is not set (the judge uses Claude Opus 5.5)";
   }
 
-  public async grade(input: JudgeInput): Promise<JudgeResult> {
+  public async grade(input: Evals.Judge.Input): Promise<Evals.Judge.Result> {
     // Created on first use, after the CLI has loaded .env.
     this.client ??= new Anthropic();
     const response = await this.client.messages.parse({
@@ -70,7 +70,7 @@ Give a one-line reason for every verdict, citing the evidence.`;
       );
 
     const byIndex = new Map(verdict.lines.map((l) => [l.index, l]));
-    const lines: JudgeLine[] = input.rubric.map((text, i) => {
+    const lines: Evals.Judge.Line[] = input.rubric.map((text, i) => {
       const v = byIndex.get(i);
       return v
         ? { text, pass: v.pass, reason: v.reason }
@@ -83,7 +83,7 @@ Give a one-line reason for every verdict, citing the evidence.`;
     return { lines, costUsd: AnthropicJudge.cost(response.usage) };
   }
 
-  private static buildPrompt(input: JudgeInput): string {
+  private static buildPrompt(input: Evals.Judge.Input): string {
     let transcript = JSON.stringify(input.transcript);
     const truncated = transcript.length > AnthropicJudge.MAX_TRANSCRIPT_CHARS;
     if (truncated)

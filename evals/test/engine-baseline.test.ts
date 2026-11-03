@@ -2,15 +2,15 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { approveRun } from "../src/report/baseline.js";
-import type { FlowStep } from "../src/types.js";
 import { fakeAdapter, makeEnv, runEval } from "./helpers.js";
+import type { Evals } from "../src/shared/contracts.js";
 
-const loaded: FlowStep = {
+const loaded: Evals.Flow.Step = {
   kind: "skill-loaded",
   skill: "io-intelligence",
   via: "skill-tool",
 };
-const read = (p: string): FlowStep => ({ kind: "read", path: p });
+const read = (p: string): Evals.Flow.Step => ({ kind: "read", path: p });
 
 describe("comparison and approve", () => {
   it("has no reference on the very first run", async () => {
@@ -135,7 +135,7 @@ describe("comparison and approve", () => {
       targets: ["fake/m"],
       prompt: "p",
     });
-    let flow: FlowStep[] = [
+    let flow: Evals.Flow.Step[] = [
       loaded,
       read("<skill>/references/core.md"),
       read("<skill>/references/mcp-integration.md"),

@@ -7,12 +7,7 @@ import {
   type Usage,
 } from "@openai/codex-sdk";
 import { extractCodexFlow } from "../flow/codex-flow.js";
-import type {
-  AgentAdapter,
-  AgentRunInput,
-  AgentRunResult,
-  StopReason,
-} from "../types.js";
+import type { Evals } from "../shared/contracts.js";
 
 /**
  * Runs Codex through its SDK in a workspace-write sandbox limited to the workdir.
@@ -20,7 +15,7 @@ import type {
  * (the timeout still is) and cost comes from CODEX_PRICE_* when set.
  * Stateless between runs, so the process shares one instance: use CodexAdapter.getInstance().
  */
-export class CodexAdapter implements AgentAdapter {
+export class CodexAdapter implements Evals.Agent.Adapter {
   private static instance: CodexAdapter | undefined;
   private static readonly TOOL_ITEMS: ReadonlySet<string> = new Set([
     "command_execution",
@@ -69,7 +64,9 @@ export class CodexAdapter implements AgentAdapter {
       : "OPENAI_API_KEY is not set (add it to evals/.env)";
   }
 
-  public async run(input: AgentRunInput): Promise<AgentRunResult> {
+  public async run(
+    input: Evals.Agent.RunInput,
+  ): Promise<Evals.Agent.RunResult> {
     const codex = new Codex({
       apiKey: process.env.OPENAI_API_KEY!,
       env: await CodexAdapter.isolatedEnv(input.workdir),
@@ -95,7 +92,7 @@ export class CodexAdapter implements AgentAdapter {
     const items: ThreadItem[] = [];
     let usage: Usage | null = null;
     let finalMessage = "";
-    let stopReason: StopReason = "done";
+    let stopReason: Evals.Agent.StopReason = "done";
     let error: string | undefined;
 
     try {

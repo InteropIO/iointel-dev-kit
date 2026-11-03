@@ -5,12 +5,12 @@ import { config as loadEnv } from "dotenv";
 import { ClaudeCodeAdapter } from "./adapters/claude-code.js";
 import { CodexAdapter } from "./adapters/codex.js";
 import { CaseValidationError } from "./cases/loader.js";
-import type { CaseKind } from "./cases/schema.js";
 import { EvalSetupError, runEval } from "./engine/index.js";
 import { AnthropicJudge } from "./judge/anthropic-judge.js";
 import { approveRun } from "./report/baseline.js";
 import { renderConsoleSummary } from "./report/console.js";
 import { GitWorkspaceManager } from "./workspace/workspace.js";
+import type { Evals } from "./shared/contracts.js";
 
 const evalsRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -78,7 +78,7 @@ async function main(argv: string[]) {
       casesDir: paths.cases,
       resultsDir: paths.results,
       baselineFile: paths.baseline,
-      ...(values.kind ? { kind: values.kind as CaseKind } : {}),
+      ...(values.kind ? { kind: values.kind as Evals.Cases.Kind } : {}),
       ...(values.case ? { caseId: values.case } : {}),
       ...(values.target ? { target: values.target } : {}),
       ...(values.repeat

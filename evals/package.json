@@ -7,7 +7,7 @@
     "eval:approve": "tsx src/cli.ts approve",
     "test": "vitest run",
     "test:contract": "vitest run --config vitest.contract.config.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.contracts.json",
     "format": "prettier --write src test *.ts"
   },
   "devDependencies": {

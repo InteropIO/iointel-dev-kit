@@ -7,8 +7,8 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { ClaudeCodeAdapter } from "../../src/adapters/claude-code.js";
 import { CodexAdapter } from "../../src/adapters/codex.js";
-import type { AgentAdapter, AgentRunResult } from "../../src/types.js";
 import { GitWorkspaceManager } from "../../src/workspace/workspace.js";
+import type { Evals } from "../../src/shared/contracts.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const workspace = new GitWorkspaceManager({
@@ -23,10 +23,10 @@ const NEGATIVE =
   "Write a one-line Python function that reverses a string. Answer briefly.";
 
 async function run(
-  adapter: AgentAdapter,
+  adapter: Evals.Agent.Adapter,
   prompt: string,
   record?: string,
-): Promise<{ result: AgentRunResult; workdir: string }> {
+): Promise<{ result: Evals.Agent.RunResult; workdir: string }> {
   const ws = await workspace.prepare({
     setup: {},
     skillInstallPath: adapter.skillInstallPath,

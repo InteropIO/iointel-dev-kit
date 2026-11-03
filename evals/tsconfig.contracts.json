@@ -1,0 +1,7 @@
+{
+  // Type-checks the shared contracts on their own. The main tsconfig keeps skipLibCheck on
+  // (so dependencies' .d.ts files are not checked), which would also skip contracts.d.ts.
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "skipLibCheck": false },
+  "include": ["src/shared/contracts.d.ts"]
+}

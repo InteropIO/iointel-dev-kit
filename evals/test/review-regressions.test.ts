@@ -7,8 +7,8 @@ import { CaseValidationError } from "../src/cases/loader.js";
 import { compileMatcher } from "../src/checks/matcher.js";
 import { extractCodexFlow, unwrapShell } from "../src/flow/codex-flow.js";
 import { approveRun } from "../src/report/baseline.js";
-import type { Judge } from "../src/types.js";
 import { fakeAdapter, fakeJudge, makeEnv, runEval } from "./helpers.js";
+import type { Evals } from "../src/shared/contracts.js";
 
 describe("run outcome", () => {
   it("keeps the agent result and cost when the judge fails", async () => {
@@ -20,7 +20,7 @@ describe("run outcome", () => {
       prompt: "p",
       rubric: "- x",
     });
-    const judge: Judge = {
+    const judge: Evals.Judge.Grader = {
       checkReady: () => undefined,
       grade: async () => Promise.reject(new Error("overloaded")),
     };

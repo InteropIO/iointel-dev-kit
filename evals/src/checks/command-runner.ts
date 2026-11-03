@@ -1,10 +1,14 @@
 import { spawn } from "node:child_process";
-import type { CommandRunner } from "../types.js";
+import type { Evals } from "../shared/contracts.js";
 
 const MAX_OUTPUT_CHARS = 200_000;
 
 /** Runs a shell command; exitCode is null when it timed out. */
-export const runShellCommand: CommandRunner = (command, cwd, timeoutMs) =>
+export const runShellCommand: Evals.Commands.Runner = (
+  command,
+  cwd,
+  timeoutMs,
+) =>
   new Promise((resolve) => {
     const child = spawn(command, { cwd, shell: true, windowsHide: true });
     let output = "";

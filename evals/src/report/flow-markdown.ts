@@ -1,15 +1,11 @@
 import { describeStep } from "../flow/normalize.js";
-import type {
-  CaseComparison,
-  CaseReport,
-  RunRecord,
-} from "../engine/report-types.js";
+import type { Evals } from "../shared/contracts.js";
 
 /** One markdown file per case: every target and run as numbered steps, odd runs and baseline changes highlighted. */
 export function renderFlowMarkdown(
   caseId: string,
-  reports: CaseReport[],
-  comparisons: CaseComparison[],
+  reports: Evals.Report.CaseReport[],
+  comparisons: Evals.Report.CaseComparison[],
 ): string {
   const out: string[] = [`# Flows: ${caseId}`, ""];
   for (const report of reports) {
@@ -32,7 +28,7 @@ export function renderFlowMarkdown(
   return out.join("\n");
 }
 
-function renderRun(run: RunRecord, odd: boolean): string[] {
+function renderRun(run: Evals.Report.RunRecord, odd: boolean): string[] {
   const label = [
     `### Run ${run.index + 1}${run.withSkill ? "" : " (without skill)"}`,
     run.skipped ? " (skipped)" : run.pass ? " ✅" : " ❌",

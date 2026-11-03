@@ -2,20 +2,9 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { stringify } from "yaml";
-import {
-  runEval,
-  type RunEvalDeps,
-  type RunEvalOptions,
-} from "../src/engine/index.js";
+import { runEval } from "../src/engine/index.js";
 import { GitWorkspaceManager } from "../src/workspace/workspace.js";
-import type {
-  AgentAdapter,
-  AgentRunInput,
-  AgentRunResult,
-  Judge,
-  JudgeInput,
-  JudgeResult,
-} from "../src/types.js";
+import type { Evals } from "../src/shared/contracts.js";
 
 export const SKILL_INSTALL = ".claude/skills/io-intelligence";
 
@@ -28,10 +17,10 @@ export interface TestEnv {
   fixturesDir: string;
   writeCase(c: Record<string, unknown>): Promise<void>;
   writeFixture(name: string, files: Record<string, string>): Promise<void>;
-  options(extra?: Partial<RunEvalOptions>): RunEvalOptions;
+  options(extra?: Partial<Evals.Engine.Options>): Evals.Engine.Options;
   deps(
-    extra: Partial<RunEvalDeps> & Pick<RunEvalDeps, "adapters">,
-  ): RunEvalDeps;
+    extra: Partial<Evals.Engine.Deps> & Pick<Evals.Engine.Deps, "adapters">,
+  ): Evals.Engine.Deps;
 }
 
 export async function makeEnv(): Promise<TestEnv> {
@@ -87,12 +76,12 @@ export async function makeEnv(): Promise<TestEnv> {
 }
 
 export type Script = (
-  input: AgentRunInput,
+  input: Evals.Agent.RunInput,
   call: number,
-) => Partial<AgentRunResult> | Promise<Partial<AgentRunResult>>;
+) => Partial<Evals.Agent.RunResult> | Promise<Partial<Evals.Agent.RunResult>>;
 
-export interface FakeAdapter extends AgentAdapter {
-  calls: AgentRunInput[];
+export interface FakeAdapter extends Evals.Agent.Adapter {
+  calls: Evals.Agent.RunInput[];
 }
 
 /** An adapter whose results are scripted per call. Defaults: skill triggered, no steps, $0.10. */
@@ -101,7 +90,7 @@ export function fakeAdapter(
   tool = "fake",
   ready?: string,
 ): FakeAdapter {
-  const calls: AgentRunInput[] = [];
+  const calls: Evals.Agent.RunInput[] = [];
   return {
     tool,
     skillInstallPath: SKILL_INSTALL,
@@ -134,8 +123,8 @@ export function fakeAdapter(
   };
 }
 
-export interface FakeJudge extends Judge {
-  calls: JudgeInput[];
+export interface FakeJudge extends Evals.Judge.Grader {
+  calls: Evals.Judge.Input[];
 }
 
 /** A judge that passes every line unless `failing` matches the line text. */
@@ -143,11 +132,11 @@ export function fakeJudge(
   failing: (line: string) => boolean = () => false,
   costUsd: number | null = 0.05,
 ): FakeJudge {
-  const calls: JudgeInput[] = [];
+  const calls: Evals.Judge.Input[] = [];
   return {
     calls,
     checkReady: () => undefined,
-    async grade(input): Promise<JudgeResult> {
+    async grade(input): Promise<Evals.Judge.Result> {
       calls.push(input);
       return {
         lines: input.rubric.map((text) => ({

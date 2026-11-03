@@ -1,5 +1,5 @@
 import path from "node:path";
-import type { FlowStep } from "../types.js";
+import type { Evals } from "../shared/contracts.js";
 
 export const SKILL_NAME = "io-intelligence";
 export const SKILL_PREFIX = "<skill>";
@@ -58,7 +58,7 @@ function escapeRegex(s: string): string {
 export function toCommandOrScriptStep(
   command: string,
   exitCode: number | null,
-): FlowStep {
+): Evals.Flow.Step {
   const m = new RegExp(
     `${escapeRegex(SKILL_PREFIX)}/scripts/([\\w.-]+?)(?:\\.m?[jt]s)?(?=\\s|$|["'])(.*)$`,
   ).exec(command);
@@ -73,7 +73,7 @@ function stripQuotes(s: string): string {
   return s.replace(/^["']|["']$/g, "");
 }
 
-export function describeStep(step: FlowStep): string {
+export function describeStep(step: Evals.Flow.Step): string {
   switch (step.kind) {
     case "skill-loaded":
       return `skill-loaded ${step.skill} (via ${step.via})`;

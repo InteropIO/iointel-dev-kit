@@ -1,8 +1,6 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
-
-export type GuardDecision =
-  { behavior: "allow" } | { behavior: "deny"; message: string };
+import type { GuardDecision, GuardOptions } from "../shared/types.js";
 
 const PATH_KEYS = ["file_path", "notebook_path", "path"];
 const COMMAND_TOOLS = new Set(["Bash", "PowerShell"]);
@@ -16,10 +14,7 @@ const HARMLESS_PATHS = new Set(["/dev/null", "nul"]);
  * commands may not name absolute paths outside it or climb out with "..". This catches a
  * confused agent, not a determined one: it is a heuristic, not a sandbox.
  */
-export function createWorkdirGuard(
-  workdir: string,
-  options: { network: boolean },
-) {
+export function createWorkdirGuard(workdir: string, options: GuardOptions) {
   const root = path.resolve(workdir);
   const inside = (p: string) => {
     const resolved = path.resolve(root, toNativePath(p));

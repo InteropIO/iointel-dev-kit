@@ -2,7 +2,6 @@ import { access, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { GitWorkspaceManager } from "../src/workspace/workspace.js";
-import type { CommandRunner } from "../src/types.js";
 import {
   fakeAdapter,
   fakeJudge,
@@ -10,6 +9,7 @@ import {
   runEval,
   SKILL_INSTALL,
 } from "./helpers.js";
+import type { Evals } from "../src/shared/contracts.js";
 
 const PACKAGE_JSON = JSON.stringify({
   name: "fixture-app",
@@ -102,7 +102,7 @@ describe("task cases", () => {
       }),
     );
     const commands: string[] = [];
-    const runCommand: CommandRunner = async (command) => {
+    const runCommand: Evals.Commands.Runner = async (command) => {
       commands.push(command);
       return { exitCode: 0, output: "" };
     };

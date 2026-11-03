@@ -1,13 +1,11 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { loadCases } from "../cases/loader.js";
-import type { CaseKind, EvalCase } from "../cases/schema.js";
 import {
   checkAnswerText,
   checkFlow,
   checkTaskStructure,
   runTaskCommands,
-  type CheckResult,
 } from "../checks/checks.js";
 import { runShellCommand } from "../checks/command-runner.js";
 import { findOddRuns } from "../flow/compare.js";
@@ -18,40 +16,8 @@ import {
   SUMMARY_FILE,
 } from "../report/baseline.js";
 import { renderFlowMarkdown } from "../report/flow-markdown.js";
-import type { WorkspaceManager } from "../workspace/workspace.js";
-import type {
-  AgentAdapter,
-  AgentRunResult,
-  CommandRunner,
-  Judge,
-  JudgeLine,
-} from "../types.js";
-import type { CaseReport, RunRecord, RunReport } from "./report-types.js";
-
-export interface RunEvalOptions {
-  readonly casesDir: string;
-  readonly resultsDir: string;
-  readonly baselineFile: string;
-  readonly kind?: CaseKind;
-  readonly caseId?: string;
-  /** Exact target id, or a tool name to match all of that tool's targets. Filters only. */
-  readonly target?: string;
-  /** Overrides the default repeat count; a case's own `repeat` still wins. */
-  readonly repeat?: number;
-  readonly concurrency?: number;
-  readonly maxCostUsd?: number;
-  /** --baseline: also run every unit with the skill removed. */
-  readonly withoutSkill?: boolean;
-}
-
-export interface RunEvalDeps {
-  readonly adapters: Readonly<Record<string, AgentAdapter>>;
-  readonly judge?: Judge;
-  readonly workspace: WorkspaceManager;
-  readonly runCommand?: CommandRunner;
-  readonly now?: () => Date;
-  readonly log?: (line: string) => void;
-}
+import type { Evals } from "../shared/contracts.js";
+import type { ParsedTarget, RunUnit } from "../shared/types.js";
 
 export class EvalSetupError extends Error {
   public override readonly name = "EvalSetupError";
@@ -70,19 +36,10 @@ const LIMITS = {
 };
 const COMMAND_TIMEOUT_MS = 10 * 60_000;
 
-interface Unit {
-  readonly case: EvalCase;
-  readonly target: string;
-  readonly tool: string;
-  readonly model: string | undefined;
-  readonly index: number;
-  readonly withSkill: boolean;
-}
-
 export async function runEval(
-  options: RunEvalOptions,
-  deps: RunEvalDeps,
-): Promise<RunReport> {
+  options: Evals.Engine.Options,
+  deps: Evals.Engine.Deps,
+): Promise<Evals.Report.RunReport> {
   const now = deps.now ?? (() => new Date());
   const log = deps.log ?? (() => {});
   const runCommand = deps.runCommand ?? runShellCommand;
@@ -133,7 +90,7 @@ export async function runEval(
   for (const r of records)
     costByTarget[r.target] = (costByTarget[r.target] ?? 0) + (r.costUsd ?? 0);
 
-  const report: RunReport = {
+  const report: Evals.Report.RunReport = {
     runId,
     startedAt: startedAt.toISOString(),
     finishedAt: now().toISOString(),
@@ -184,18 +141,18 @@ export async function runEval(
   return report;
 }
 
-function parseTarget(target: string): {
-  tool: string;
-  model: string | undefined;
-} {
+function parseTarget(target: string): ParsedTarget {
   const slash = target.indexOf("/");
   return slash === -1
     ? { tool: target, model: undefined }
     : { tool: target.slice(0, slash), model: target.slice(slash + 1) };
 }
 
-function expandUnits(cases: EvalCase[], options: RunEvalOptions): Unit[] {
-  const units: Unit[] = [];
+function expandUnits(
+  cases: Evals.Cases.Case[],
+  options: Evals.Engine.Options,
+): RunUnit[] {
+  const units: RunUnit[] = [];
   for (const c of cases) {
     for (const target of c.targets) {
       const { tool, model } = parseTarget(target);
@@ -217,7 +174,7 @@ function expandUnits(cases: EvalCase[], options: RunEvalOptions): Unit[] {
 }
 
 /** Fails fast, before anything runs, when an adapter or the judge cannot run. */
-function preflight(units: Unit[], deps: RunEvalDeps) {
+function preflight(units: RunUnit[], deps: Evals.Engine.Deps) {
   const problems: string[] = [];
   for (const tool of new Set(units.map((u) => u.tool))) {
     const adapter = deps.adapters[tool];
@@ -241,7 +198,7 @@ function preflight(units: Unit[], deps: RunEvalDeps) {
   if (problems.length) throw new EvalSetupError(problems.join("\n"));
 }
 
-function needsJudge(c: EvalCase): boolean {
+function needsJudge(c: Evals.Cases.Case): boolean {
   return (
     (c.kind === "answer" && !!c.rubric?.trim()) ||
     (c.kind === "task" && !!c.checks.reviewRubric?.trim())
@@ -255,7 +212,7 @@ function rubricLines(rubric: string): string[] {
     .filter(Boolean);
 }
 
-function baseRecord(unit: Unit) {
+function baseRecord(unit: RunUnit) {
   return {
     caseId: unit.case.id,
     target: unit.target,
@@ -267,12 +224,12 @@ function baseRecord(unit: Unit) {
   };
 }
 
-function skipped(unit: Unit, reason: string): RunRecord {
+function skipped(unit: RunUnit, reason: string): Evals.Report.RunRecord {
   return { ...baseRecord(unit), skipped: true, skipReason: reason, costUsd: 0 };
 }
 
 /** A run that failed outside the agent, e.g. the workspace could not be prepared. */
-function failed(unit: Unit, error: string): RunRecord {
+function failed(unit: RunUnit, error: string): Evals.Report.RunRecord {
   return {
     ...baseRecord(unit),
     skipped: false,
@@ -283,11 +240,11 @@ function failed(unit: Unit, error: string): RunRecord {
 }
 
 async function runUnit(
-  unit: Unit,
-  deps: RunEvalDeps,
-  runCommand: CommandRunner,
+  unit: RunUnit,
+  deps: Evals.Engine.Deps,
+  runCommand: Evals.Commands.Runner,
   runDir: string,
-): Promise<RunRecord> {
+): Promise<Evals.Report.RunRecord> {
   const c = unit.case;
   const adapter = deps.adapters[unit.tool]!;
   const limits = c.kind === "task" ? LIMITS.task : LIMITS.other;
@@ -298,7 +255,7 @@ async function runUnit(
   });
 
   try {
-    let agent: AgentRunResult;
+    let agent: Evals.Agent.RunResult;
     try {
       agent = await adapter.run({
         prompt: c.prompt,
@@ -324,8 +281,8 @@ async function runUnit(
 
     // Skill-removed runs can't trigger the skill, so their trigger expectation is ignored.
     const triggerOk = !unit.withSkill || agent.skillTriggered === c.expectSkill;
-    const checks: CheckResult[] = [];
-    let judge: readonly JudgeLine[] | undefined;
+    const checks: Evals.Checks.Result[] = [];
+    let judge: readonly Evals.Judge.Line[] | undefined;
     let judgeCost: number | null = 0;
 
     // A run that errored, hit its turn limit or timed out fails, whatever it produced before stopping.
@@ -439,12 +396,12 @@ async function runUnit(
 }
 
 function aggregate(
-  cases: EvalCase[],
-  units: Unit[],
-  records: RunRecord[],
-  options: RunEvalOptions,
-): CaseReport[] {
-  const reports: CaseReport[] = [];
+  cases: Evals.Cases.Case[],
+  units: RunUnit[],
+  records: Evals.Report.RunRecord[],
+  options: Evals.Engine.Options,
+): Evals.Report.CaseReport[] {
+  const reports: Evals.Report.CaseReport[] = [];
   for (const c of cases) {
     for (const target of new Set(
       units.filter((u) => u.case.id === c.id).map((u) => u.target),
@@ -493,8 +450,8 @@ function aggregate(
 }
 
 function rate(
-  records: RunRecord[],
-  predicate: (r: RunRecord) => boolean,
+  records: Evals.Report.RunRecord[],
+  predicate: (r: Evals.Report.RunRecord) => boolean,
 ): number | null {
   return records.length
     ? records.filter(predicate).length / records.length

@@ -1,15 +1,15 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import type { FlowStep } from "../src/types.js";
 import { fakeAdapter, makeEnv, runEval } from "./helpers.js";
+import type { Evals } from "../src/shared/contracts.js";
 
-const loaded: FlowStep = {
+const loaded: Evals.Flow.Step = {
   kind: "skill-loaded",
   skill: "io-intelligence",
   via: "skill-tool",
 };
-const read = (p: string): FlowStep => ({ kind: "read", path: p });
+const read = (p: string): Evals.Flow.Step => ({ kind: "read", path: p });
 
 describe("flow snapshots", () => {
   it("records each run flow, flags odd repeats without changing pass/fail, and writes a markdown file", async () => {
@@ -96,13 +96,13 @@ describe("flow checks", () => {
       prompt: "bad",
       flow,
     });
-    const good: FlowStep[] = [
+    const good: Evals.Flow.Step[] = [
       loaded,
       read("<skill>/references/core.md"),
       read("<skill>/references/mcp-integration.md"),
       { kind: "command", command: "npm install", exitCode: 0 },
     ];
-    const bad: FlowStep[] = [
+    const bad: Evals.Flow.Step[] = [
       loaded,
       read("<skill>/references/core.md"),
       read("<skill>/references/custom-ai-web.md"),

@@ -3,43 +3,10 @@ import { appendFile, cp, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
-import type { TaskCase } from "../cases/schema.js";
+import type { Evals } from "../shared/contracts.js";
+import type { GitWorkspaceOptions } from "../shared/types.js";
 
 const exec = promisify(execFile);
-
-export type WorkspaceSetup = TaskCase["setup"];
-
-export interface PreparedWorkspace {
-  readonly workdir: string;
-  /** Changes since the workspace was prepared (git diff, lockfiles and the skill folder excluded). */
-  diff(): Promise<string>;
-  cleanup(): Promise<void>;
-}
-
-export interface PrepareOptions {
-  readonly setup: WorkspaceSetup;
-  readonly skillInstallPath: string;
-  readonly withSkill: boolean;
-}
-
-export interface WorkspaceManager {
-  prepare(options: PrepareOptions): Promise<PreparedWorkspace>;
-}
-
-export type TemplateMaterializer = (
-  templateId: string,
-  target: string,
-) => Promise<void>;
-
-export interface GitWorkspaceOptions {
-  /** The working copy of the skill under test. */
-  readonly skillDir: string;
-  /** Folder that `setup.fixture` paths are relative to. */
-  readonly fixturesDir: string;
-  /** Keep temp folders after the run, for debugging. */
-  readonly keep?: boolean;
-  readonly materialize?: TemplateMaterializer;
-}
 
 /**
  * Creates a fresh temp folder per run, seeds it, installs the skill where the tool discovers it,
@@ -48,7 +15,7 @@ export interface GitWorkspaceOptions {
  * Not a singleton: each instance is bound to a skill folder and fixtures folder, and tests
  * create one per isolated environment.
  */
-export class GitWorkspaceManager implements WorkspaceManager {
+export class GitWorkspaceManager implements Evals.Workspace.Manager {
   private static readonly IGNORED: readonly string[] = [
     "node_modules/",
     "dist/",
@@ -67,7 +34,7 @@ export class GitWorkspaceManager implements WorkspaceManager {
     setup,
     skillInstallPath,
     withSkill,
-  }: PrepareOptions): Promise<PreparedWorkspace> {
+  }: Evals.Workspace.PrepareOptions): Promise<Evals.Workspace.Prepared> {
     const root = await mkdtemp(path.join(os.tmpdir(), "iointel-eval-"));
     const workdir = path.join(root, "work");
 
@@ -112,21 +79,19 @@ export class GitWorkspaceManager implements WorkspaceManager {
     };
   }
 
-  private readonly materializeWithSkillScript: TemplateMaterializer = async (
-    templateId,
-    target,
-  ) => {
-    const script = path.join(
-      this.options.skillDir,
-      "scripts",
-      "materialize-template.mjs",
-    );
-    await exec(
-      process.execPath,
-      [script, "--template", templateId, "--target", target],
-      { maxBuffer: 10 * 1024 * 1024 },
-    );
-  };
+  private readonly materializeWithSkillScript: Evals.Workspace.TemplateMaterializer =
+    async (templateId, target) => {
+      const script = path.join(
+        this.options.skillDir,
+        "scripts",
+        "materialize-template.mjs",
+      );
+      await exec(
+        process.execPath,
+        [script, "--template", templateId, "--target", target],
+        { maxBuffer: 10 * 1024 * 1024 },
+      );
+    };
 
   private static async diff(
     workdir: string,

@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { matcherError } from "../checks/matcher.js";
+import type { Evals } from "../shared/contracts.js";
+import type { Mutable, Same } from "../shared/types.js";
 
 // A matcher is a plain substring, or a regex written as "/pattern/flags" (validated at load time).
 const matcher = z
@@ -91,7 +93,10 @@ export const caseSchema = z.discriminatedUnion("kind", [
   taskCase,
 ]);
 
-export type EvalCase = z.infer<typeof caseSchema>;
-export type AnswerCase = z.infer<typeof answerCase>;
-export type TaskCase = z.infer<typeof taskCase>;
-export type CaseKind = EvalCase["kind"];
+// Compile-time check that the schema produces exactly the Evals.Cases contract:
+// fails to compile when a field is added, removed or retyped on one side only.
+const schemaMatchesContract: Same<
+  z.infer<typeof caseSchema>,
+  Mutable<Evals.Cases.Case>
+> = true;
+void schemaMatchesContract;

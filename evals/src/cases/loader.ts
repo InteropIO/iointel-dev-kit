@@ -1,7 +1,8 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { parse as parseYaml } from "yaml";
-import { caseSchema, type EvalCase } from "./schema.js";
+import { caseSchema } from "./schema.js";
+import type { Evals } from "../shared/contracts.js";
 
 export class CaseValidationError extends Error {
   public override readonly name = "CaseValidationError";
@@ -11,16 +12,13 @@ export class CaseValidationError extends Error {
   }
 }
 
-export interface LoadedCase {
-  readonly file: string;
-  readonly case: EvalCase;
-}
-
 /** Loads and validates every case file. Any invalid file fails the whole load. */
-export async function loadCases(casesDir: string): Promise<LoadedCase[]> {
+export async function loadCases(
+  casesDir: string,
+): Promise<Evals.Cases.Loaded[]> {
   const files = await findYamlFiles(casesDir);
   const problems: string[] = [];
-  const loaded: LoadedCase[] = [];
+  const loaded: Evals.Cases.Loaded[] = [];
 
   for (const file of files) {
     const rel = path.relative(casesDir, file).replaceAll("\\", "/");

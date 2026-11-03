@@ -1,19 +1,12 @@
 import { access, readFile } from "node:fs/promises";
 import path from "node:path";
-import type { AnswerCase, EvalCase, TaskCase } from "../cases/schema.js";
-import type { CommandRunner, FlowStep } from "../types.js";
 import { compileMatcher } from "./matcher.js";
-
-export interface CheckResult {
-  readonly name: string;
-  readonly pass: boolean;
-  readonly detail?: string;
-}
+import type { Evals } from "../shared/contracts.js";
 
 export function checkAnswerText(
-  c: AnswerCase,
+  c: Evals.Cases.AnswerCase,
   finalMessage: string,
-): CheckResult[] {
+): Evals.Checks.Result[] {
   return [
     ...c.mustInclude.map((m) => {
       const pass = compileMatcher(m)(finalMessage);
@@ -35,9 +28,9 @@ export function checkAnswerText(
 }
 
 export function checkFlow(
-  c: EvalCase,
-  steps: readonly FlowStep[],
-): CheckResult[] {
+  c: Evals.Cases.Case,
+  steps: readonly Evals.Flow.Step[],
+): Evals.Checks.Result[] {
   if (!c.flow) return [];
   const reads = steps.flatMap((s) => (s.kind === "read" ? [s.path] : []));
   const runs = steps.flatMap((s) =>
@@ -66,10 +59,10 @@ export function checkFlow(
 
 /** Structural task checks: expected files, then package.json dependencies. Stops at the first failing stage. */
 export async function checkTaskStructure(
-  c: TaskCase,
+  c: Evals.Cases.TaskCase,
   workdir: string,
-): Promise<CheckResult[]> {
-  const fileResults: CheckResult[] = [];
+): Promise<Evals.Checks.Result[]> {
+  const fileResults: Evals.Checks.Result[] = [];
   for (const file of c.checks.files) {
     const exists = await access(path.join(workdir, file)).then(
       () => true,
@@ -99,7 +92,7 @@ export async function checkTaskStructure(
       },
     ];
   }
-  const depResults: CheckResult[] = [];
+  const depResults: Evals.Checks.Result[] = [];
   for (const field of ["dependencies", "devDependencies"] as const) {
     for (const [name, expected] of Object.entries(
       c.checks.packageJson[field] ?? {},
@@ -127,12 +120,12 @@ const OUTPUT_TAIL_CHARS = 4000;
 
 /** Runs the case's commands in order, stopping at the first non-zero exit. */
 export async function runTaskCommands(
-  c: TaskCase,
+  c: Evals.Cases.TaskCase,
   workdir: string,
-  runCommand: CommandRunner,
+  runCommand: Evals.Commands.Runner,
   timeoutMs: number,
-): Promise<CheckResult[]> {
-  const results: CheckResult[] = [];
+): Promise<Evals.Checks.Result[]> {
+  const results: Evals.Checks.Result[] = [];
   for (const command of c.checks.commands) {
     const { exitCode, output } = await runCommand(command, workdir, timeoutMs);
     const pass = exitCode === 0;

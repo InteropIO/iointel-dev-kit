@@ -1,25 +1,10 @@
-import type { FlowStep } from "../types.js";
 import {
   FlowNormalizer,
   SKILL_NAME,
   toCommandOrScriptStep,
 } from "./normalize.js";
-
-interface ToolUse {
-  readonly id: string;
-  readonly name: string;
-  readonly input: Record<string, unknown>;
-}
-
-interface ToolResult {
-  readonly isError: boolean;
-  readonly text: string;
-}
-
-export interface ClaudeFlow {
-  readonly steps: readonly FlowStep[];
-  readonly skillTriggered: boolean;
-}
+import type { Evals } from "../shared/contracts.js";
+import type { ClaudeToolResult, ClaudeToolUse } from "../shared/types.js";
 
 const COMMAND_TOOLS = new Set(["Bash", "PowerShell"]);
 const WRITE_TOOLS: Record<string, string> = {
@@ -34,10 +19,10 @@ export function extractClaudeFlow(
   messages: unknown[],
   workdir: string,
   skillInstallPath: string,
-): ClaudeFlow {
+): Evals.Flow.Extraction {
   const norm = new FlowNormalizer(workdir, skillInstallPath);
-  const uses: ToolUse[] = [];
-  const results = new Map<string, ToolResult>();
+  const uses: ClaudeToolUse[] = [];
+  const results = new Map<string, ClaudeToolResult>();
 
   for (const msg of messages as Array<{
     type?: string;
@@ -61,7 +46,7 @@ export function extractClaudeFlow(
     }
   }
 
-  const steps: FlowStep[] = [];
+  const steps: Evals.Flow.Step[] = [];
   let skillTriggered = false;
   for (const use of uses) {
     const str = (key: string) =>
@@ -113,7 +98,7 @@ function resultText(content: unknown): string {
 }
 
 /** Claude Code reports a failing command as an error result containing "Exit code N". */
-function exitCode(result: ToolResult | undefined): number | null {
+function exitCode(result: ClaudeToolResult | undefined): number | null {
   if (!result) return null;
   const m = /Exit code:?\s*(-?\d+)/i.exec(result.text);
   if (m) return Number(m[1]);

@@ -1,11 +1,11 @@
-import type { CaseReport, RunReport } from "../engine/report-types.js";
+import type { Evals } from "../shared/contracts.js";
 
 const pct = (v: number | null) =>
   v === null ? "-" : `${Math.round(v * 100)}%`;
 const usd = (v: number, unknown: boolean) =>
   `$${v.toFixed(2)}${unknown ? "+?" : ""}`;
 
-export function renderConsoleSummary(report: RunReport): string {
+export function renderConsoleSummary(report: Evals.Report.RunReport): string {
   if (!report.cases.length)
     return `No cases matched (cases live in evals/cases/<kind>/<id>.yaml).\nResults: ${report.resultsPath}`;
   const header = [
@@ -99,7 +99,10 @@ export function renderConsoleSummary(report: RunReport): string {
   return out.join("\n");
 }
 
-function notes(c: CaseReport, report: RunReport): string {
+function notes(
+  c: Evals.Report.CaseReport,
+  report: Evals.Report.RunReport,
+): string {
   const parts: string[] = [];
   if (!c.network) parts.push("network off");
   if (c.skipped) parts.push(`${c.skipped} skipped`);

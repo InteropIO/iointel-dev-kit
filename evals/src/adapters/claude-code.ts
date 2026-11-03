@@ -1,18 +1,13 @@
 import { query, type SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import { extractClaudeFlow } from "../flow/claude-flow.js";
-import type {
-  AgentAdapter,
-  AgentRunInput,
-  AgentRunResult,
-  StopReason,
-} from "../types.js";
 import { createWorkdirGuard } from "./claude-guard.js";
+import type { Evals } from "../shared/contracts.js";
 
 /**
  * Runs Claude Code through the Agent SDK, isolated to the workdir's project settings and skills.
  * Stateless between runs, so the process shares one instance: use ClaudeCodeAdapter.getInstance().
  */
-export class ClaudeCodeAdapter implements AgentAdapter {
+export class ClaudeCodeAdapter implements Evals.Agent.Adapter {
   private static instance: ClaudeCodeAdapter | undefined;
   private static readonly DEFAULT_MODEL = "claude-sonnet-5-5";
 
@@ -31,7 +26,9 @@ export class ClaudeCodeAdapter implements AgentAdapter {
       : "ANTHROPIC_API_KEY is not set (add it to evals/.env)";
   }
 
-  public async run(input: AgentRunInput): Promise<AgentRunResult> {
+  public async run(
+    input: Evals.Agent.RunInput,
+  ): Promise<Evals.Agent.RunResult> {
     const abort = new AbortController();
     let timedOut = false;
     const timer = setTimeout(() => {
@@ -44,7 +41,7 @@ export class ClaudeCodeAdapter implements AgentAdapter {
     let finalMessage = "";
     let turns = 0;
     let costUsd: number | null = null;
-    let stopReason: StopReason = "done";
+    let stopReason: Evals.Agent.StopReason = "done";
     let error: string | undefined;
 
     try {

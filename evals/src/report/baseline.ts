@@ -1,36 +1,13 @@
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { CaseKind } from "../cases/schema.js";
 import { diffFlows, findOddRuns } from "../flow/compare.js";
-import type {
-  CaseComparison,
-  CaseReport,
-  RunReport,
-} from "../engine/report-types.js";
-import type { FlowStep } from "../types.js";
-
-export interface BaselineEntry {
-  readonly caseId: string;
-  readonly target: string;
-  readonly kind: CaseKind;
-  readonly pass: boolean | null;
-  readonly passRate: number | null;
-  readonly triggerRate: number | null;
-  readonly costUsd: number;
-  /** Approved flows, one per with-skill run. */
-  readonly flows: readonly (readonly FlowStep[])[];
-}
-
-export interface BaselineFile {
-  readonly version: 1;
-  readonly runId: string;
-  readonly approvedAt: string;
-  readonly entries: readonly BaselineEntry[];
-}
+import type { Evals } from "../shared/contracts.js";
 
 export const SUMMARY_FILE = "summary.json";
 
-function toBaselineEntries(report: Pick<RunReport, "cases">): BaselineEntry[] {
+function toBaselineEntries(
+  report: Pick<Evals.Report.RunReport, "cases">,
+): Evals.Baseline.Entry[] {
   return report.cases.map((c) => ({
     caseId: c.caseId,
     target: c.target,
@@ -43,19 +20,13 @@ function toBaselineEntries(report: Pick<RunReport, "cases">): BaselineEntry[] {
   }));
 }
 
-export interface Reference {
-  readonly kind: "baseline" | "previous-run" | "none";
-  readonly runId?: string;
-  readonly entries: readonly BaselineEntry[];
-}
-
 /** The committed baseline if there is one, otherwise the most recent earlier local run. */
 export async function loadReference(
   baselineFile: string,
   resultsDir: string,
   currentRunId: string,
-): Promise<Reference> {
-  const baseline = await readJson<BaselineFile>(baselineFile);
+): Promise<Evals.Baseline.Reference> {
+  const baseline = await readJson<Evals.Baseline.File>(baselineFile);
   if (baseline)
     return {
       kind: "baseline",
@@ -67,7 +38,7 @@ export async function loadReference(
     .filter((id) => id < currentRunId)
     .at(-1);
   if (previous) {
-    const report = await readJson<RunReport>(
+    const report = await readJson<Evals.Report.RunReport>(
       path.join(resultsDir, previous, SUMMARY_FILE),
     );
     if (report)
@@ -85,16 +56,16 @@ export async function loadReference(
  * part of the suite, so reference entries it did not run are not reported as removed.
  */
 export function compareWithReference(
-  cases: CaseReport[],
-  reference: Reference,
-  options: { filtered: boolean },
-): CaseComparison[] {
+  cases: Evals.Report.CaseReport[],
+  reference: Evals.Baseline.Reference,
+  options: Evals.Baseline.CompareOptions,
+): Evals.Report.CaseComparison[] {
   if (reference.kind === "none") return [];
   const key = (caseId: string, target: string) => `${caseId}|${target}`;
   const before = new Map(
     reference.entries.map((e) => [key(e.caseId, e.target), e]),
   );
-  const comparisons: CaseComparison[] = [];
+  const comparisons: Evals.Report.CaseComparison[] = [];
 
   for (const c of cases) {
     const ref = before.get(key(c.caseId, c.target));
@@ -142,8 +113,8 @@ export function compareWithReference(
 }
 
 function majorityFlow(
-  flows: readonly (readonly FlowStep[])[],
-): readonly FlowStep[] {
+  flows: readonly (readonly Evals.Flow.Step[])[],
+): readonly Evals.Flow.Step[] {
   const { majority } = findOddRuns(flows);
   return flows[majority[0] ?? 0] ?? [];
 }
@@ -152,15 +123,12 @@ function majorityFlow(
  * Promotes a run (the latest by default) to the committed baseline. Returns the approved run id.
  * A full run replaces the baseline; a filtered run only replaces the entries it covered.
  */
-export async function approveRun(options: {
-  resultsDir: string;
-  baselineFile: string;
-  runId?: string;
-  now?: () => Date;
-}) {
+export async function approveRun(
+  options: Evals.Baseline.ApproveOptions,
+): Promise<string> {
   const runId = options.runId ?? (await listRunIds(options.resultsDir)).at(-1);
   if (!runId) throw new Error(`No runs found in ${options.resultsDir}`);
-  const report = await readJson<RunReport>(
+  const report = await readJson<Evals.Report.RunReport>(
     path.join(options.resultsDir, runId, SUMMARY_FILE),
   );
   if (!report) throw new Error(`Run ${runId} has no ${SUMMARY_FILE}`);
@@ -169,13 +137,14 @@ export async function approveRun(options: {
   if (isFiltered(report.options)) {
     const covered = new Set(entries.map((e) => `${e.caseId}|${e.target}`));
     const existing =
-      (await readJson<BaselineFile>(options.baselineFile))?.entries ?? [];
+      (await readJson<Evals.Baseline.File>(options.baselineFile))?.entries ??
+      [];
     entries = [
       ...existing.filter((e) => !covered.has(`${e.caseId}|${e.target}`)),
       ...entries,
     ];
   }
-  const baseline: BaselineFile = {
+  const baseline: Evals.Baseline.File = {
     version: 1,
     runId,
     approvedAt: (options.now?.() ?? new Date()).toISOString(),
@@ -189,11 +158,7 @@ export async function approveRun(options: {
   return runId;
 }
 
-export function isFiltered(options: {
-  kind?: string;
-  caseId?: string;
-  target?: string;
-}): boolean {
+export function isFiltered(options: Evals.Engine.Filters): boolean {
   return !!(options.kind || options.caseId || options.target);
 }
 

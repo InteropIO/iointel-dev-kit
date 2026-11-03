@@ -1,7 +1,7 @@
-import type { FlowStep } from "../types.js";
 import { describeStep } from "./normalize.js";
+import type { Evals } from "../shared/contracts.js";
 
-function flowKey(steps: readonly FlowStep[]): string {
+function flowKey(steps: readonly Evals.Flow.Step[]): string {
   return JSON.stringify(steps);
 }
 
@@ -9,10 +9,9 @@ function flowKey(steps: readonly FlowStep[]): string {
  * Groups repeats by identical flows. Runs outside the largest group are odd
  * (ties go to the group seen first). Returns indices into `flows`.
  */
-export function findOddRuns(flows: readonly (readonly FlowStep[])[]): {
-  majority: number[];
-  odd: number[];
-} {
+export function findOddRuns(
+  flows: readonly (readonly Evals.Flow.Step[])[],
+): Evals.Flow.OddRuns {
   const groups = new Map<string, number[]>();
   flows.forEach((steps, i) => {
     const key = flowKey(steps);
@@ -25,16 +24,11 @@ export function findOddRuns(flows: readonly (readonly FlowStep[])[]): {
   return { majority, odd };
 }
 
-export interface FlowDiff {
-  readonly added: readonly string[];
-  readonly removed: readonly string[];
-}
-
 /** Step-level diff (longest common subsequence) between a baseline flow and a current flow. */
 export function diffFlows(
-  baseline: readonly FlowStep[],
-  current: readonly FlowStep[],
-): FlowDiff {
+  baseline: readonly Evals.Flow.Step[],
+  current: readonly Evals.Flow.Step[],
+): Evals.Flow.Diff {
   const a = baseline.map(describeStep);
   const b = current.map(describeStep);
   const lcs: number[][] = Array.from({ length: a.length + 1 }, () =>

@@ -1,15 +1,10 @@
-import type { FlowStep } from "../types.js";
 import {
   FlowNormalizer,
   SKILL_NAME,
   SKILL_PREFIX,
   toCommandOrScriptStep,
 } from "./normalize.js";
-
-export interface CodexFlow {
-  readonly steps: readonly FlowStep[];
-  readonly skillTriggered: boolean;
-}
+import type { Evals } from "../shared/contracts.js";
 
 const READ_COMMANDS = new Set([
   "cat",
@@ -48,9 +43,9 @@ export function extractCodexFlow(
   items: unknown[],
   workdir: string,
   skillInstallPath: string,
-): CodexFlow {
+): Evals.Flow.Extraction {
   const norm = new FlowNormalizer(workdir, skillInstallPath);
-  const steps: FlowStep[] = [];
+  const steps: Evals.Flow.Step[] = [];
   let skillTriggered = false;
 
   const pushRead = (path: string) => {
