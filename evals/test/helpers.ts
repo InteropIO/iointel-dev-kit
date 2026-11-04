@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { stringify } from "yaml";
 import { EvalEngine } from "../src/engine/index.js";
-import { GitWorkspaceManager } from "../src/workspace/workspace.js";
+import { TempWorkspaceManager } from "../src/workspace/workspace.js";
 import type { Evals } from "../src/shared/contracts.js";
 
 export const SKILL_INSTALL = ".claude/skills/io-intelligence";
@@ -14,12 +14,10 @@ export interface TestEnv {
   resultsDir: string;
   baselineFile: string;
   skillDir: string;
-  fixturesDir: string;
   writeCase(c: Record<string, unknown>): Promise<void>;
-  writeFixture(name: string, files: Record<string, string>): Promise<void>;
   options(extra?: Partial<Evals.Engine.Options>): Evals.Engine.Options;
   deps(
-    extra: Partial<Evals.Engine.Deps> & Pick<Evals.Engine.Deps, "adapters">,
+    extra: Partial<Evals.Engine.Deps> & Pick<Evals.Engine.Deps, "adapter">,
   ): Evals.Engine.Deps;
 }
 
@@ -31,7 +29,6 @@ export async function makeEnv(): Promise<TestEnv> {
     resultsDir: path.join(root, "results"),
     baselineFile: path.join(root, "baseline.json"),
     skillDir: path.join(root, "skill"),
-    fixturesDir: path.join(root, "fixtures"),
   };
   await mkdir(env.casesDir, { recursive: true });
   await mkdir(env.skillDir, { recursive: true });
@@ -49,25 +46,14 @@ export async function makeEnv(): Promise<TestEnv> {
         stringify(c),
       );
     },
-    async writeFixture(name, files) {
-      for (const [file, content] of Object.entries(files)) {
-        const full = path.join(env.fixturesDir, name, file);
-        await mkdir(path.dirname(full), { recursive: true });
-        await writeFile(full, content);
-      }
-    },
     options: (extra = {}) => ({
       casesDir: env.casesDir,
       resultsDir: env.resultsDir,
       baselineFile: env.baselineFile,
-      repeat: 1,
       ...extra,
     }),
     deps: (extra) => ({
-      workspace: new GitWorkspaceManager({
-        skillDir: env.skillDir,
-        fixturesDir: env.fixturesDir,
-      }),
+      workspace: new TempWorkspaceManager({ skillDir: env.skillDir }),
       // Each run gets a later timestamp, so run ids sort in call order.
       now: () => new Date((clock += 1000)),
       ...extra,
@@ -84,40 +70,27 @@ export interface FakeAdapter extends Evals.Agent.Adapter {
   calls: Evals.Agent.RunInput[];
 }
 
-/** An adapter whose results are scripted per call. Defaults: skill triggered, no steps, $0.10. */
+/** An adapter whose results are scripted per call. Defaults: skill triggered, empty answer, $0.10. */
 export function fakeAdapter(
   script: Script = () => ({}),
-  tool = "fake",
   ready?: string,
 ): FakeAdapter {
   const calls: Evals.Agent.RunInput[] = [];
   return {
-    tool,
+    name: "fake",
     skillInstallPath: SKILL_INSTALL,
     calls,
     checkReady: () => ready,
     async run(input) {
       calls.push(input);
-      const scripted = await script(input, calls.length - 1);
-      const triggered = scripted.skillTriggered ?? true;
       return {
         finalMessage: "",
         transcript: [],
-        skillTriggered: triggered,
-        triggerDetection: "skill-tool",
-        flow: triggered
-          ? [
-              {
-                kind: "skill-loaded",
-                skill: "io-intelligence",
-                via: "skill-tool",
-              },
-            ]
-          : [],
+        skillTriggered: true,
         turns: 1,
         costUsd: 0.1,
         stopReason: "done",
-        ...scripted,
+        ...(await script(input, calls.length - 1)),
       };
     },
   };

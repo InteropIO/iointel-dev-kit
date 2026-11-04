@@ -1,12 +1,9 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
-import type { GuardDecision, GuardOptions } from "../shared/types.js";
+import type { GuardDecision } from "../shared/types.js";
 
 const PATH_KEYS = ["file_path", "notebook_path", "path"];
 const COMMAND_TOOLS = new Set(["Bash", "PowerShell"]);
-const WEB_TOOLS = new Set(["WebFetch", "WebSearch"]);
-const NETWORK_COMMAND =
-  /\b(curl|wget|Invoke-WebRequest|iwr|Invoke-RestMethod|irm)\b|\bgit\s+(clone|fetch|pull)\b/i;
 const HARMLESS_PATHS = new Set(["/dev/null", "nul"]);
 
 /**
@@ -14,7 +11,7 @@ const HARMLESS_PATHS = new Set(["/dev/null", "nul"]);
  * commands may not name absolute paths outside it or climb out with "..". This catches a
  * confused agent, not a determined one: it is a heuristic, not a sandbox.
  */
-export function createWorkdirGuard(workdir: string, options: GuardOptions) {
+export function createWorkdirGuard(workdir: string) {
   const root = path.resolve(workdir);
   const inside = (p: string) => {
     const resolved = path.resolve(root, toNativePath(p));
@@ -23,13 +20,8 @@ export function createWorkdirGuard(workdir: string, options: GuardOptions) {
   };
 
   return (toolName: string, input: Record<string, unknown>): GuardDecision => {
-    if (WEB_TOOLS.has(toolName) && !options.network)
-      return deny("network access is disabled for this case");
-
     if (COMMAND_TOOLS.has(toolName) && typeof input.command === "string") {
       const command = input.command;
-      if (!options.network && NETWORK_COMMAND.test(command))
-        return deny("network access is disabled for this case");
       for (const token of pathTokens(command)) {
         if (HARMLESS_PATHS.has(token.toLowerCase())) continue;
         if (!inside(token))

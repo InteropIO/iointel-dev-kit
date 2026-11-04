@@ -2,6 +2,8 @@
 
 Status: ready-for-agent
 
+> **Superseded in scope.** The engine was cut down to answer cases on Claude Code only, run once each, with no flows, repeats or Codex. See [io-intelligence-eval-engine-lite.md](io-intelligence-eval-engine-lite.md) for what is implemented. This document describes the original, larger design.
+
 ## Problem Statement
 
 We maintain the `io-intelligence` skill, which teaches coding agents how to build, scaffold, extend, explain and diagnose AI assistants in io.Connect with io.Intelligence. Today we have no way to tell whether a change to the skill makes it better or worse. Edits to its description can stop it from triggering. Edits to its references can introduce wrong package names or invented APIs. Edits to its scaffolding guidance can produce projects that don't build. Customers use the skill through different agent tools (Claude Code, Codex), and we can't tell how well it works in each. The only check today is someone trying a few prompts by hand, which is slow, can't be repeated reliably, and can't be compared from one change to the next.

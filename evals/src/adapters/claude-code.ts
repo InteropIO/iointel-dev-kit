@@ -1,6 +1,6 @@
 import { query, type SDKMessage } from "@anthropic-ai/claude-agent-sdk";
-import { extractClaudeFlow } from "../flow/claude-flow.js";
 import { createWorkdirGuard } from "./claude-guard.js";
+import { skillTriggered } from "./skill-trigger.js";
 import type { Evals } from "../shared/contracts.js";
 
 /**
@@ -11,7 +11,7 @@ export class ClaudeCodeAdapter implements Evals.Agent.Adapter {
   private static instance: ClaudeCodeAdapter | undefined;
   private static readonly DEFAULT_MODEL = "claude-sonnet-5-5";
 
-  public readonly tool = "claude-code";
+  public readonly name = "claude-code";
   public readonly skillInstallPath = ".claude/skills/io-intelligence";
 
   private constructor() {}
@@ -35,7 +35,7 @@ export class ClaudeCodeAdapter implements Evals.Agent.Adapter {
       timedOut = true;
       abort.abort();
     }, input.timeoutMs);
-    const guard = createWorkdirGuard(input.workdir, { network: input.network });
+    const guard = createWorkdirGuard(input.workdir);
 
     const messages: SDKMessage[] = [];
     let finalMessage = "";
@@ -57,7 +57,6 @@ export class ClaudeCodeAdapter implements Evals.Agent.Adapter {
           mcpServers: {},
           strictMcpConfig: true,
           permissionMode: "default",
-          disallowedTools: input.network ? [] : ["WebFetch", "WebSearch"],
           canUseTool: async (toolName, toolInput) => guard(toolName, toolInput),
           abortController: abort,
           env: {
@@ -88,17 +87,10 @@ export class ClaudeCodeAdapter implements Evals.Agent.Adapter {
     // An abort may end the stream quietly instead of throwing.
     if (timedOut) stopReason = "timeout";
 
-    const flow = extractClaudeFlow(
-      messages,
-      input.workdir,
-      this.skillInstallPath,
-    );
     return {
       finalMessage,
       transcript: messages,
-      skillTriggered: flow.skillTriggered,
-      triggerDetection: "skill-tool",
-      flow: flow.steps,
+      skillTriggered: skillTriggered(messages, this.skillInstallPath),
       turns,
       costUsd,
       stopReason,

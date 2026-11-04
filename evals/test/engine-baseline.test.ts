@@ -1,99 +1,94 @@
-import { readFile } from "node:fs/promises";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { EvalSetupError } from "../src/engine/index.js";
 import { approveRun } from "../src/report/baseline.js";
 import { fakeAdapter, makeEnv, runEval } from "./helpers.js";
-import type { Evals } from "../src/shared/contracts.js";
 
-const loaded: Evals.Flow.Step = {
-  kind: "skill-loaded",
-  skill: "io-intelligence",
-  via: "skill-tool",
-};
-const read = (p: string): Evals.Flow.Step => ({ kind: "read", path: p });
+const answer = (id: string) => ({ id, prompt: id, mustInclude: ["ok"] });
 
-describe("comparison and approve", () => {
-  it("has no reference on the very first run", async () => {
+describe("baseline safety", () => {
+  it("rejects a baseline from the older engine before running anything", async () => {
     const env = await makeEnv();
-    await env.writeCase({
-      id: "a",
-      kind: "trigger",
-      targets: ["fake/m"],
-      prompt: "p",
-    });
+    await env.writeCase(answer("a"));
+    await writeFile(
+      env.baselineFile,
+      JSON.stringify({ version: 1, runId: "old", entries: [] }),
+    );
+    const adapter = fakeAdapter();
 
-    const report = await runEval(
-      env.options(),
-      env.deps({ adapters: { fake: fakeAdapter() } }),
+    const run = runEval(env.options(), env.deps({ adapter }));
+
+    await expect(run).rejects.toBeInstanceOf(EvalSetupError);
+    await expect(run).rejects.toThrow(/version 1.*delete it/);
+    expect(adapter.calls).toHaveLength(0);
+  });
+
+  it("refuses to merge a --case run into a baseline from the older engine", async () => {
+    const env = await makeEnv();
+    await env.writeCase(answer("a"));
+    await runEval(
+      env.options({ caseId: "a" }),
+      env.deps({ adapter: fakeAdapter() }),
+    );
+    await writeFile(
+      env.baselineFile,
+      JSON.stringify({ version: 1, runId: "old", entries: [] }),
     );
 
-    expect(report.reference).toEqual({ kind: "none" });
-    expect(report.comparison).toEqual([]);
+    await expect(
+      approveRun({
+        resultsDir: env.resultsDir,
+        baselineFile: env.baselineFile,
+      }),
+    ).rejects.toThrow(/version 1/);
   });
 
-  it("falls back to the previous local run when no baseline is committed", async () => {
+  it("refuses to approve a run where a case never reached the agent", async () => {
     const env = await makeEnv();
-    await env.writeCase({
-      id: "a",
-      kind: "trigger",
-      targets: ["fake/m"],
-      prompt: "p",
-    });
+    await env.writeCase(answer("a"));
+    await env.writeCase(answer("b"));
+    await rm(env.skillDir, { recursive: true });
+    await runEval(env.options(), env.deps({ adapter: fakeAdapter() }));
+
+    await expect(
+      approveRun({
+        resultsDir: env.resultsDir,
+        baselineFile: env.baselineFile,
+      }),
+    ).rejects.toThrow(/never reached the agent \(a, b\)/);
+    await expect(readFile(env.baselineFile, "utf8")).rejects.toThrow();
+  });
+});
+
+describe("comparison and approve", () => {
+  it("has no reference without a baseline, even when earlier runs exist", async () => {
+    const env = await makeEnv();
+    await env.writeCase(answer("a"));
     const deps = env.deps({
-      adapters: {
-        fake: fakeAdapter((_, call) => ({ skillTriggered: call === 0 })),
-      },
+      adapter: fakeAdapter(() => ({ finalMessage: "ok" })),
     });
 
-    const first = await runEval(env.options(), deps);
+    await runEval(env.options(), deps);
     const second = await runEval(env.options(), deps);
 
-    expect(second.reference).toEqual({
-      kind: "previous-run",
-      runId: first.runId,
-    });
-    expect(second.comparison).toEqual([
-      expect.objectContaining({
-        caseId: "a",
-        status: "regressed",
-        triggerRate: { before: 1, after: 0 },
-      }),
-    ]);
+    expect(second.reference).toEqual({ kind: "none" });
+    expect(second.comparison).toEqual([]);
   });
 
-  it("compares against the approved baseline: regressions, improvements, new and removed cases", async () => {
+  it("compares with the approved baseline: regressions, improvements, new and removed cases", async () => {
     const env = await makeEnv();
-    await env.writeCase({
-      id: "keeps",
-      kind: "trigger",
-      targets: ["fake/m"],
-      prompt: "keeps",
-    });
-    await env.writeCase({
-      id: "breaks",
-      kind: "trigger",
-      targets: ["fake/m"],
-      prompt: "breaks",
-    });
-    await env.writeCase({
-      id: "heals",
-      kind: "trigger",
-      targets: ["fake/m"],
-      prompt: "heals",
-    });
-    await env.writeCase({
-      id: "goes-away",
-      kind: "trigger",
-      targets: ["fake/m"],
-      prompt: "goes-away",
-    });
+    for (const id of ["keeps", "breaks", "heals", "goes-away"])
+      await env.writeCase(answer(id));
     let round = 0;
     const adapter = fakeAdapter((input) => ({
-      skillTriggered:
+      finalMessage:
         input.prompt === "keeps" ||
-        (round === 0 ? input.prompt !== "heals" : input.prompt !== "breaks"),
+        (round === 0 ? input.prompt !== "heals" : input.prompt !== "breaks")
+          ? "ok"
+          : "nope",
     }));
-    const deps = env.deps({ adapters: { fake: adapter } });
+    const deps = env.deps({ adapter });
 
     const first = await runEval(env.options(), deps);
     expect(
@@ -104,86 +99,77 @@ describe("comparison and approve", () => {
     ).toBe(first.runId);
 
     round = 1;
-    await env.writeCase({
-      id: "brand-new",
-      kind: "trigger",
-      targets: ["fake/m"],
-      prompt: "brand-new",
-    });
-    const { rm } = await import("node:fs/promises");
+    await env.writeCase(answer("brand-new"));
     await rm(path.join(env.casesDir, "goes-away.yaml"));
     const second = await runEval(env.options(), deps);
 
     expect(second.reference).toEqual({ kind: "baseline", runId: first.runId });
-    const status = Object.fromEntries(
-      second.comparison.map((c) => [c.caseId, c.status]),
-    );
-    expect(status).toEqual({
+    expect(
+      Object.fromEntries(second.comparison.map((c) => [c.caseId, c.status])),
+    ).toEqual({
       keeps: "unchanged",
       breaks: "regressed",
       heals: "improved",
       "brand-new": "new",
       "goes-away": "removed",
     });
+    expect(second.comparison.find((c) => c.caseId === "breaks")!.pass).toEqual({
+      before: true,
+      after: false,
+    });
   });
 
-  it("approve stores flows in the baseline, and later runs report flow changes without failing", async () => {
+  it("stores only case id, pass and cost in the baseline", async () => {
     const env = await makeEnv();
-    await env.writeCase({
-      id: "routing",
-      kind: "trigger",
-      targets: ["fake/m"],
-      prompt: "p",
-    });
-    let flow: Evals.Flow.Step[] = [
-      loaded,
-      read("<skill>/references/core.md"),
-      read("<skill>/references/mcp-integration.md"),
-    ];
-    const deps = env.deps({
-      adapters: { fake: fakeAdapter(() => ({ flow })) },
+    await env.writeCase(answer("a"));
+    await runEval(
+      env.options(),
+      env.deps({
+        adapter: fakeAdapter(() => ({ finalMessage: "ok", costUsd: 0.2 })),
+      }),
+    );
+
+    const runId = await approveRun({
+      resultsDir: env.resultsDir,
+      baselineFile: env.baselineFile,
+      now: () => new Date("2026-11-03T00:00:00.000Z"),
     });
 
+    expect(JSON.parse(await readFile(env.baselineFile, "utf8"))).toEqual({
+      version: 2,
+      runId,
+      approvedAt: "2026-11-03T00:00:00.000Z",
+      entries: [{ caseId: "a", pass: true, costUsd: 0.2 }],
+    });
+  });
+
+  it("refuses to approve a run with no cases, keeping the existing baseline", async () => {
+    const env = await makeEnv();
+    await env.writeCase(answer("a"));
+    const deps = env.deps({ adapter: fakeAdapter() });
     await runEval(env.options(), deps);
     await approveRun({
       resultsDir: env.resultsDir,
       baselineFile: env.baselineFile,
     });
-    const baseline = JSON.parse(await readFile(env.baselineFile, "utf8"));
-    expect(baseline.entries[0].flows).toEqual([flow]);
+    const before = await readFile(env.baselineFile, "utf8");
 
-    flow = [
-      loaded,
-      read("<skill>/references/mcp-integration.md"),
-      { kind: "command", command: "npm run build", exitCode: 1 },
-    ];
-    const second = await runEval(env.options(), deps);
+    await rm(path.join(env.casesDir, "a.yaml"));
+    await runEval(env.options(), deps);
 
-    expect(second.cases[0]!.pass).toBe(true);
-    expect(second.comparison[0]).toMatchObject({
-      status: "unchanged",
-      flowDiff: {
-        removed: ["read <skill>/references/core.md"],
-        added: ["command npm run build → exit 1"],
-      },
-    });
-    const md = await readFile(
-      path.join(second.resultsPath, "flows", "routing.md"),
-      "utf8",
-    );
-    expect(md).toContain("**Flow changed from the reference:**");
-    expect(md).toContain("`- read <skill>/references/core.md`");
+    await expect(
+      approveRun({
+        resultsDir: env.resultsDir,
+        baselineFile: env.baselineFile,
+      }),
+    ).rejects.toThrow(/ran no cases/);
+    expect(await readFile(env.baselineFile, "utf8")).toBe(before);
   });
 
   it("approves a specific run by id", async () => {
     const env = await makeEnv();
-    await env.writeCase({
-      id: "a",
-      kind: "trigger",
-      targets: ["fake/m"],
-      prompt: "p",
-    });
-    const deps = env.deps({ adapters: { fake: fakeAdapter() } });
+    await env.writeCase(answer("a"));
+    const deps = env.deps({ adapter: fakeAdapter() });
     const first = await runEval(env.options(), deps);
     await runEval(env.options(), deps);
 
@@ -196,5 +182,34 @@ describe("comparison and approve", () => {
     expect(JSON.parse(await readFile(env.baselineFile, "utf8")).runId).toBe(
       first.runId,
     );
+  });
+
+  it("a --case run does not report other baseline cases as removed, and approving it merges", async () => {
+    const env = await makeEnv();
+    await env.writeCase(answer("a"));
+    await env.writeCase(answer("b"));
+    const deps = env.deps({
+      adapter: fakeAdapter(() => ({ finalMessage: "ok" })),
+    });
+    await runEval(env.options(), deps);
+    await approveRun({
+      resultsDir: env.resultsDir,
+      baselineFile: env.baselineFile,
+    });
+
+    const filtered = await runEval(env.options({ caseId: "a" }), deps);
+    await approveRun({
+      resultsDir: env.resultsDir,
+      baselineFile: env.baselineFile,
+    });
+
+    expect(filtered.comparison.map((c) => `${c.caseId} ${c.status}`)).toEqual([
+      "a unchanged",
+    ]);
+    const baseline = JSON.parse(await readFile(env.baselineFile, "utf8"));
+    expect(
+      baseline.entries.map((e: { caseId: string }) => e.caseId).sort(),
+    ).toEqual(["a", "b"]);
+    expect(baseline.runId).toBe(filtered.runId);
   });
 });

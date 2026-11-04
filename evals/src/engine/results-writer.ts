@@ -1,16 +1,13 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { SUMMARY_FILE } from "../report/baseline.js";
-import { renderFlowMarkdown } from "../report/flow-markdown.js";
 import type { Evals } from "../shared/contracts.js";
-import type { RunUnit } from "../shared/types.js";
-import { flowSnapshot } from "./records.js";
+import type { Grading } from "../shared/types.js";
 
 /**
  * Owns one run's results folder, `<resultsDir>/<runId>/`:
- *   transcripts/<case>__<target>__<n>.json   one per run, written as each run finishes
- *   summary.json                             the RunReport
- *   flows/<case>.md                          flow snapshots per case, for reading and diffing
+ *   transcripts/<case>.json   one per case, written as each case finishes
+ *   summary.json              the RunReport
  */
 export class ResultsWriter {
   public readonly runId: string;
@@ -26,17 +23,16 @@ export class ResultsWriter {
     await mkdir(path.join(this.runDir, "transcripts"), { recursive: true });
   }
 
-  /** Writes one run's transcript and returns its path relative to the run folder. */
+  /** Writes one case's transcript and returns its path relative to the run folder. */
   public async writeTranscript(
-    unit: RunUnit,
+    c: Evals.Cases.Case,
     agent: Evals.Agent.RunResult,
-    diff: string | undefined,
+    grading: Grading,
   ): Promise<string> {
-    const file = ResultsWriter.transcriptFile(unit);
+    const file = path.posix.join("transcripts", `${c.id}.json`);
     const content = {
       finalMessage: agent.finalMessage,
-      flow: flowSnapshot(agent),
-      diff,
+      judge: grading.lines ?? null,
       transcript: agent.transcript,
     };
     await writeFile(
@@ -46,40 +42,10 @@ export class ResultsWriter {
     return file;
   }
 
-  public async writeReport(
-    report: Evals.Report.RunReport,
-    cases: Evals.Cases.Case[],
-  ): Promise<void> {
+  public async writeReport(report: Evals.Report.RunReport): Promise<void> {
     await writeFile(
       path.join(this.runDir, SUMMARY_FILE),
       JSON.stringify(report, null, 2),
-    );
-    await this.writeFlows(report, cases);
-  }
-
-  private async writeFlows(
-    report: Evals.Report.RunReport,
-    cases: Evals.Cases.Case[],
-  ): Promise<void> {
-    await mkdir(path.join(this.runDir, "flows"), { recursive: true });
-    for (const c of cases) {
-      const reports = report.cases.filter((r) => r.caseId === c.id);
-      if (!reports.length) continue;
-      const md = renderFlowMarkdown(
-        c.id,
-        reports,
-        report.comparison.filter((x) => x.caseId === c.id),
-      );
-      await writeFile(path.join(this.runDir, "flows", `${c.id}.md`), md);
-    }
-  }
-
-  private static transcriptFile(unit: RunUnit): string {
-    const target = unit.target.replace(/[^\w.-]+/g, "_");
-    const skill = unit.withSkill ? "" : "noskill-";
-    return path.posix.join(
-      "transcripts",
-      `${unit.case.id}__${target}__${skill}${unit.index + 1}.json`,
     );
   }
 }

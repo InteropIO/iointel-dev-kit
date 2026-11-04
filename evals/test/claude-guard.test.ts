@@ -5,8 +5,7 @@ import { createWorkdirGuard } from "../src/adapters/claude-guard.js";
 
 const workdir = path.join(os.tmpdir(), "iointel-eval-x", "work");
 const outside = path.join(os.tmpdir(), "elsewhere", "file.txt");
-const guard = createWorkdirGuard(workdir, { network: true });
-const offline = createWorkdirGuard(workdir, { network: false });
+const guard = createWorkdirGuard(workdir);
 
 describe("workdir guard", () => {
   it("allows file tools inside the workdir and denies them outside", () => {
@@ -50,20 +49,14 @@ describe("workdir guard", () => {
     ).toBe("allow");
   });
 
-  it("blocks web tools and network commands when the case is offline", () => {
+  it("allows web tools and network commands", () => {
     expect(
-      offline("WebFetch", { url: "https://docs-ai.interop.io" }).behavior,
-    ).toBe("deny");
+      guard("WebFetch", { url: "https://docs-ai.interop.io" }).behavior,
+    ).toBe("allow");
     expect(
-      offline("Bash", { command: "curl https://docs-ai.interop.io/llms.txt" })
+      guard("Bash", { command: "curl https://docs-ai.interop.io/llms.txt" })
         .behavior,
-    ).toBe("deny");
-    expect(
-      offline("Bash", { command: "git clone https://github.com/x/y" }).behavior,
-    ).toBe("deny");
-    expect(offline("Bash", { command: "npm run build" }).behavior).toBe(
-      "allow",
-    );
+    ).toBe("allow");
   });
 
   it("allows tools that touch no paths, such as Skill", () => {

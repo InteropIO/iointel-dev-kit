@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { Evals } from "../shared/contracts.js";
 
 /**
- * Grades rubric lines with a fixed Opus 5.5 model, so scores stay comparable across runs and targets.
+ * Grades rubric lines with a fixed Opus 5.5 model, so scores stay comparable across runs and models.
  * Holds one API client for the process: use AnthropicJudge.getInstance().
  */
 export class AnthropicJudge implements Evals.Judge.Grader {
@@ -29,8 +29,8 @@ export class AnthropicJudge implements Evals.Judge.Grader {
     ),
   });
   private static readonly SYSTEM = `You grade the output of an AI coding agent against a rubric.
-Grade each rubric line independently as pass or fail, using the agent's final message, the workspace diff when given, and the transcript as evidence of what it actually did.
-A line passes only if the evidence clearly satisfies it. Do not give credit for intent, for claims the transcript or diff contradicts, or for things the rubric does not ask for.
+Grade each rubric line independently as pass or fail, using the agent's final message, and the transcript as evidence of what it actually did.
+A line passes only if the evidence clearly satisfies it. Do not give credit for intent, for claims the transcript contradicts, or for things the rubric does not ask for.
 Give a one-line reason for every verdict, citing the evidence.`;
 
   private client: Anthropic | undefined;
@@ -61,12 +61,17 @@ Give a one-line reason for every verdict, citing the evidence.`;
       messages: [{ role: "user", content: AnthropicJudge.buildPrompt(input) }],
     });
 
+    const costUsd = AnthropicJudge.cost(response.usage);
     if (response.stop_reason === "refusal")
-      throw new Error("judge refused to grade this output");
+      throw AnthropicJudge.billed(
+        "judge refused to grade this output",
+        costUsd,
+      );
     const verdict = response.parsed_output;
     if (!verdict)
-      throw new Error(
+      throw AnthropicJudge.billed(
         `judge returned no parseable verdict (stop_reason: ${response.stop_reason})`,
+        costUsd,
       );
 
     const byIndex = new Map(verdict.lines.map((l) => [l.index, l]));
@@ -80,7 +85,15 @@ Give a one-line reason for every verdict, citing the evidence.`;
             reason: "judge returned no verdict for this line",
           };
     });
-    return { lines, costUsd: AnthropicJudge.cost(response.usage) };
+    return { lines, costUsd };
+  }
+
+  /** The judge answered but its answer can't be used: the call still cost money. */
+  private static billed(
+    message: string,
+    costUsd: number,
+  ): Evals.Judge.BilledError {
+    return Object.assign(new Error(message), { costUsd });
   }
 
   private static buildPrompt(input: Evals.Judge.Input): string {
@@ -91,11 +104,6 @@ Give a one-line reason for every verdict, citing the evidence.`;
     return [
       `<rubric>\n${input.rubric.map((line, i) => `${i}. ${line}`).join("\n")}\n</rubric>`,
       `<final_message>\n${input.finalMessage || "(empty)"}\n</final_message>`,
-      ...(input.diff !== undefined
-        ? [
-            `<workspace_diff>\n${input.diff || "(no changes)"}\n</workspace_diff>`,
-          ]
-        : []),
       `<transcript${truncated ? ' truncated="true"' : ""}>\n${transcript}\n</transcript>`,
       `Return one verdict per rubric line, using the line numbers above as "index".`,
     ].join("\n\n");

@@ -23,42 +23,10 @@ export type GuardDecision =
   | { readonly behavior: "allow" }
   | { readonly behavior: "deny"; readonly message: string };
 
-/** Options for the Claude Code workdir guard. */
-export interface GuardOptions {
-  readonly network: boolean;
-}
-
-/** A target id split into its tool and (optional) model: "claude-code/claude-sonnet-5-5". */
-export interface ParsedTarget {
-  readonly tool: string;
-  readonly model: string | undefined;
-}
-
-/** Configuration of a GitWorkspaceManager instance. */
-export interface GitWorkspaceOptions {
+/** Configuration of a TempWorkspaceManager instance. */
+export interface TempWorkspaceOptions {
   /** The working copy of the skill under test. */
   readonly skillDir: string;
-  /** Folder that `setup.fixture` paths are relative to. */
-  readonly fixturesDir: string;
-  /** Keep temp folders after the run, for debugging. */
-  readonly keep?: boolean;
-  readonly materialize?: Evals.Workspace.TemplateMaterializer;
-}
-
-/** One run of one case on one target: the engine's unit of scheduling. */
-export interface RunUnit {
-  readonly case: Evals.Cases.Case;
-  readonly target: string;
-  readonly tool: string;
-  readonly model: string | undefined;
-  readonly index: number;
-  readonly withSkill: boolean;
-}
-
-/** What the engine's checks found for one run. `diff` is set for task cases only. */
-export interface CheckOutcome {
-  readonly checks: readonly Evals.Checks.Result[];
-  readonly diff: string | undefined;
 }
 
 /** The judge's verdict on one run. A judge that failed gives a failed check instead of lines. */
@@ -77,20 +45,6 @@ export interface ReportParts {
   readonly options: Evals.Engine.Options;
   readonly concurrency: number;
   readonly reference: Evals.Baseline.Reference;
-  readonly records: readonly Evals.Report.RunRecord[];
   readonly cases: readonly Evals.Report.CaseReport[];
   readonly comparison: readonly Evals.Report.CaseComparison[];
-}
-
-/** A tool_use block read from a Claude Agent SDK transcript. */
-export interface ClaudeToolUse {
-  readonly id: string;
-  readonly name: string;
-  readonly input: Readonly<Record<string, unknown>>;
-}
-
-/** A tool_result block read from a Claude Agent SDK transcript. */
-export interface ClaudeToolResult {
-  readonly isError: boolean;
-  readonly text: string;
 }

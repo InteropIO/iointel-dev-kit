@@ -3,14 +3,12 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { config as loadEnv } from "dotenv";
 import { ClaudeCodeAdapter } from "./adapters/claude-code.js";
-import { CodexAdapter } from "./adapters/codex.js";
 import { CaseValidationError } from "./cases/loader.js";
 import { EvalEngine, EvalSetupError } from "./engine/index.js";
 import { AnthropicJudge } from "./judge/anthropic-judge.js";
 import { approveRun } from "./report/baseline.js";
 import { renderConsoleSummary } from "./report/console.js";
-import { GitWorkspaceManager } from "./workspace/workspace.js";
-import type { Evals } from "./shared/contracts.js";
+import { TempWorkspaceManager } from "./workspace/workspace.js";
 
 const evalsRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -20,7 +18,6 @@ const paths = {
   cases: path.join(evalsRoot, "cases"),
   results: path.join(evalsRoot, "results"),
   baseline: path.join(evalsRoot, "baseline.json"),
-  fixtures: path.join(evalsRoot, "fixtures"),
   skill: path.resolve(evalsRoot, "..", "skills", "io-intelligence"),
 };
 
@@ -29,14 +26,9 @@ const USAGE = `Usage:
   npm run eval:approve -- [--run ID] Promote the latest (or given) run to baseline.json
 
 Options:
-  --kind trigger|answer|task   Only cases of this kind
-  --case ID                    Only this case
-  --target ID                  Only this target ("claude-code/claude-sonnet-5-5") or tool ("codex")
-  --repeat N                   Runs per case (default 3; a case's own repeat wins)
-  --concurrency N              Runs at once (default 4)
-  --max-cost USD               Stop starting new runs once this much has been spent
-  --baseline                   Also run every case with the skill removed, to show what it adds
-  --keep-workdirs              Keep temp workspaces for debugging`;
+  --case ID          Only this case
+  --model ID         Claude model to run the cases on (default claude-sonnet-5-5)
+  --concurrency N    Cases at once (default 4)`;
 
 async function main(argv: string[]) {
   loadEnv({ path: path.join(evalsRoot, ".env"), quiet: true });
@@ -44,14 +36,9 @@ async function main(argv: string[]) {
   const { values } = parseArgs({
     args: rest,
     options: {
-      kind: { type: "string" },
       case: { type: "string" },
-      target: { type: "string" },
-      repeat: { type: "string" },
+      model: { type: "string" },
       concurrency: { type: "string" },
-      "max-cost": { type: "string" },
-      baseline: { type: "boolean" },
-      "keep-workdirs": { type: "boolean" },
       run: { type: "string" },
       help: { type: "boolean" },
     },
@@ -71,46 +58,29 @@ async function main(argv: string[]) {
   if (command !== "run")
     throw new EvalSetupError(`Unknown command "${command}".\n\n${USAGE}`);
 
-  if (values.kind && !["trigger", "answer", "task"].includes(values.kind))
-    throw new EvalSetupError(`--kind must be trigger, answer or task`);
   const engine = new EvalEngine({
-    adapters: {
-      "claude-code": ClaudeCodeAdapter.getInstance(),
-      codex: CodexAdapter.getInstance(),
-    },
+    adapter: ClaudeCodeAdapter.getInstance(),
     judge: AnthropicJudge.getInstance(),
-    workspace: new GitWorkspaceManager({
-      skillDir: paths.skill,
-      fixturesDir: paths.fixtures,
-      keep: !!values["keep-workdirs"],
-    }),
+    workspace: new TempWorkspaceManager({ skillDir: paths.skill }),
     log: (line) => console.log(line),
   });
   const report = await engine.run({
     casesDir: paths.cases,
     resultsDir: paths.results,
     baselineFile: paths.baseline,
-    ...(values.kind ? { kind: values.kind as Evals.Cases.Kind } : {}),
     ...(values.case ? { caseId: values.case } : {}),
-    ...(values.target ? { target: values.target } : {}),
-    ...(values.repeat
-      ? { repeat: positiveNumber("--repeat", values.repeat) }
-      : {}),
+    ...(values.model ? { model: values.model } : {}),
     ...(values.concurrency
-      ? { concurrency: positiveNumber("--concurrency", values.concurrency) }
+      ? { concurrency: positiveInteger("--concurrency", values.concurrency) }
       : {}),
-    ...(values["max-cost"]
-      ? { maxCostUsd: positiveNumber("--max-cost", values["max-cost"]) }
-      : {}),
-    withoutSkill: !!values.baseline,
   });
   console.log("\n" + renderConsoleSummary(report));
 }
 
-function positiveNumber(flag: string, value: string): number {
+function positiveInteger(flag: string, value: string): number {
   const n = Number(value);
-  if (!Number.isFinite(n) || n <= 0)
-    throw new EvalSetupError(`${flag} must be a positive number`);
+  if (!Number.isInteger(n) || n <= 0)
+    throw new EvalSetupError(`${flag} must be a positive integer`);
   return n;
 }
 

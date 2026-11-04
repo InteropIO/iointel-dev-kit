@@ -2,38 +2,32 @@
 import type { Evals } from "../shared/contracts.js";
 import type { Grading } from "../shared/types.js";
 
-/** The case's rubric, or undefined when it has none (trigger cases never do). */
+/** The case's rubric, or undefined when it has none or it is blank. */
 export function rubricOf(c: Evals.Cases.Case): string | undefined {
-  const rubric =
-    c.kind === "answer"
-      ? c.rubric
-      : c.kind === "task"
-        ? c.checks.reviewRubric
-        : undefined;
-  return rubric?.trim() ? rubric : undefined;
+  return c.rubric?.trim() ? c.rubric : undefined;
 }
 
 /**
  * Grades one run. Never throws: when only grading fails, the run keeps the agent's result
- * (and its cost) and gets a failed "judge" check instead of judge lines.
+ * (and its cost) and gets a failed "judge" check instead of judge lines. A judge call that was
+ * paid for before it failed (a BilledError) still adds its cost.
  */
 export async function gradeRun(
   judge: Evals.Judge.Grader,
   rubric: string,
   agent: Evals.Agent.RunResult,
-  diff: string | undefined,
 ): Promise<Grading> {
   try {
     const result = await judge.grade({
       rubric: rubricLines(rubric),
       finalMessage: agent.finalMessage,
       transcript: agent.transcript,
-      ...(diff !== undefined ? { diff } : {}),
     });
     return { lines: result.lines, costUsd: result.costUsd };
   } catch (err) {
+    const billed = (err as Partial<Evals.Judge.BilledError>).costUsd;
     return {
-      costUsd: 0,
+      costUsd: typeof billed === "number" ? billed : 0,
       failedCheck: {
         name: "judge",
         pass: false,
