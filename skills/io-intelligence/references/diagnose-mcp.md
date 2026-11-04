@@ -68,7 +68,8 @@ Check:
 - availability is `constant` or `variable` as intended;
 - mapped method/intent name matches the underlying registration;
 - allowed-application or resolution filters;
-- variable capability currently has an eligible handler.
+- variable capability currently has an eligible handler;
+- if a `resource` is configured on a static **method** tool, whether its resource URI collides with another tool's (only method tools and dynamic tools can carry one; intent tools never can).
 
 ### Dynamic tool
 
@@ -83,7 +84,18 @@ Check:
 - MCP Core dynamic methods are enabled;
 - the dynamic guard returns true;
 - registration existed before or during the server's method-availability observation;
-- the intended client is still connected and received tool-list change behavior.
+- the intended client is still connected and received tool-list change behavior;
+- if `flags.ioIntelMCPTool.resource` is set, it is a non-empty HTML string (not a function reference — dynamic tools cross an interop boundary) and its resource URI is not colliding with another tool's.
+
+## MCP App resource not appearing
+
+Applies when a tool's `resource` was configured but the tool still returns plain text, or its UI resource never resolves. This is a narrower case of the checks above — read [mcp-apps.md](mcp-apps.md#turning-a-tool-into-an-mcp-app) for the full contract. Check, in order:
+
+1. The tool type actually supports `resource` — static intent tools and most system tools never do (see the table in `mcp-apps.md`).
+2. The connected client's capability object advertises `extensions["io.modelcontextprotocol/ui"]` with `text/html;profile=mcp-app`; without it, MCP Core always falls back to plain text, by design.
+3. The resource lifecycle matches the tool's: a `variable` static method or dynamic tool's resource is only live while the underlying interop method is registered.
+4. Server logs for a resource-URI collision warning — the second tool resolving to an already-used `ui://` URI is silently skipped.
+5. For the built-in Workspace Widget specifically, confirm `server.tools.system.getWorkspaceWidget.resource` is actually configured before treating this as a generic MCP App problem — see [workspace-widget.md](workspace-widget.md).
 
 ## Dynamic tool not visible
 
@@ -163,4 +175,5 @@ If official docs and installed public declarations conflict, report an alignment
 - [MCP Core API](https://docs-ai.interop.io/api-reference/mcp-core/api-reference.md)
 - [MCP Web API](https://docs-ai.interop.io/api-reference/mcp-web/overview.md)
 - [MCP HTTP API](https://docs-ai.interop.io/api-reference/mcp-http/overview.md)
+- [MCP Apps Overview](https://docs-ai.interop.io/modules/mcp/mcp-apps/overview.md)
 - [Update App Definitions Guide](https://docs-ai.interop.io/guides/io-assist-anywhere/updating-app-definitions.md)

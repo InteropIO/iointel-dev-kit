@@ -221,7 +221,7 @@ Key boundary:
 
 - The feature needs server UI metadata, client capability, resource access, sandbox proxy, and a host display surface.
 
-Read [Chapter 8](https://docs-ai.interop.io/guides/io-assist-anywhere/add-support-for-mcp-apps.md) and [mcp-apps.md](mcp-apps.md).
+Read [Chapter 8](https://docs-ai.interop.io/guides/io-assist-anywhere/add-support-for-mcp-apps.md) and [mcp-apps.md](mcp-apps.md); read [workspace-widget.md](workspace-widget.md) and [sandbox-proxy.md](sandbox-proxy.md) for the Workspace Widget and sandbox proxy steps specifically.
 
 ### Chapter 9: Host MCP Web in io.Assist
 

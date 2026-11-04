@@ -25,6 +25,7 @@ Derived from [https://docs-ai.interop.io/llms.txt](https://docs-ai.interop.io/ll
 | AI Mastra Bridge | [Capabilities](https://docs-ai.interop.io/modules/ai-mastra-bridge/capabilities.md) | Capabilities |
 | MCP Apps | [Overview](https://docs-ai.interop.io/modules/mcp/mcp-apps/overview.md) | Protocol and lifecycle explanation |
 | MCP Apps | [Workspace Widget](https://docs-ai.interop.io/modules/mcp/mcp-apps/workspace-widget.md) | Built-in widget |
+| MCP Apps | [Sandbox Proxy](https://docs-ai.interop.io/modules/mcp/mcp-apps/sandbox-proxy.md) | Required isolation boundary and ready-made proxy component |
 
 ## MCP API reference
 
@@ -41,6 +42,10 @@ Derived from [https://docs-ai.interop.io/llms.txt](https://docs-ai.interop.io/ll
 | `@interopio/mcp-http` | [Overview](https://docs-ai.interop.io/api-reference/mcp-http/overview.md) | API overview |
 | `@interopio/mcp-http` | [API Reference](https://docs-ai.interop.io/api-reference/mcp-http/api-reference.md) | Factory and configuration |
 | `@interopio/mcp-http` | [Examples](https://docs-ai.interop.io/api-reference/mcp-http/examples.md) | Examples |
+| `@interopio/workspace-widget` | [Overview](https://docs-ai.interop.io/api-reference/mcp-apps/workspace-widget/overview.md) | `getHTML()` package reference |
+| `@interopio/workspace-widget` | [Examples](https://docs-ai.interop.io/api-reference/mcp-apps/workspace-widget/examples.md) | Wiring into an MCP Core server, directly or over HTTP |
+| `@interopio/mcp-apps-proxy` | [Overview](https://docs-ai.interop.io/api-reference/mcp-apps/sandbox-proxy/overview.md) | `<mcp-apps-proxy>` package reference |
+| `@interopio/mcp-apps-proxy` | [Examples](https://docs-ai.interop.io/api-reference/mcp-apps/sandbox-proxy/examples.md) | Serving the proxy and pointing a host's `sandboxProxyUrl` at it |
 
 ## Frontend and context API reference
 
