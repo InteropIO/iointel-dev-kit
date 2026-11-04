@@ -46,6 +46,15 @@
       "path": "templates/io-assist-react-packaged",
       "tag": "V1.0.1",
       "ioConnectClient": true
+    },
+    "mcp-apps-sandbox-proxy": {
+      "displayName": "MCP Apps Sandbox Proxy",
+      "description": "Standalone sandbox proxy page required by any MCP Apps host (AI Web, io.Assist). Materialize alongside an app template, not instead of one.",
+      "framework": "vanilla-js",
+      "mode": "infrastructure",
+      "path": "templates/mcp-apps-sandbox-proxy",
+      "tag": "V1.0.1",
+      "ioConnectClient": false
     }
   }
 }

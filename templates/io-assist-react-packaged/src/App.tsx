@@ -11,6 +11,9 @@ import './App.css'
 // this must be defined;
 const AGENT_SERVER_URL = '';
 
+// this must be defined;
+const SANDBOX_PROXY_URL = '';
+
 const createIOConnect: typeof IOBrowser = async (config) => {
   const io = await IOBrowser(config);
 
@@ -37,6 +40,14 @@ const staticConfig: IoAssistStaticConfig = {
   aiWebConfig: {
     agentServer: {
       baseUrl: AGENT_SERVER_URL,
+    },
+    mcp: {
+      clientsConfig: {
+        capabilities: {},
+      },
+      mcpApps: {
+        sandboxProxyUrl: SANDBOX_PROXY_URL,
+      },
     },
   },
 }

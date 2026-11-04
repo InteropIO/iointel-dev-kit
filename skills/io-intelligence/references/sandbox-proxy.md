@@ -18,6 +18,8 @@ The proxy page itself is **not** sandboxed — only its inner iframe is. That in
 
 `@interopio/mcp-apps-proxy` packages the MCP Apps spec's sandbox-proxy section as an installable `<mcp-apps-proxy>` custom element, instead of a hand-written or copy-pasted HTML file.
 
+The io.Intelligence Dev Kit's `mcp-apps-sandbox-proxy` template already wires this up as a standalone, materializable page — use it instead of repeating these steps by hand when scaffolding a new app. Materialize it alongside the app template, not instead of it; see the skill's `scaffolding.md` reference.
+
 1. Install `@interopio/mcp-apps-proxy`.
 2. Serve a page that imports it and renders `<mcp-apps-proxy></mcp-apps-proxy>`.
 3. Point the host's `sandboxProxyUrl` at that page. Nothing changes on the host side — the package implements the exact same `sandboxProxyUrl` contract a hand-written proxy page would.
