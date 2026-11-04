@@ -1,0 +1,14 @@
+{
+  "name": "mcp-apps-sandbox-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "vite"
+  },
+  "dependencies": {
+    "@interopio/browser": "^4.5.0",
+    "@interopio/mcp-apps-proxy": "^1.0.0",
+    "vite": "^8.2.0"
+  }
+}

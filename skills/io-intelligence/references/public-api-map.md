@@ -70,3 +70,7 @@ Use this map to locate the official page for a public package, factory, namespac
 | MCP App lifecycle and display modes | [MCP Apps Overview](https://docs-ai.interop.io/modules/mcp/mcp-apps/overview.md) |
 | UI extension capability and sandbox proxy | [MCP Apps Setup](https://docs-ai.interop.io/modules/mcp/mcp-apps/overview.md#setup-for-developers) |
 | Sampling and elicitation handlers | [AI Web MCPClientConfig](https://docs-ai.interop.io/api-reference/ai-web/configuration.md#mcpclientconfig) |
+| Static/dynamic tool `resource`, resource URI, and MCP App resource lifecycle | [MCP Core Tool Types: MCP App Resources](https://docs-ai.interop.io/api-reference/mcp-core/tool-types.md#mcp-app-resources) |
+| `@interopio/workspace-widget` and `getHTML()` | [Workspace Widget Package Overview](https://docs-ai.interop.io/api-reference/mcp-apps/workspace-widget/overview.md) |
+| `io_connect_get_workspace_widget` system tool | [MCP Core Tool Types](https://docs-ai.interop.io/api-reference/mcp-core/tool-types.md#io_connect_get_workspace_widget) |
+| `@interopio/mcp-apps-proxy` and `<mcp-apps-proxy>` | [Sandbox Proxy Package Overview](https://docs-ai.interop.io/api-reference/mcp-apps/sandbox-proxy/overview.md) |

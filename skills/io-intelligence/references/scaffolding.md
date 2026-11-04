@@ -26,6 +26,7 @@ Resolve `<skill-directory>` to the directory containing this skill's `SKILL.md`.
 | `io-assist-angular-packaged` | The developer wants an Angular application using the published io.Assist package. |
 | `io-assist-react-editable` | The developer wants a React io.Assist application whose assistant source they own and can change. |
 | `io-assist-react-packaged` | The developer wants a React application using the published io.Assist package. |
+| `mcp-apps-sandbox-proxy` | The developer's chosen app template renders MCP Apps and needs the sandbox proxy that every MCP Apps host requires. This is not a standalone app choice — materialize it in addition to one of the templates above, not instead of one. See the `io-intelligence` skill's `sandbox-proxy.md` reference for what it does. |
 
 If the requested delivery is ambiguous, establish the framework and choose packaged, editable, or custom mode before retrieving anything.
 
@@ -39,13 +40,14 @@ If the requested delivery is ambiguous, establish the framework and choose packa
 6. Work only in the materialized target. Do not inspect or download the other template directories unless the user separately asks to compare templates.
 7. Read the materialized manifest, lockfile, framework configuration, and relevant source before changing anything.
 8. Locate `AGENT_SERVER_URL` in the materialized source. It intentionally ships as an empty string. Obtain a valid URL from the user or existing project/environment evidence and set it to the LLM agentic backend that implements the io.Intelligence Agent Protocol. Do not invent a URL or silently retain the empty value.
-9. When the task requires it, install dependencies with the package manager indicated by the materialized project.
-10. Discover the available start and build commands and configured development port from the materialized project. Do not assume command names or ports and do not invent a missing build command.
-11. Apply requested project-specific changes using the coding agent's normal tools and the official documentation for public APIs.
+9. If the materialized template also declares `SANDBOX_PROXY_URL` (every template except `mcp-apps-sandbox-proxy` itself), it likewise intentionally ships as an empty string. It only needs a value if the application should render MCP Apps. Point it at a running `mcp-apps-sandbox-proxy` template materialized alongside this one, or another deployed sandbox proxy; see the `io-intelligence` skill's `sandbox-proxy.md` reference. Do not invent a URL for it either.
+10. When the task requires it, install dependencies with the package manager indicated by the materialized project.
+11. Discover the available start and build commands and configured development port from the materialized project. Do not assume command names or ports and do not invent a missing build command.
+12. Apply requested project-specific changes using the coding agent's normal tools and the official documentation for public APIs.
 
 The materializer only retrieves source and records provenance. It does not install dependencies, start the application, run a build, register an io.Connect app, or validate project behavior.
 
-`AGENT_SERVER_URL` is a blocking startup prerequisite for every V1 template. Do not start the application until it contains a valid backend URL. Building the project may still be useful before that value is available, but build success does not establish backend connectivity.
+`AGENT_SERVER_URL` is a blocking startup prerequisite for every V1 template. Do not start the application until it contains a valid backend URL. Building the project may still be useful before that value is available, but build success does not establish backend connectivity. `SANDBOX_PROXY_URL` is not a blocking prerequisite for application startup, but is required before MCP Apps can render; treat it the same way (no invented value, no silent empty value) once MCP Apps matter for the task.
 
 ## io.Connect execution boundary
 

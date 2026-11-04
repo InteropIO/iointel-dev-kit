@@ -47,7 +47,9 @@ Always read [references/core.md](references/core.md), then load only the task-sp
 | Use Mastra as the backend         | [references/mastra-backend.md](references/mastra-backend.md)             |
 | Add live business context         | [references/working-context.md](references/working-context.md)           |
 | Orchestrate tools through code    | [references/code-mode.md](references/code-mode.md)                       |
-| Host interactive MCP UI resources | [references/mcp-apps.md](references/mcp-apps.md)                         |
+| Host interactive MCP UI resources; turn a static or dynamic tool into an MCP App | [references/mcp-apps.md](references/mcp-apps.md) |
+| Configure or explain the built-in Workspace Widget                | [references/workspace-widget.md](references/workspace-widget.md)         |
+| Serve or diagnose the sandbox proxy required by MCP Apps          | [references/sandbox-proxy.md](references/sandbox-proxy.md)               |
 | Handle sampling or elicitation    | [references/sampling-elicitation.md](references/sampling-elicitation.md) |
 
 ### Diagnostic routing

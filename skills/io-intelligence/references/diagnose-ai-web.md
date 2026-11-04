@@ -131,13 +131,15 @@ Trace:
 2. UI resource metadata and resource read;
 3. client UI capability;
 4. AI Web `mcpApps` API exists;
-5. sandbox proxy loads;
+5. sandbox proxy loads — confirm `sandboxProxyUrl` resolves and, if using `@interopio/mcp-apps-proxy`, that the page actually registers `<mcp-apps-proxy>` rather than a stale or hand-rolled page;
 6. app-created lifecycle event;
 7. selected display mode;
 8. host/app messages;
 9. thread-switch close and restore.
 
 If the tool call appears but no `mcpApps` API exists, inspect configuration before rendering code.
+
+If the app is the built-in Workspace Widget, check its own dedicated config path (`server.tools.system.getWorkspaceWidget.resource`) and custom-notification wiring before treating it as a generic MCP App failure — see [workspace-widget.md](workspace-widget.md) and [mcp-apps.md](mcp-apps.md#custom-notifications) for the shared notification contract. For sandbox proxy specifics (workspace-mode io discovery, inline vs. workspace transport), see [sandbox-proxy.md](sandbox-proxy.md).
 
 ## Stop conditions
 
@@ -149,4 +151,6 @@ Identify the first failed boundary and show the direct evidence. Do not attribut
 - [AI Web Configuration](https://docs-ai.interop.io/api-reference/ai-web/configuration.md)
 - [Agent Protocol](https://docs-ai.interop.io/api-reference/ai-server/agent-protocol.md)
 - [MCP Apps](https://docs-ai.interop.io/modules/mcp/mcp-apps/overview.md)
+- [Workspace Widget](https://docs-ai.interop.io/modules/mcp/mcp-apps/workspace-widget.md)
+- [Sandbox Proxy](https://docs-ai.interop.io/modules/mcp/mcp-apps/sandbox-proxy.md)
 - [Custom AI Web Guide](https://docs-ai.interop.io/guides/io-assist-anywhere/custom-ui-skin-using-ai-web.md)

@@ -40,6 +40,8 @@ Use `@interopio/mcp-core` directly for a specialized transport. Core owns the ca
 
 For exact config shapes, read [MCP Core Tool Types](https://docs-ai.interop.io/api-reference/mcp-core/tool-types.md).
 
+System, static method, and dynamic tools can each attach a `resource` to become an MCP App instead of returning plain text; static intent tools cannot. See [mcp-apps.md](mcp-apps.md#turning-a-tool-into-an-mcp-app) before adding or troubleshooting a `resource`.
+
 ## Decisions to make
 
 1. Which application or process owns the server?
