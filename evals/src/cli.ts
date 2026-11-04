@@ -5,7 +5,7 @@ import { config as loadEnv } from "dotenv";
 import { ClaudeCodeAdapter } from "./adapters/claude-code.js";
 import { CodexAdapter } from "./adapters/codex.js";
 import { CaseValidationError } from "./cases/loader.js";
-import { EvalSetupError, runEval } from "./engine/index.js";
+import { EvalEngine, EvalSetupError } from "./engine/index.js";
 import { AnthropicJudge } from "./judge/anthropic-judge.js";
 import { approveRun } from "./report/baseline.js";
 import { renderConsoleSummary } from "./report/console.js";
@@ -73,39 +73,37 @@ async function main(argv: string[]) {
 
   if (values.kind && !["trigger", "answer", "task"].includes(values.kind))
     throw new EvalSetupError(`--kind must be trigger, answer or task`);
-  const report = await runEval(
-    {
-      casesDir: paths.cases,
-      resultsDir: paths.results,
-      baselineFile: paths.baseline,
-      ...(values.kind ? { kind: values.kind as Evals.Cases.Kind } : {}),
-      ...(values.case ? { caseId: values.case } : {}),
-      ...(values.target ? { target: values.target } : {}),
-      ...(values.repeat
-        ? { repeat: positiveNumber("--repeat", values.repeat) }
-        : {}),
-      ...(values.concurrency
-        ? { concurrency: positiveNumber("--concurrency", values.concurrency) }
-        : {}),
-      ...(values["max-cost"]
-        ? { maxCostUsd: positiveNumber("--max-cost", values["max-cost"]) }
-        : {}),
-      withoutSkill: !!values.baseline,
+  const engine = new EvalEngine({
+    adapters: {
+      "claude-code": ClaudeCodeAdapter.getInstance(),
+      codex: CodexAdapter.getInstance(),
     },
-    {
-      adapters: {
-        "claude-code": ClaudeCodeAdapter.getInstance(),
-        codex: CodexAdapter.getInstance(),
-      },
-      judge: AnthropicJudge.getInstance(),
-      workspace: new GitWorkspaceManager({
-        skillDir: paths.skill,
-        fixturesDir: paths.fixtures,
-        keep: !!values["keep-workdirs"],
-      }),
-      log: (line) => console.log(line),
-    },
-  );
+    judge: AnthropicJudge.getInstance(),
+    workspace: new GitWorkspaceManager({
+      skillDir: paths.skill,
+      fixturesDir: paths.fixtures,
+      keep: !!values["keep-workdirs"],
+    }),
+    log: (line) => console.log(line),
+  });
+  const report = await engine.run({
+    casesDir: paths.cases,
+    resultsDir: paths.results,
+    baselineFile: paths.baseline,
+    ...(values.kind ? { kind: values.kind as Evals.Cases.Kind } : {}),
+    ...(values.case ? { caseId: values.case } : {}),
+    ...(values.target ? { target: values.target } : {}),
+    ...(values.repeat
+      ? { repeat: positiveNumber("--repeat", values.repeat) }
+      : {}),
+    ...(values.concurrency
+      ? { concurrency: positiveNumber("--concurrency", values.concurrency) }
+      : {}),
+    ...(values["max-cost"]
+      ? { maxCostUsd: positiveNumber("--max-cost", values["max-cost"]) }
+      : {}),
+    withoutSkill: !!values.baseline,
+  });
   console.log("\n" + renderConsoleSummary(report));
 }
 

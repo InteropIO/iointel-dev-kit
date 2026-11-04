@@ -235,7 +235,7 @@ export declare namespace Evals {
     }
   }
 
-  /** The runEval seam. */
+  /** The engine seam: new EvalEngine(deps).run(options). */
   namespace Engine {
     interface Options {
       readonly casesDir: string;

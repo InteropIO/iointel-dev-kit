@@ -55,6 +55,33 @@ export interface RunUnit {
   readonly withSkill: boolean;
 }
 
+/** What the engine's checks found for one run. `diff` is set for task cases only. */
+export interface CheckOutcome {
+  readonly checks: readonly Evals.Checks.Result[];
+  readonly diff: string | undefined;
+}
+
+/** The judge's verdict on one run. A judge that failed gives a failed check instead of lines. */
+export interface Grading {
+  readonly lines?: readonly Evals.Judge.Line[];
+  readonly costUsd: number | null;
+  readonly failedCheck?: Evals.Checks.Result;
+}
+
+/** Everything the engine has gathered by the end of a run, for building the RunReport. */
+export interface ReportParts {
+  readonly runId: string;
+  readonly runDir: string;
+  readonly startedAt: Date;
+  readonly finishedAt: Date;
+  readonly options: Evals.Engine.Options;
+  readonly concurrency: number;
+  readonly reference: Evals.Baseline.Reference;
+  readonly records: readonly Evals.Report.RunRecord[];
+  readonly cases: readonly Evals.Report.CaseReport[];
+  readonly comparison: readonly Evals.Report.CaseComparison[];
+}
+
 /** A tool_use block read from a Claude Agent SDK transcript. */
 export interface ClaudeToolUse {
   readonly id: string;

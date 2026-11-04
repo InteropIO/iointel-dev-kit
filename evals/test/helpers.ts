@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { stringify } from "yaml";
-import { runEval } from "../src/engine/index.js";
+import { EvalEngine } from "../src/engine/index.js";
 import { GitWorkspaceManager } from "../src/workspace/workspace.js";
 import type { Evals } from "../src/shared/contracts.js";
 
@@ -150,4 +150,10 @@ export function fakeJudge(
   };
 }
 
-export { runEval };
+/** The engine seam, as one call: every engine test goes through it. */
+export function runEval(
+  options: Evals.Engine.Options,
+  deps: Evals.Engine.Deps,
+): Promise<Evals.Report.RunReport> {
+  return new EvalEngine(deps).run(options);
+}
