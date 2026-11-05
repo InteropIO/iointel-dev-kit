@@ -195,7 +195,21 @@ Key boundary:
 
 Read [Chapter 6](https://docs-ai.interop.io/guides/io-assist-anywhere/updating-app-definitions.md) and [diagnose-mcp.md](diagnose-mcp.md).
 
-### Chapter 7: Add MCP Apps
+### Chapter 7: Add Code Mode
+
+Purpose:
+
+- install `@interopio/code-mode` and serve its QuickJS WASM file at `/quickjs/emscripten-module.wasm` in each assistant app used;
+- enable `codeMode` in the AI Web config of React, Angular, or both io.Assist apps;
+- let the agent orchestrate MCP Web tools through generated code.
+
+Key boundary:
+
+- Code Mode runs in AI Web only. Do not also enable server-side Code Mode on the MCP Web server, and keep the `codeMode` entry through later chapters that change the `mcp` config.
+
+Read [Chapter 7](https://docs-ai.interop.io/guides/io-assist-anywhere/add-code-mode.md) and [code-mode.md](code-mode.md).
+
+### Chapter 8: Enable MCP Apps
 
 Purpose:
 
@@ -207,9 +221,9 @@ Key boundary:
 
 - The feature needs server UI metadata, client capability, resource access, sandbox proxy, and a host display surface.
 
-Read [Chapter 7](https://docs-ai.interop.io/guides/io-assist-anywhere/add-support-for-mcp-apps.md) and [mcp-apps.md](mcp-apps.md).
+Read [Chapter 8](https://docs-ai.interop.io/guides/io-assist-anywhere/add-support-for-mcp-apps.md) and [mcp-apps.md](mcp-apps.md).
 
-### Chapter 8: Move MCP Web into io.Assist
+### Chapter 9: Host MCP Web in io.Assist
 
 Purpose:
 
@@ -220,9 +234,9 @@ Key boundary:
 
 - This intentionally changes the Chapter 2 topology. Do not keep both server owners unless the chapter explicitly directs it.
 
-Read [Chapter 8](https://docs-ai.interop.io/guides/io-assist-anywhere/remove-external-mcp-web-server.md) and [mcp-integration.md](mcp-integration.md).
+Read [Chapter 9](https://docs-ai.interop.io/guides/io-assist-anywhere/remove-external-mcp-web-server.md) and [mcp-integration.md](mcp-integration.md).
 
-### Chapter 9: Extend to io.Connect Desktop
+### Chapter 10: Support io.Connect Desktop
 
 Purpose:
 
@@ -233,9 +247,9 @@ Key boundary:
 
 - Distinguish Browser and Desktop application definitions, factories, and host lifecycles.
 
-Read [Chapter 9](https://docs-ai.interop.io/guides/io-assist-anywhere/extend-for-io-connect-desktop.md).
+Read [Chapter 10](https://docs-ai.interop.io/guides/io-assist-anywhere/extend-for-io-connect-desktop.md).
 
-### Chapter 10: Dedicated Desktop MCP HTTP server
+### Chapter 11: Dedicated Desktop MCP HTTP server
 
 Purpose:
 
@@ -246,30 +260,30 @@ Key boundary:
 
 - MCP HTTP is a local server for the user's Desktop runtime, and it runs separately from the browser apps and Mastra backend.
 
-Read [Chapter 10](https://docs-ai.interop.io/guides/io-assist-anywhere/dedicated-io-connect-desktop-mcp-http-server.md) and [mcp-integration.md](mcp-integration.md).
+Read [Chapter 11](https://docs-ai.interop.io/guides/io-assist-anywhere/dedicated-io-connect-desktop-mcp-http-server.md) and [mcp-integration.md](mcp-integration.md).
 
-### Chapter 11: Custom UI with AI Web
+### Chapter 12: Build a custom assistant UI with AI Web
 
 Purpose:
 
 - use the pre-scaffolded Vanilla/TypeScript custom assistant shell;
 - initialize AI Web directly;
-- implement streaming, tool traces, Working Context, MCP Apps, sampling, and elicitation without io.Assist UI.
+- implement streaming, tool traces, Working Context, Code Mode, MCP Apps, sampling, and elicitation without io.Assist UI.
 
 Key boundary:
 
 - AI Web supplies the runtime; the guide app owns the UI and event-state reduction.
 
-Read [Chapter 11](https://docs-ai.interop.io/guides/io-assist-anywhere/custom-ui-skin-using-ai-web.md), [custom-ai-web.md](custom-ai-web.md), and [sampling-elicitation.md](sampling-elicitation.md).
+Read [Chapter 12](https://docs-ai.interop.io/guides/io-assist-anywhere/custom-ui-skin-using-ai-web.md), [custom-ai-web.md](custom-ai-web.md), [code-mode.md](code-mode.md), and [sampling-elicitation.md](sampling-elicitation.md).
 
-### Chapter 12: Conclusion
+### Chapter 13: Conclusion
 
 Purpose:
 
 - review the completed topology and capabilities;
 - identify appropriate next steps without changing the completed guide contract.
 
-Read [Chapter 12](https://docs-ai.interop.io/guides/io-assist-anywhere/conclusion.md).
+Read [Chapter 13](https://docs-ai.interop.io/guides/io-assist-anywhere/conclusion.md).
 
 ## Topology evolution
 
@@ -282,20 +296,23 @@ MCP Web server in the io.Connect Browser platform
 Chapter 4
 React/Angular io.Assist connects as the frontend and MCP client
 
-Chapter 8
-MCP Web server moves from the platform into the assistant apps
+Chapter 7
+AI Web owns Code Mode for the combined tool catalog; MCP servers stay plain
 
 Chapter 9
-Desktop adds a hidden MCP Web host application
+MCP Web server moves from the platform into the assistant apps
 
 Chapter 10
-Desktop MCP moves into a dedicated local MCP HTTP server
+Desktop adds a hidden MCP Web host application
 
 Chapter 11
+Desktop MCP moves into a dedicated local MCP HTTP server
+
+Chapter 12
 A custom AI Web frontend demonstrates direct runtime ownership
 ```
 
-When diagnosing, compare the learner's current topology with the current chapter, not with the final solution. Code that is correct in Chapter 10 can be premature or contradictory in Chapter 2.
+When diagnosing, compare the learner's current topology with the current chapter, not with the final solution. Code that is correct in Chapter 11 can be premature or contradictory in Chapter 2.
 
 ## Answer questions during the guide
 
@@ -330,6 +347,7 @@ Use this investigation order:
    - Agent Protocol backend;
    - React/Angular io.Assist integration;
    - Working Context;
+   - Code Mode;
    - application/workspace discovery metadata;
    - MCP Apps;
    - Desktop or MCP HTTP;
@@ -354,6 +372,7 @@ Do not replace the learner's whole project with the solution and do not skip the
 | io.Assist is blank or unstyled | Check framework bootstrap, required styles, host dimensions, and AI Web initialization |
 | Selected client is absent from assistant context | Inspect workspace context first, then Working Context schema and AI Web config |
 | Applications/workspaces are not discoverable | Inspect captions, interop metadata, workspace description/schema, system tool config, and client capabilities |
+| Code Mode does not start or meta-tools are duplicated | Confirm the WASM file is served at the configured `wasmLocation` and matches the package version, then check that only AI Web enables Code Mode |
 | Workspace Widget does not render | Trace UI tool metadata, client UI capability, resource, proxy, and display mode |
 | Desktop chapter starts the wrong MCP server | Compare the implementation with the topology evolution above |
 | Custom UI receives events but renders incorrectly | Capture raw Agent Protocol events, then inspect the local event reducer |
