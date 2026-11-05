@@ -4,10 +4,9 @@ import { SAMPLING_ACTION } from "../constants/modalActions";
 import { UI_STRINGS } from "../constants/uiStrings";
 import { ioAssistStore } from "../stores";
 import { PERMISSION_MODE } from "../stores/permission-mode";
-import { showConfirmModal, MODAL_PREEMPTED } from "../utils/confirmModal";
-import { isModalsAvailable, requestModalDialog } from "../utils/ioModals";
 import { logger } from "../utils/logger";
 import { extractTextContent } from "../utils/messageConverter";
+import { requestPermission } from "../utils/permissionRequest";
 import { safeStringify } from "../utils/safeStringify";
 
 const LOGGER_NAME = "Sampling";
@@ -17,9 +16,9 @@ type SamplingResponse = IoAiWeb.SamplingSuccessResponse | IoAiWeb.SamplingErrorR
 
 type SamplingMessage = IoAiWeb.SamplingRequestParams["messages"][number];
 
-// Guards against a second sampling consent modal opening while one is still
-// pending. Mirrors ng's `_isSamplingModalActive` flag.
-let isSamplingModalActive = false;
+// Guards against a second sampling consent permission request card opening while one is still
+// pending. Mirrors ng's `_isSamplingPermissionRequestActive` flag.
+let isSamplingPermissionRequestActive = false;
 
 export function selectSampling(mcp: IoAiWeb.MCPConfig | undefined): (serverName: string, params: IoAiWeb.SamplingRequestParams) => Promise<SamplingResponse> {
     const custom = mcp?.clientsConfig?.capabilities?.sampling?.handler;
@@ -52,7 +51,7 @@ export async function handleSamplingRequest(serverName: string, request: IoAiWeb
         };
     }
 
-    if (isSamplingModalActive) {
+    if (isSamplingPermissionRequestActive) {
         log.warn("Sampling request rejected: another sampling is already in progress.");
         return {
             code: -1,
@@ -60,63 +59,36 @@ export async function handleSamplingRequest(serverName: string, request: IoAiWeb
         };
     }
 
-    isSamplingModalActive = true;
+    isSamplingPermissionRequestActive = true;
     try {
-        return await getSamplingModalResponse(serverName, request);
+        return await getSamplingPermissionCardResponse(serverName, request);
     } catch (error) {
-        log.error(`Error occurred while getting sampling modal response: ${error instanceof Error ? error.message : String(error)}`);
+        log.error(`Error occurred while getting sampling permission card response: ${error instanceof Error ? error.message : String(error)}`);
         return { code: -1, message: "An error occurred while processing the sampling request." };
     } finally {
-        isSamplingModalActive = false;
+        isSamplingPermissionRequestActive = false;
     }
 }
 
-async function getSamplingModalResponse(serverName: string, request: IoAiWeb.SamplingRequestParams): Promise<SamplingResponse> {
+async function getSamplingPermissionCardResponse(serverName: string, request: IoAiWeb.SamplingRequestParams): Promise<SamplingResponse> {
     log.info(`Showing sampling request from server: ${serverName}, requesting: ${safeStringify(request)}`);
 
-    const modalsAvailable = await isModalsAvailable();
-    const accepted = modalsAvailable ? await getModalsApiResponse() : await getBuiltInPanelResponse();
+    const buttonId = await requestPermission(
+        UI_STRINGS.SAMPLING_PERMISSION_CARD.TEXT,
+        [
+            { id: SAMPLING_ACTION.ACCEPT, label: "Allow", variant: "primary" },
+            { id: SAMPLING_ACTION.DECLINE, label: "Deny", variant: "default" },
+        ],
+        SAMPLING_ACTION.DECLINE
+    );
 
-    if (accepted) {
+    if (buttonId === SAMPLING_ACTION.ACCEPT) {
         log.info("User approved the sampling request.");
         return await getSamplingResponse(request);
     }
 
     log.info("User denied the sampling request.");
     return { code: -1, message: "User denied the sampling request." };
-}
-
-async function getModalsApiResponse(): Promise<boolean> {
-    const response = await requestModalDialog({
-        templateName: "noInputsConfirmationDialog",
-        variables: {
-            title: UI_STRINGS.SAMPLING_MODAL.TITLE,
-            heading: UI_STRINGS.SAMPLING_MODAL.HEADING,
-            text: UI_STRINGS.SAMPLING_MODAL.TEXT,
-            actionButtons: [
-                { variant: "primary", text: "Continue", id: "yes" },
-                { variant: "outline", text: "Cancel", id: "no" },
-            ],
-        },
-    });
-    return response?.responseButtonClicked?.id === "yes";
-}
-
-async function getBuiltInPanelResponse(): Promise<boolean> {
-    const buttonId = await showConfirmModal({
-        title: UI_STRINGS.SAMPLING_MODAL.TITLE,
-        heading: UI_STRINGS.SAMPLING_MODAL.HEADING,
-        text: UI_STRINGS.SAMPLING_MODAL.TEXT,
-        buttons: [
-            { id: SAMPLING_ACTION.ACCEPT, label: "Continue", variant: "primary" },
-            { id: SAMPLING_ACTION.DECLINE, label: "Cancel", variant: "default" },
-        ],
-    });
-    if (buttonId === MODAL_PREEMPTED) {
-        log.warn("Sampling consent modal was preempted by another modal; treating as decline.");
-        return false;
-    }
-    return buttonId === SAMPLING_ACTION.ACCEPT;
 }
 
 async function getSamplingResponse(request: IoAiWeb.SamplingRequestParams): Promise<SamplingResponse> {

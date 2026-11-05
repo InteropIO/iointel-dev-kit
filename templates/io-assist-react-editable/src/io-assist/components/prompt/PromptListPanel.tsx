@@ -60,10 +60,10 @@ export const PromptListPanel: React.FC<Props> = ({ className }) => {
     };
 
     return (
-        <div data-testid="prompt-panel" className={["flex flex-col w-full", className ?? ""].filter(Boolean).join(" ")}>
-            {hasAnyPrompts && <SearchInput value={search} onChange={setSearch} placeholder={UI_STRINGS.PROMPT_LIST_COMPONENT.INPUT_TOOLTIP} testId="prompt-filter-input" />}
+        <div data-testid="prompt-panel" className={["flex flex-col w-full flex-1 min-h-0", className ?? ""].filter(Boolean).join(" ")}>
+            {hasAnyPrompts && <SearchInput value={search} onChange={setSearch} placeholder={UI_STRINGS.PROMPT_LIST_COMPONENT.INPUT_TOOLTIP} testId="prompt-filter-input" className="shrink-0 mx-4" />}
 
-            <div className="flex flex-col w-full gap-[10px] py-2 min-h-0">
+            <div className="flex flex-col w-full gap-[10px] min-h-0 flex-1">
                 {!hasAnyPrompts && (
                     <div className="flex justify-center items-center h-16">
                         <div className="flex flex-col items-center gap-2 text-center px-4">
@@ -82,18 +82,20 @@ export const PromptListPanel: React.FC<Props> = ({ className }) => {
                 )}
 
                 {!noFilteredPrompts && (
-                    <div className="w-full min-h-0 flex flex-col gap-3 overflow-y-auto overflow-x-hidden custom-scrollbar">
+                    <div className="min-h-0 flex-1 flex flex-col gap-5 pt-2 pb-6 overflow-y-auto overflow-x-hidden custom-scrollbar scroll-fade-edges [scrollbar-gutter:stable] pl-4 pr-[7px] mr-[3px]">
                         {promptGroups.map((group) => (
-                            <React.Fragment key={group.category}>
-                                <div className="flex items-center px-2 py-1 mb-1">
-                                    <span data-testid="prompt-category" className="text-[10px] font-normal text-text-default leading-[13px] tracking-[0.1px]">
+                            <div key={group.category} data-testid="prompt-list-group" className="flex flex-col gap-2">
+                                <div data-testid="prompt-category-header" className="flex items-center px-[3px]">
+                                    <span data-testid="prompt-category" className="text-[10px] font-normal text-text-secondary leading-[13px] tracking-[0.1px]">
                                         {group.category}
                                     </span>
                                 </div>
-                                {group.prompts.map((prompt) => (
-                                    <PromptListItem key={prompt.name} prompt={prompt} isDisplayedInFavoriteList={false} />
-                                ))}
-                            </React.Fragment>
+                                <div data-testid="prompt-list-group-items" className="flex flex-col border border-border-default rounded-lg overflow-hidden">
+                                    {group.prompts.map((prompt, i) => (
+                                        <PromptListItem key={prompt.name} prompt={prompt} isDisplayedInFavoriteList={false} className={i > 0 ? "border-t border-border-default" : undefined} />
+                                    ))}
+                                </div>
+                            </div>
                         ))}
                     </div>
                 )}

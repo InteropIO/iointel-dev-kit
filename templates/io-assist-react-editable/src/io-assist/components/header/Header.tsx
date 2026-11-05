@@ -5,6 +5,7 @@ import { useIoAssistStore } from "../../context/IoAssistContext";
 import { useIoAiWebApi } from "../../hooks/useIoAiWebApi";
 import { MESSAGES_LOADING_STATE } from "../../types/loading";
 import { PANEL_CONTENT } from "../../types/panel";
+import { Button } from "../shared/Button";
 import { IconButton } from "../shared/IconButton";
 import { HomeIcon, ThreadHistoryIcon } from "../shared/icons";
 import { Tooltip } from "../shared/Tooltip";
@@ -40,10 +41,18 @@ export const Header: React.FC = () => {
     return (
         <div data-testid="header" className="flex w-full items-center justify-start px-4 py-2 gap-2">
             {showThreadToggle || showHomeButton ? (
-                <div className="flex">
+                <div className="flex gap-1">
                     {showThreadToggle && (
                         <div className="relative">
-                            <IconButton size={12} containerSize={24} testId="thread-toggle-button" onClick={handleShowThreadHistory} title="Thread history">
+                            <IconButton
+                                size={12}
+                                containerSize={24}
+                                shape="rounded-square"
+                                hoverFill
+                                testId="thread-toggle-button"
+                                onClick={handleShowThreadHistory}
+                                title="Thread History"
+                            >
                                 <ThreadHistoryIcon />
                             </IconButton>
                             {hasNotification && <span className="absolute -top-1 -right-1 size-2.5 rounded-full bg-orange-500" />}
@@ -55,9 +64,11 @@ export const Header: React.FC = () => {
                             <IconButton
                                 size={12}
                                 containerSize={24}
+                                shape="rounded-square"
+                                hoverFill
                                 testId="home-button"
                                 onClick={handleNewConversation}
-                                title="New conversation"
+                                title="Home"
                                 aria-label={UI_STRINGS.HEADER_COMPONENT.HOME_TOOLTIP}
                             >
                                 <HomeIcon />
@@ -69,14 +80,9 @@ export const Header: React.FC = () => {
 
             {isWorkingContextEnabled && (
                 <Tooltip position="bottom" content={<span className="max-w-[260px] text-wrap text-xs">{UI_STRINGS.HEADER_COMPONENT.CONTEXT_TOOLTIP}</span>}>
-                    <button
-                        type="button"
-                        data-testid="working-context-button"
-                        className="flex justify-center items-center px-2 py-[3.5px] border-[1px] rounded-[8px] text-text-default cursor-pointer hover:text-text-states-hover font-weight-400 text-[10px] leading-[13px]"
-                        onClick={handleWorkingContextOpen}
-                    >
+                    <Button buttonType="secondary" size="small" testId="working-context-button" onClick={handleWorkingContextOpen}>
                         {UI_STRINGS.WORKING_CONTEXT_PANEL_COMPONENT.VIEW_WORKING_CONTEXT_BUTTON}
-                    </button>
+                    </Button>
                 </Tooltip>
             )}
         </div>

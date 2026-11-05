@@ -38,7 +38,7 @@ const IoAssistInner: React.FC = () => {
     }
 
     if (appLoadingState.type === LOADING_STATES.ERROR) {
-        return <ErrorScreen onRetry={() => window.location.reload()} />;
+        return <ErrorScreen message={appLoadingState.message} onRetry={() => window.location.reload()} />;
     }
 
     return <Chat />;
@@ -50,11 +50,13 @@ const LoadingScreen: React.FC = () => (
     </div>
 );
 
-const ErrorScreen: React.FC<{ onRetry: () => void }> = ({ onRetry }) => (
+const ErrorScreen: React.FC<{ message?: string; onRetry: () => void }> = ({ message, onRetry }) => (
     <div className="flex items-center justify-center w-full h-full bg-app-background">
         <div className="flex flex-col items-center gap-4 text-center px-6 max-w-sm">
             <p className="text-4xl">⚠️</p>
-            <p className="text-sm font-medium text-text-default">{UI_STRINGS.LOADING_STATE.ERROR}</p>
+            <p data-testid="app-core-services-error" className="text-sm font-medium text-text-default">
+                {message || UI_STRINGS.LOADING_STATE.ERROR}
+            </p>
             <button type="button" className="px-4 py-2 rounded-xl bg-app-accent-color-1 text-white text-sm hover:opacity-90 transition-opacity" onClick={onRetry}>
                 {UI_STRINGS.LOADING_STATE.RETRY}
             </button>

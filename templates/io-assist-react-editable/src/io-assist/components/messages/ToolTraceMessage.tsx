@@ -3,8 +3,9 @@ import React from "react";
 import { MessageFooter } from "./MessageFooter";
 import { ToolMessage } from "./ToolMessage";
 import { UI_STRINGS } from "../../constants/uiStrings";
-import type { ToolTraceState } from "../../types";
-import { ChevronDownIcon, ChevronRightIcon } from "../shared/icons";
+import type { ToolTraceState, UIToolMessage } from "../../types";
+import { normalizeStep, summarizeTrace } from "../../utils/toolTrace";
+import { ChevronDownLightIcon } from "../shared/icons";
 
 type ToolTraceProps = {
     trace: ToolTraceState;
@@ -16,100 +17,125 @@ type ToolTraceProps = {
     footerCopyText?: string;
     onReload?: () => void;
     isGenerating?: boolean;
+    // True only for the trace at the tail of the whole toolTraceState array — mirrors ng's
+    // `_isLatestTrace`: only that one can still legitimately be receiving tool calls, so an
+    // earlier, already-superseded trace never resurrects the "Working" shimmer just because a
+    // later trace in the same response is still streaming.
+    isLatestTrace?: boolean;
 };
 
-const GRADIENT_MASK = "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)";
-
-export const ToolTraceMessage: React.FC<ToolTraceProps> = ({ trace, onToggle, onToggleTool, showFooter = false, footerCopyText = "", onReload, isGenerating = false }) => {
-    const uiMessage = trace.uiMessage || "No UI Message";
+export const ToolTraceMessage: React.FC<ToolTraceProps> = ({
+    trace,
+    onToggle,
+    onToggleTool,
+    showFooter = false,
+    footerCopyText = "",
+    onReload,
+    isGenerating = false,
+    isLatestTrace = false,
+}) => {
     const executedTools = trace.executedTools;
     const isExpanded = !!trace.isExpanded;
     const hasTools = executedTools.length > 0;
+
+    // Only THIS trace's own tools being incomplete matters - see isLatestTrace above.
+    const isThisTraceGenerating = isGenerating && isLatestTrace;
+    const isFinished = !isThisTraceGenerating;
+
+    const steps = executedTools.map((tool: UIToolMessage) => normalizeStep(tool, { isFinished }));
+    const summary = summarizeTrace(steps);
+    const isSlow = summary.phase === "working" && !isExpanded;
+    const isComplete = summary.phase !== "working";
 
     const handleToggle = (): void => {
         if (!hasTools) return;
         onToggle(trace.stateForMessageId);
     };
 
+    const handleHeaderKeyUp = (event: React.KeyboardEvent<HTMLDivElement>): void => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        handleToggle();
+    };
+
     return (
-        <div
-            data-testid="tool-trace-message"
-            id={`tool-trace-message-${trace.stateForMessageId}`}
-            className="tool-trace-message relative flex flex-col flex-1 gap-2 text-text-default rounded-[8px] isolate"
-        >
-            {isExpanded && (
-                <>
-                    {/* Solid background sits behind the gradient ring so the mask cutout reveals it. */}
-                    <div aria-hidden className="absolute inset-0 z-[-2] rounded-[8px] pointer-events-none bg-app-background" />
+        <>
+            <div
+                data-testid="tool-trace-message"
+                id={`tool-trace-message-${trace.stateForMessageId}`}
+                className={["tool-trace-message relative flex flex-col gap-2 text-text-default pt-4", !isExpanded ? "rounded-[8px]" : ""].filter(Boolean).join(" ")}
+            >
+                <div className={["tool-trace-message__content relative flex flex-col", isExpanded ? "items-start w-full" : "gap-2"].join(" ")}>
                     <div
-                        aria-hidden
-                        className="absolute inset-0 z-[-1] p-px rounded-[8px] pointer-events-none bg-[linear-gradient(90deg,var(--app-accent-color-1),var(--app-accent-color-2))]"
-                        style={{
-                            mask: GRADIENT_MASK,
-                            WebkitMask: GRADIENT_MASK,
-                            maskComposite: "exclude",
-                            WebkitMaskComposite: "xor",
-                        }}
-                    />
-                </>
-            )}
+                        data-testid="tool-trace-header"
+                        tabIndex={0}
+                        role="button"
+                        aria-expanded={hasTools ? isExpanded : undefined}
+                        className={["group tool-trace-message__header flex items-center", hasTools ? "cursor-pointer" : "cursor-default"].join(" ")}
+                        onClick={handleToggle}
+                        onKeyUp={handleHeaderKeyUp}
+                    >
+                        {isSlow && (
+                            <span className="tool-trace-message__breathing-dots" data-testid="tool-trace-breathing-dots">
+                                <span className="tool-trace-message__dot" />
+                                <span className="tool-trace-message__dot" />
+                                <span className="tool-trace-message__dot" />
+                            </span>
+                        )}
 
-            <div className="relative flex flex-col gap-2 px-4 py-6">
-                <button
-                    type="button"
-                    data-testid="tool-trace-header"
-                    tabIndex={0}
-                    className={[
-                        "tool-trace-message__header flex items-center gap-2 text-left transition-colors hover:text-text-states-active",
-                        hasTools ? "cursor-pointer" : "cursor-default",
-                        isExpanded ? "flex-row-reverse justify-end" : "",
-                    ]
-                        .filter(Boolean)
-                        .join(" ")}
-                    onClick={handleToggle}
-                >
-                    <span data-testid="tool-trace-title" className="text-[13px] leading-[19px]">
-                        {uiMessage}
-                    </span>
-
-                    {hasTools && (
                         <span
-                            data-testid="tool-trace-expand-icon"
-                            className={["w-3 h-3 shrink-0 inline-flex items-center justify-center", isExpanded ? "text-app-accent-color-1" : "text-text-default"].join(" ")}
-                            title={isExpanded ? UI_STRINGS.TOOL_TRACE_MESSAGE.COLLAPSE_BUTTON_TEXT : UI_STRINGS.TOOL_TRACE_MESSAGE.EXPAND_BUTTON_TEXT}
+                            data-testid="tool-trace-title"
+                            className={[
+                                "tool-trace-message__title",
+                                isSlow ? "tool-trace-message__title--shimmer" : isComplete ? "text-text-secondary group-hover:text-text-states-active" : "group-hover:text-text-states-active",
+                            ]
+                                .filter(Boolean)
+                                .join(" ")}
                         >
-                            {isExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
+                            {summary.parts.map((part, index) => (
+                                <React.Fragment key={index}>
+                                    <span data-testid={index === summary.failedPartIndex ? "tool-trace-title-failed-part" : undefined} className={index === summary.failedPartIndex ? "text-status-error" : undefined}>
+                                        {part}
+                                    </span>
+                                    {index < summary.parts.length - 1 && <span className="tool-trace-message__title-separator" aria-hidden="true" />}
+                                </React.Fragment>
+                            ))}
                         </span>
-                    )}
-                </button>
 
-                {isExpanded && hasTools && (
-                    <>
-                        <div data-testid="tool-trace-body" className="tool-trace-message__body flex flex-col">
+                        {hasTools && (
+                            // ng's app-icon defaults to `isWrapped=true` at size XS (12px), which doubles the
+                            // host element to 24px (6px of padding around the glyph on every side). Ported here
+                            // as an outer 24x24 flex-centered box wrapping the 12x12 icon itself.
+                            <span
+                                data-testid="tool-trace-expand-icon"
+                                className={["inline-flex size-6 shrink-0 items-center justify-center", !isExpanded ? "opacity-0 group-hover:opacity-100" : ""].filter(Boolean).join(" ")}
+                                title={isExpanded ? UI_STRINGS.TOOL_TRACE_MESSAGE.COLLAPSE_BUTTON_TEXT : UI_STRINGS.TOOL_TRACE_MESSAGE.EXPAND_BUTTON_TEXT}
+                            >
+                                <span
+                                    className={[
+                                        "tool-trace-message__expand-icon inline-flex w-3 h-3 text-icon-default group-hover:text-icon-hover",
+                                        isExpanded ? "tool-trace-message__expand-icon--rotated" : "",
+                                    ]
+                                        .filter(Boolean)
+                                        .join(" ")}
+                                >
+                                    <ChevronDownLightIcon />
+                                </span>
+                            </span>
+                        )}
+                    </div>
+
+                    {isExpanded && hasTools && (
+                        <div data-testid="tool-trace-body" className="tool-trace-message__card">
                             {executedTools.map((tool) => (
-                                <ToolMessage key={tool.id} tool={tool} parentToolTraceId={trace.stateForMessageId} onToggle={onToggleTool} />
+                                <ToolMessage key={tool.id} tool={tool} parentToolTraceId={trace.stateForMessageId} onToggle={onToggleTool} isFinished={isFinished} />
                             ))}
                         </div>
-
-                        <div className="flex">
-                            <button
-                                type="button"
-                                data-testid="tool-trace-close-button"
-                                className="flex justify-center items-center gap-1 px-3 py-1.5 rounded-sm text-sm text-text-default border border-border-default cursor-pointer transition-colors hover:text-text-states-active hover:border-border-hover"
-                                onClick={handleToggle}
-                            >
-                                {UI_STRINGS.TOOL_TRACE_MESSAGE.CLOSE_BUTTON_TEXT}
-                            </button>
-                        </div>
-                    </>
-                )}
+                    )}
+                </div>
             </div>
 
-            {showFooter && (
-                <div className="relative px-4 pb-4">
-                    <MessageFooter copyText={footerCopyText} onReload={onReload} isGenerating={isGenerating} />
-                </div>
-            )}
-        </div>
+            {showFooter && <MessageFooter copyText={footerCopyText} onReload={onReload} isGenerating={isGenerating} />}
+        </>
     );
 };
+

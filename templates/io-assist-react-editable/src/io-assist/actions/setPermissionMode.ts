@@ -7,11 +7,11 @@ const LOGGER_NAME = "SetPermissionMode";
 const log = logger.get(LOGGER_NAME);
 
 /**
- * Update the permission mode and persist it to `io.prefs`. The store mutation is
- * optimistic; if `prefs.update` fails, the previous value is restored.
+ * Update the permission mode and persist it to `io.prefs`. The selection always
+ * applies for the session; if `prefs.update` fails (e.g. a window without an app,
+ * where app prefs are unavailable) it is only logged — mirrors io-assist-ng.
  */
 export async function setPermissionMode(store: IoAssistStoreInstance, mode: PermissionMode): Promise<void> {
-    const before = store.getState().permissionMode;
     store.getState().setPermissionMode(mode);
 
     const api = store.getState().ioConnectApi;
@@ -19,7 +19,6 @@ export async function setPermissionMode(store: IoAssistStoreInstance, mode: Perm
     try {
         await updatePref(api, "permissionMode", mode);
     } catch (err) {
-        log.error("Failed to persist permission mode", err instanceof Error ? err : new Error(String(err)));
-        store.getState().setPermissionMode(before);
+        log.warn(`Could not persist permission mode: ${err instanceof Error ? err.message : String(err)}`);
     }
 }

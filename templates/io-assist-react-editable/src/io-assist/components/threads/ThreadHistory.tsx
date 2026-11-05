@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import { ThreadHistoryListItem } from "./ThreadHistoryListItem";
 import { UI_STRINGS } from "../../constants/uiStrings";
@@ -19,7 +19,15 @@ export const ThreadHistory: React.FC<ThreadHistoryProps> = ({ onThreadSelected }
     const streamsByThreadId = useIoAssistStore((s) => s.streamsByThreadId);
     const threadLoadingState = useIoAssistStore((s) => s.threadLoadingState);
 
-    const { selectThread, renameThread, deleteThread } = useIoAiWebApi();
+    const { selectThread, renameThread, deleteThread, refreshThreadsList, isReady } = useIoAiWebApi();
+
+    useEffect(() => {
+        if (!isReady) {
+            return;
+        }
+
+        void refreshThreadsList();
+    }, [isReady]);
 
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editValue, setEditValue] = useState("");
@@ -60,18 +68,22 @@ export const ThreadHistory: React.FC<ThreadHistoryProps> = ({ onThreadSelected }
     return (
         <div data-testid="thread-history" className="flex flex-1 flex-col p-2 overflow-y-auto custom-scrollbar">
             {isFetchingThreads && (
-                <div className="flex flex-1 justify-center items-center">
+                <div data-testid="threads-loading" className="flex flex-1 justify-center items-center">
                     <Spinner />
                 </div>
             )}
 
-            {!isFetchingThreads && groups.length === 0 && <p className="flex flex-1 justify-center items-center text-text-default text-xs">{UI_STRINGS.THREAD_HISTORY_COMPONENT.NO_THREADS}</p>}
+            {!isFetchingThreads && groups.length === 0 && (
+                <p data-testid="no-threads-message" className="flex flex-1 justify-center items-center text-text-default text-xs">
+                    {UI_STRINGS.THREAD_HISTORY_COMPONENT.NO_THREADS}
+                </p>
+            )}
 
             {!isFetchingThreads &&
                 groups.map((group) => (
                     <div key={group.label} data-testid="thread-history-list">
-                        <div data-testid="thread-history-divider" className="p-2 pb-0">
-                            <span className="text-xs text-proto-text-disabled cursor-default">{group.label}</span>
+                        <div data-testid="thread-date-divider" className="pb-0 px-2">
+                            <span className="text-[10px] text-text-secondary cursor-default">{group.label}</span>
                         </div>
                         {group.threads.map((thread) => (
                             <ThreadHistoryListItem

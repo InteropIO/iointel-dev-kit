@@ -27,7 +27,16 @@ export const ReloadButton: React.FC<Props> = ({ onClick, disabled = false, testI
     };
 
     return (
-        <IconButton type="button" testId={testId} disabled={disabled} size={size} onClick={handleClick} title="Reload response" className={["io-reload", className ?? ""].join(" ")}>
+        <IconButton
+            type="button"
+            testId={testId}
+            disabled={disabled}
+            size={size}
+            hoverFill
+            onClick={handleClick}
+            title="Reload response"
+            className={["io-reload", className ?? ""].join(" ")}
+        >
             <span className={`io-reload__icon ${spinning ? "io-reload__icon--spin" : ""}`} onAnimationEnd={() => setSpinning(false)}>
                 <ReloadIcon />
             </span>

@@ -8,13 +8,32 @@ type ModalProps = {
     open: boolean;
     onClose?: () => void;
     title?: string;
+    description?: string;
     showCloseIcon?: boolean;
     footer?: React.ReactNode;
     testId?: string;
+    /** Fixes the panel's height instead of letting it size to content, e.g. "440px". */
+    fixedHeight?: string;
+    /** Fixes the panel's width instead of the default responsive `calc(100vw - 32px)` sizing. */
+    fixedWidth?: string;
+    /** When the content manages its own internal scroll area (e.g. a list with a sticky search bar), the panel body becomes a non-scrolling flex column instead of applying its own scrollbar/fade-edges. */
+    isContentSelfScrolling?: boolean;
     children: React.ReactNode;
 };
 
-export const Modal: React.FC<ModalProps> = ({ open, onClose, title, showCloseIcon = false, footer, testId = "modal", children }) => {
+export const Modal: React.FC<ModalProps> = ({
+    open,
+    onClose,
+    title,
+    description,
+    showCloseIcon = false,
+    footer,
+    testId = "modal",
+    fixedHeight,
+    fixedWidth,
+    isContentSelfScrolling = false,
+    children,
+}) => {
     useEffect(() => {
         if (!open || !onClose) return;
         const onKey = (e: KeyboardEvent) => {
@@ -31,7 +50,9 @@ export const Modal: React.FC<ModalProps> = ({ open, onClose, title, showCloseIco
         <div
             data-testid={testId}
             role="presentation"
-            className="panel-overlay-container fixed inset-0 z-50 flex items-center justify-center bg-black/[0.32]"
+            // `cdk-overlay-backdrop` class kept for parity with the ng app so shared e2e
+            // test-bed helpers can target the click-outside-to-close area on both apps.
+            className="io-assist-root panel-overlay-container cdk-overlay-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/[0.32]"
             onClick={(e) => {
                 if (e.target === e.currentTarget) onClose?.();
             }}
@@ -41,20 +62,38 @@ export const Modal: React.FC<ModalProps> = ({ open, onClose, title, showCloseIco
                 aria-modal="true"
                 aria-label={title}
                 open
-                className="static flex flex-col box-border overflow-hidden bg-panel-background rounded-2xl border border-panel-border shadow-panel-box-shadow w-auto min-w-[320px] md:min-w-[540px] max-w-[960px] max-h-[90vh] p-0 m-0"
+                className="static flex flex-col box-border overflow-hidden bg-panel-background rounded-2xl border border-panel-border shadow-panel-box-shadow p-0 m-0"
+                style={{ width: fixedWidth ?? "calc(100vw - 32px)", maxWidth: fixedWidth ?? "700px", maxHeight: "90vh", height: fixedHeight }}
             >
-                <div className="flex justify-end items-center gap-2 px-6 pt-6 text-text-black-white text-xl font-weight-600 shrink-0">
-                    {title && <span className="flex flex-1 items-center text-text-black-white leading-[24px] truncate">{title}</span>}
+                <div className="app-panel__header flex justify-end items-center gap-2 px-4 pt-4 text-text-black-white shrink-0">
+                    {title && (
+                        <span data-testid="panel-header-title" className="flex flex-1 items-center text-text-black-white text-[15px] font-medium leading-[22px] truncate">
+                            {title}
+                        </span>
+                    )}
                     {showCloseIcon && onClose && (
-                        <IconButton size={20} containerSize={28} variant="plain" onClick={onClose} title="Close" className="text-text-black-white">
+                        <IconButton testId="panel-close-button" size={12} containerSize={20} shape="rounded-square" hoverFill onClick={onClose} title="Close" className="mr-2 text-text-black-white">
                             <CloseIcon />
                         </IconButton>
                     )}
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar mt-3">{children}</div>
+                {description && (
+                    <div className="flex-shrink-0 px-4 pt-[2px]">
+                        <p className="text-text-secondary text-[12px] leading-[16px]">{description}</p>
+                    </div>
+                )}
 
-                {footer && <div className="flex justify-end gap-2 shrink-0 w-full px-6 pb-6 pt-3">{footer}</div>}
+                <div
+                    className={[
+                        "flex-1 min-h-0 mt-1",
+                        isContentSelfScrolling ? "flex flex-col overflow-hidden" : "overflow-y-auto overflow-x-hidden custom-scrollbar scroll-fade-edges",
+                    ].join(" ")}
+                >
+                    <div className={isContentSelfScrolling ? "flex flex-col flex-1 min-h-0" : "px-3 pb-6"}>{children}</div>
+                </div>
+
+                {footer && <div className="flex justify-end gap-2 shrink-0 w-full px-4 pb-4 pt-4">{footer}</div>}
             </dialog>
         </div>,
         document.body

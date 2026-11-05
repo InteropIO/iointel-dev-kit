@@ -13,6 +13,7 @@ export type UITool = {
     enabled: boolean;
     icon?: string;
     mcpServerName?: string;
+    isSystemTool: boolean;
     state: ToolState;
     rawTool: IoAiWeb.Tools.Tool;
 };

@@ -1,11 +1,13 @@
 import type { IoAssistStoreInstance } from "../stores";
 import { logger } from "../utils/logger";
+import { clearPermissionRequest } from "../utils/permissionRequest";
 
 const LOGGER_NAME = "NewConversation";
 const log = logger.get(LOGGER_NAME);
 
 export async function newConversation(store: IoAssistStoreInstance): Promise<void> {
     const state = store.getState();
+    clearPermissionRequest();
     state.clearMessages();
     state.setActiveThreadId(null);
     state.resetMcpApps();

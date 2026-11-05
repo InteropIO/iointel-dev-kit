@@ -57,8 +57,8 @@ export const ThreadHistoryListItem: React.FC<ThreadHistoryListItemProps> = ({
             aria-current={isActive ? "true" : undefined}
             tabIndex={0}
             className={[
-                "group flex flex-1 justify-start gap-2 px-4 h-8 rounded-md cursor-pointer hover:bg-thread-list-item-hover-background",
-                isActive ? "bg-thread-list-item-hover-background" : "",
+                "group flex flex-1 justify-start gap-2 h-8 rounded-md cursor-pointer",
+                isActive ? "bg-[var(--app-thread-list-item-active-background)]" : "hover:bg-thread-list-item-hover-background",
             ].join(" ")}
             onClick={() => !isEditing && onSelect(threadId)}
             onKeyUp={(e) => e.key === "Enter" && !isEditing && onSelect(threadId)}
@@ -70,16 +70,16 @@ export const ThreadHistoryListItem: React.FC<ThreadHistoryListItemProps> = ({
                         <span className="truncate block" title={title}>
                             {title}
                         </span>
-                        {isThreadActionPending && <Spinner className="ml-2 flex-shrink-0 size-5 " />}
+                        {isThreadActionPending && <Spinner testId="thread-list-item-spinner" className="ml-2 flex-shrink-0 size-3 border-[1.5px]" />}
                     </div>
                 )}
 
                 {isEditing && (
                     <input
                         ref={editRef}
-                        data-testid="thread-rename-input"
+                        data-testid="thread-name-input"
                         aria-label="Rename thread"
-                        className="flex-1 px-2 border border-border-default rounded text-text-default text-xs bg-transparent outline-none"
+                        className="flex-1 min-w-0 h-6 -mx-1 px-[3px] text-xs text-text-states-active bg-input-background border border-input-border-active rounded-md outline-none"
                         value={editValue}
                         onChange={(e) => onEditChange(e.target.value)}
                         onBlur={() => onCommitEdit(threadId)}
@@ -89,14 +89,36 @@ export const ThreadHistoryListItem: React.FC<ThreadHistoryListItemProps> = ({
                 )}
 
                 {/* Thread Action Buttons */}
-                <div className={["gap-2 ml-auto items-center", isActive ? "flex" : "hidden group-hover:flex"].join(" ")}>
-                    <IconButton size={12} tabIndex={isActive ? 0 : -1} title="Rename" disabled={isThreadActionPending} onClick={(e) => onStartEditing(threadId, title, e)}>
-                        <PencilIcon />
-                    </IconButton>
-                    <IconButton size={12} tabIndex={isActive ? 0 : -1} title="Delete" disabled={isActive || isThreadActionPending} onClick={(e) => onDelete(threadId, e)}>
-                        <TrashIcon />
-                    </IconButton>
-                </div>
+                {!isEditing && (
+                    <div className={["gap-[2px] ml-auto items-center pr-1", isActive ? "flex" : "hidden group-hover:flex"].join(" ")}>
+                        <IconButton
+                            testId="thread-edit-button"
+                            size={12}
+                            containerSize={24}
+                            shape="rounded-square"
+                            className="hover:bg-icon-button-selected"
+                            tabIndex={isActive ? 0 : -1}
+                            title="Rename"
+                            disabled={isThreadActionPending}
+                            onClick={(e) => onStartEditing(threadId, title, e)}
+                        >
+                            <PencilIcon />
+                        </IconButton>
+                        <IconButton
+                            testId="thread-delete-button"
+                            size={12}
+                            containerSize={24}
+                            shape="rounded-square"
+                            className="hover:bg-icon-button-selected"
+                            tabIndex={isActive ? 0 : -1}
+                            title="Delete"
+                            disabled={isActive || isThreadActionPending}
+                            onClick={(e) => onDelete(threadId, e)}
+                        >
+                            <TrashIcon />
+                        </IconButton>
+                    </div>
+                )}
             </div>
         </div>
     );

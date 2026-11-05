@@ -5,9 +5,8 @@ import type { ElicitationAction } from "../constants/modalActions";
 import { UI_STRINGS } from "../constants/uiStrings";
 import { ioAssistStore } from "../stores";
 import { PERMISSION_MODE } from "../stores/permission-mode";
-import { showConfirmModal, MODAL_PREEMPTED } from "../utils/confirmModal";
-import { isModalsAvailable, requestModalDialog } from "../utils/ioModals";
 import { logger } from "../utils/logger";
+import { requestPermission } from "../utils/permissionRequest";
 import { safeStringify } from "../utils/safeStringify";
 
 const LOGGER_NAME = "Elicitation";
@@ -18,9 +17,9 @@ type ElicitationResponse =
     | { action: typeof ELICITATION_ACTION.DECLINE }
     | { action: typeof ELICITATION_ACTION.CANCEL };
 
-// Guards against a second elicitation modal opening while one is still pending.
-// Mirrors ng's `_isElicitationModalActive` flag.
-let isElicitationModalActive = false;
+// Guards against a second elicitation permission request card opening while one is still pending.
+// Mirrors ng's `_isElicitationPermissionRequestActive` flag.
+let isElicitationPermissionRequestActive = false;
 
 export function selectElicitation(mcp: IoAiWeb.MCPConfig | undefined): (serverName: string, params: IoAiWeb.ElicitationRequestParams) => Promise<ElicitationResponse> {
     const custom = mcp?.clientsConfig?.capabilities?.elicitation?.handler;
@@ -53,18 +52,18 @@ export async function handleElicitationRequest(serverName: string, request: IoAi
         return buildResponse(ELICITATION_ACTION.CANCEL, "Elicitation request validation failed.");
     }
 
-    if (isElicitationModalActive) {
+    if (isElicitationPermissionRequestActive) {
         return buildResponse(ELICITATION_ACTION.CANCEL, "Elicitation request rejected: another elicitation is already in progress.");
     }
 
-    isElicitationModalActive = true;
+    isElicitationPermissionRequestActive = true;
     try {
-        return await getElicitationModalResponse(serverName, request);
+        return await getElicitationPermissionCardResponse(serverName, request);
     } catch (error) {
-        const message = "Error occurred while getting elicitation modal response. Request canceled. " + (error instanceof Error ? error.message : String(error));
+        const message = "Error occurred while getting elicitation permission card response. Request canceled. " + (error instanceof Error ? error.message : String(error));
         return buildResponse(ELICITATION_ACTION.CANCEL, message);
     } finally {
-        isElicitationModalActive = false;
+        isElicitationPermissionRequestActive = false;
     }
 }
 
@@ -86,52 +85,24 @@ function validateElicitationRequest(request: IoAiWeb.ElicitationRequestParams): 
     return true;
 }
 
-async function getElicitationModalResponse(serverName: string, request: IoAiWeb.ElicitationRequestParams): Promise<ElicitationResponse> {
+async function getElicitationPermissionCardResponse(serverName: string, request: IoAiWeb.ElicitationRequestParams): Promise<ElicitationResponse> {
     log.info(`Showing elicitation request from server: ${serverName}, requesting: ${safeStringify(request)}`);
 
-    const text = typeof request?.message === "string" ? request.message : UI_STRINGS.ELICITATION_MODAL.FALLBACK_TEXT;
+    const description = typeof request?.message === "string" ? request.message : UI_STRINGS.ELICITATION_PERMISSION_CARD.FALLBACK_TEXT;
 
-    const modalsAvailable = await isModalsAvailable();
-    const buttonId = modalsAvailable ? await getModalsApiResponse(text) : await getBuiltInPanelResponse(text);
-
-    if (buttonId === ELICITATION_ACTION.ACCEPT) return buildResponse(ELICITATION_ACTION.ACCEPT);
-    if (buttonId === ELICITATION_ACTION.DECLINE) return buildResponse(ELICITATION_ACTION.DECLINE);
-    return buildResponse(ELICITATION_ACTION.CANCEL, "Elicitation dialog was closed without a response.");
-}
-
-async function getModalsApiResponse(text: string): Promise<string | null> {
-    const response = await requestModalDialog({
-        templateName: "noInputsConfirmationDialog",
-        variables: {
-            title: UI_STRINGS.ELICITATION_MODAL.TITLE,
-            heading: UI_STRINGS.ELICITATION_MODAL.HEADING,
-            text,
-            actionButtons: [
-                { variant: "primary", text: "Accept", id: ELICITATION_ACTION.ACCEPT },
-                { variant: "outline", text: "Decline", id: ELICITATION_ACTION.DECLINE },
-                { variant: "outline", text: "Cancel", id: ELICITATION_ACTION.CANCEL },
-            ],
-        },
-    });
-    return response?.responseButtonClicked?.id ?? null;
-}
-
-async function getBuiltInPanelResponse(text: string): Promise<string | null> {
-    const result = await showConfirmModal({
-        title: UI_STRINGS.ELICITATION_MODAL.TITLE,
-        heading: UI_STRINGS.ELICITATION_MODAL.HEADING,
-        text,
-        buttons: [
+    const buttonId = await requestPermission(
+        description,
+        [
             { id: ELICITATION_ACTION.ACCEPT, label: "Accept", variant: "primary" },
             { id: ELICITATION_ACTION.DECLINE, label: "Decline", variant: "default" },
             { id: ELICITATION_ACTION.CANCEL, label: "Cancel", variant: "default" },
         ],
-    });
-    if (result === MODAL_PREEMPTED) {
-        log.warn("Elicitation modal was preempted by another modal; treating as cancel.");
-        return ELICITATION_ACTION.CANCEL;
-    }
-    return result;
+        ELICITATION_ACTION.CANCEL
+    );
+
+    if (buttonId === ELICITATION_ACTION.ACCEPT) return buildResponse(ELICITATION_ACTION.ACCEPT);
+    if (buttonId === ELICITATION_ACTION.DECLINE) return buildResponse(ELICITATION_ACTION.DECLINE);
+    return buildResponse(ELICITATION_ACTION.CANCEL, "Elicitation request was dismissed without a response.");
 }
 
 function buildResponse(action: ElicitationAction, logMessage?: string): ElicitationResponse {
@@ -146,3 +117,4 @@ function buildResponse(action: ElicitationAction, logMessage?: string): Elicitat
     log.info(logMessage ?? "User canceled the elicitation request.");
     return { action: ELICITATION_ACTION.CANCEL };
 }
+

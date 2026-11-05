@@ -7,6 +7,7 @@ import { createConfirmModalSlice, type ConfirmModalSlice } from "./confirm-modal
 import { createMcpAppsSlice, type McpAppsSlice } from "./mcp-apps";
 import { createMessageSlice, type MessageSlice } from "./message";
 import { createPermissionModeSlice, type PermissionModeSlice } from "./permission-mode";
+import { createPermissionRequestSlice, type PermissionRequestSlice } from "./permission-request";
 import { createPromptSlice, type PromptSlice } from "./prompt";
 import { createResponseStreamSlice, type ResponseStreamSlice } from "./response-stream";
 import { createThreadSlice, type ThreadSlice } from "./thread";
@@ -23,6 +24,7 @@ export type IoAssistStore = AppLifecycleSlice &
     WorkingContextSlice &
     McpAppsSlice &
     PermissionModeSlice &
+    PermissionRequestSlice &
     ConfirmModalSlice;
 
 export const createIoAssistStore = () =>
@@ -38,6 +40,7 @@ export const createIoAssistStore = () =>
             ...createWorkingContextSlice(...a),
             ...createMcpAppsSlice(...a),
             ...createPermissionModeSlice(...a),
+            ...createPermissionRequestSlice(...a),
             ...createConfirmModalSlice(...a),
         }))
     );
@@ -52,3 +55,4 @@ export type { ConfirmModalButton, ConfirmModalConfig } from "./confirm-modal";
 export type { StreamState } from "./response-stream";
 export { PERMISSION_MODE } from "./permission-mode";
 export type { PermissionMode } from "./permission-mode";
+export type { PermissionRequestButton, PermissionRequestState } from "./permission-request";

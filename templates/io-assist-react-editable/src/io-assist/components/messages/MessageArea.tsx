@@ -3,6 +3,7 @@ import React, { useRef } from "react";
 
 import { AssistantMessage } from "./AssistantMessage";
 import { McpAppResource } from "./McpAppResource";
+import { PermissionRequestCard } from "./PermissionRequestCard";
 import { ToolTraceMessage } from "./ToolTraceMessage";
 import { UserMessage } from "./UserMessage";
 import { useIoAssistStore } from "../../context/IoAssistContext";
@@ -65,25 +66,19 @@ export const MessageArea: React.FC<Props> = ({ onReloadResponse, className }) =>
             snapToTopTrigger={scrollAnchorRequestId}
             observeRef={messageListRef}
             className={className}
+            hasFadeEdges
         >
             {messageLoadingState.type === MESSAGES_LOADING_STATE.LOADING_FROM_THREAD && (
                 <div className="flex flex-1 justify-center items-center p-4">
                     <div className="flex gap-1">
                         {[0, 1, 2].map((i) => (
-                            <div
-                                key={i}
-                                className="size-1.5 rounded-full bg-app-accent-color-1"
-                                style={{
-                                    animationDelay: `${i * 0.15}s`,
-                                    animation: `rise 0.6s cubic-bezier(0.16,1,0.3,1) ${i * 0.15}s infinite alternate`,
-                                }}
-                            />
+                            <div key={i} className="loading-dot size-1.5 rounded-full bg-app-accent-color-1" style={{ animationDelay: `${i * 0.15}s` }} />
                         ))}
                     </div>
                 </div>
             )}
 
-            <div ref={messageListRef} data-testid="message-list" className="flex flex-1 flex-col gap-8 w-full min-w-[200px] max-w-[920px] md:max-w-[720px] mx-auto px-3 [&>*:last-child]:pb-8">
+            <div ref={messageListRef} data-testid="message-list" className="flex flex-1 flex-col w-full min-w-[200px] max-w-[920px] md:max-w-[720px] mx-auto px-4 [&>*:last-child]:pb-8">
                 {renderedMessages.map((item) => {
                     if (item.type === "user") {
                         const isLast = isGenerating ? item.message.id === lastUserMessage?.id : item.message.id === lastMessage?.id && isLastUser;
@@ -112,17 +107,23 @@ export const MessageArea: React.FC<Props> = ({ onReloadResponse, className }) =>
                     if (item.type === "tool-trace") {
                         const userQueryId = footerHosts.trace.get(item.trace.stateForMessageId);
                         const showFooter = !!userQueryId && userQueryId !== streamingResponseUserId;
+                        const isLatestTrace =
+                            toolTraceState.length > 0 &&
+                            toolTraceState[toolTraceState.length - 1].stateForMessageId === item.trace.stateForMessageId &&
+                            userQueryId === streamingResponseUserId;
                         return (
-                            <ToolTraceMessage
-                                key={`trace-${item.trace.stateForMessageId}`}
-                                trace={item.trace}
-                                onToggle={toggleToolTrace}
-                                onToggleTool={toggleToolMessage}
-                                showFooter={showFooter}
-                                footerCopyText={userQueryId ? responseToText(messages, userQueryId) : ""}
-                                isGenerating={isGenerating}
-                                onReload={userQueryId ? () => onReloadResponse(userQueryId) : undefined}
-                            />
+                            <div key={`trace-host-${item.trace.stateForMessageId}`} data-testid="tool-trace-host">
+                                <ToolTraceMessage
+                                    trace={item.trace}
+                                    onToggle={toggleToolTrace}
+                                    onToggleTool={toggleToolMessage}
+                                    showFooter={showFooter}
+                                    footerCopyText={userQueryId ? responseToText(messages, userQueryId) : ""}
+                                    isGenerating={isGenerating}
+                                    isLatestTrace={isLatestTrace}
+                                    onReload={userQueryId ? () => onReloadResponse(userQueryId) : undefined}
+                                />
+                            </div>
                         );
                     }
 
@@ -132,6 +133,7 @@ export const MessageArea: React.FC<Props> = ({ onReloadResponse, className }) =>
 
                     return null;
                 })}
+                <PermissionRequestCard />
             </div>
         </ScrollArea>
     );

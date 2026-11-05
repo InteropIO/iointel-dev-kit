@@ -17,12 +17,16 @@
         /* General [Colors] */
         --app-red-700: #c92121;
         --app-red-800: #b01d1d;
+        --app-green-400: #5fc48e;
+        --app-green-700: #1f9e61;
+        --app-green-800: #177a4a;
         --app-orange: #f25f1f;
         --app-blue: #4b92fb;
         --app-light-blue: #d8ebfd;
         --app-blue-toggle: #356ec4;
         --app-yellow: #deaf37;
         --app-neutrals-0: #ffffff;
+        --app-neutrals-10: #fafafa;
         --app-neutrals-25: #f7f7f7;
         --app-neutrals-50: #f2f2f2;
         --app-neutrals-75: #ededed;
@@ -76,8 +80,9 @@
         --app-border-size-1: 1px;
 
         /* Text [Weights] */
-        --app-font-weight-400: 400;
-        --app-font-weight-600: 600;
+        --app-font-weight-250: 250;
+        --app-font-weight-350: 350;
+        --app-font-weight-550: 550;
 
         --app-default-box-shadow: 0 3px 11px 6px rgba(0, 0, 0, 0.16);
 
@@ -97,28 +102,46 @@
 
     .dark {
         --app-background: var(--app-neutrals-900);
+        /* Composer, trace card, option cards — same as the canvas in dark */
+        --app-raised-background: var(--app-neutrals-900);
         --app-background-secondary: var(--app-neutrals-850);
         --app-border-default: var(--app-neutrals-700);
         --app-border-disabled-default: var(--app-neutrals-850);
-        --app-input-border: var(--app-neutrals-750);
         --app-button-border-default: var(--app-neutrals-500);
         --app-background-disabled: var(--app-neutrals-900);
         --app-text-disabled: var(--app-neutrals-600);
+        --app-icon-default: var(--app-neutrals-200);
+        --app-icon-hover: var(--app-neutrals-0);
         --app-icon-disabled: var(--app-neutrals-600);
         --app-icon-background-hover: var(--app-neutrals-800);
         --app-icon-background-disabled: var(--app-neutrals-700);
+        /* Thread sidebar (n850): hover a step lighter, the open thread lighter again, hairline edge to the chat */
         --app-thread-list-item-hover-background: var(--app-neutrals-800);
+        --app-thread-list-item-active-background: var(--app-neutrals-750);
+        --app-thread-history-border: var(--app-neutrals-700);
         --app-text-black-white: var(--app-neutrals-0);
         --app-border-hover: var(--app-neutrals-600);
+        --app-table-border: var(--app-neutrals-750);
 
         /* Tooltip Component */
-        --app-tooltip-background: var(--app-neutrals-850);
-        --app-tooltip-border: var(--app-neutrals-700);
+        /* Tooltip: one step above the surfaces it floats over */
+        --app-tooltip-background: var(--app-neutrals-800);
         --app-tooltip-text: var(--app-neutrals-100);
 
         /* Panel */
         --app-panel-background: var(--app-neutrals-900);
         --app-panel-border: var(--app-neutrals-700);
+        --app-dialog-background: var(--app-neutrals-850);
+        /* Tools / prompts panels above the composer */
+        --app-popover-background: var(--app-neutrals-850);
+        --app-popover-row-hover: var(--app-neutrals-800);
+        --app-popover-details-background: var(--app-neutrals-800);
+        --app-popover-input-background: var(--app-neutrals-750);
+        --app-popover-input-background-hover: var(--app-neutrals-750);
+        --app-popover-input-background-active: var(--app-neutrals-750);
+        --app-popover-input-border: var(--app-neutrals-650);
+        --app-popover-input-border-hover: var(--app-neutrals-600);
+        --app-popover-input-border-active: var(--app-neutrals-600);
 
         /* User Message */
         --app-user-message-background: var(--app-neutrals-800);
@@ -129,14 +152,19 @@
         --app-input-background: var(--app-neutrals-850);
         --app-input-background-hover: var(--app-neutrals-800);
         --app-input-background-active: var(--app-neutrals-800);
-        --app-input-border: var(--app-neutrals-900);
-        --app-input-border-hover: var(--app-neutrals-750);
+        --app-input-border: var(--app-neutrals-650);
+        --app-input-border-hover: var(--app-neutrals-900);
         --app-input-border-active: var(--app-neutrals-600);
         --app-input-text: var(--app-neutrals-200);
         --app-input-text-active: var(--app-neutrals-0);
         --app-input-icon: var(--app-neutrals-200);
         --app-input-icon-active: var(--app-neutrals-0);
         --app-input-icon-disabled: var(--app-neutrals-600);
+        --app-input-clear-background: var(--app-neutrals-650);
+
+        /* Scrollbar */
+        --app-scrollbar-thumb: var(--app-neutrals-650);
+        --app-scrollbar-thumb-hover: var(--app-neutrals-600);
 
         /* Text Colors */
         --app-text-states-disabled: var(--app-neutrals-600);
@@ -153,6 +181,40 @@
         --app-toggle-background-hover-enabled: var(--app-blue);
         --app-toggle-circle: var(--app-neutrals-0);
 
+        /* Status */
+        --app-status-active: var(--app-green-400);
+        --app-status-error: #ef7474;
+
+        /* Tool trace */
+        --app-trace-row-expanded-background: var(--app-neutrals-850);
+        --app-trace-body-background: var(--app-neutrals-850);
+        /* Icon buttons (toolbar + content): one hover fill, one selected/open fill — translucent
+           so hover/selected read the same on the n900 chat, the n850 sidebar and panels, and
+           hovered rows */
+        /* Keyboard focus ring (inset 2px) for every custom control */
+        --app-focus-ring: var(--app-neutrals-600);
+        --app-icon-button-hover: rgba(255, 255, 255, 0.08);
+        --app-icon-button-selected: rgba(255, 255, 255, 0.15);
+        --app-trace-skeleton: var(--app-neutrals-800);
+        --app-trace-label: var(--app-neutrals-300);
+
+        /* Permission request card icon */
+        --app-permission-icon: var(--app-neutrals-0);
+        --app-permission-icon-background: rgba(75, 146, 251, 0.3);
+
+        /* Scroll-to-bottom button */
+        --app-scroll-button-background: var(--app-neutrals-850);
+        --app-scroll-button-background-hover: var(--app-neutrals-800);
+        /* Working Context "Available context" cards, one step off the dialog */
+        --app-context-card-background: var(--app-neutrals-800);
+        --app-context-card-label: var(--app-green-400);
+        /* Floating surfaces (tooltips, scroll-to-bottom): shared soft edge + lift */
+        --app-floating-border: rgba(255, 255, 255, 0.06);
+        --app-floating-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+        /* Spinner: ring + the lighter gap that shows the rotation */
+        --app-spinner-ring: var(--app-neutrals-500);
+        --app-spinner-gap: var(--app-neutrals-800);
+
         /* Prototype Colors */
         --app-proto-background: var(--prototype-temp-color-1000);
         --app-proto-background-light: var(--prototype-temp-color-900);
@@ -162,32 +224,52 @@
     }
 
     .light {
-        --app-background: var(--app-neutrals-0);
+        /* Off-white canvas; raised surfaces (composer, cards, panels) stay white on top of it */
+        --app-background: var(--app-neutrals-10);
+        --app-raised-background: var(--app-neutrals-0);
         --app-background-secondary: var(--app-neutrals-25);
         --app-border-default: var(--app-neutrals-150);
         --app-border-disabled-default: var(--app-neutrals-100);
-        --app-input-border: var(--app-neutrals-200);
         --app-button-border-default: var(--app-neutrals-200);
         --app-background-disabled: var(--app-neutrals-50);
         --app-text-disabled: var(--app-neutrals-400);
+        --app-icon-default: var(--app-neutrals-800);
+        --app-icon-hover: var(--app-neutrals-1000);
         --app-icon-disabled: var(--app-neutrals-400);
         --app-icon-background-hover: var(--app-neutrals-25);
         --app-icon-background-disabled: var(--app-neutrals-100);
-        --app-thread-list-item-hover-background: var(--app-neutrals-50);
+        /* Thread sidebar (n25): hover a step darker, the open thread darker again, hairline edge to the chat */
+        --app-thread-list-item-hover-background: var(--app-neutrals-75);
+        --app-thread-list-item-active-background: var(--app-neutrals-100);
+        --app-thread-history-border: var(--app-neutrals-150);
         --app-text-black-white: var(--app-neutrals-1000);
         --app-border-hover: var(--app-neutrals-150);
+        --app-table-border: var(--app-neutrals-150);
 
         /* Tooltip Component */
+        /* Tooltip: white card with the same soft edge and lift as the scroll-to-bottom button */
         --app-tooltip-background: var(--app-neutrals-0);
-        --app-tooltip-border: var(--app-neutrals-200);
         --app-tooltip-text: var(--app-neutrals-800);
 
         /* Panel */
         --app-panel-background: var(--app-neutrals-0);
-        --app-panel-border: var(--app-neutrals-700);
+        --app-panel-border: var(--app-neutrals-150);
+        /* Softer elevation on light backgrounds (panels, dropdowns) */
+        --app-default-box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.08);
+        --app-dialog-background: var(--app-neutrals-0);
+        /* Tools / prompts panels above the composer */
+        --app-popover-background: var(--app-neutrals-0);
+        --app-popover-row-hover: var(--app-neutrals-50);
+        --app-popover-details-background: var(--app-neutrals-25);
+        --app-popover-input-background: var(--app-neutrals-0);
+        --app-popover-input-background-hover: var(--app-neutrals-0);
+        --app-popover-input-background-active: var(--app-neutrals-0);
+        --app-popover-input-border: var(--app-neutrals-150);
+        --app-popover-input-border-hover: var(--app-neutrals-300);
+        --app-popover-input-border-active: var(--app-neutrals-400);
 
         /* User Message */
-        --app-user-message-background: var(--app-neutrals-50);
+        --app-user-message-background: var(--app-neutrals-75);
         --app-user-message-text: var(--app-neutrals-700);
 
         /* Input Specific */
@@ -203,6 +285,11 @@
         --app-input-icon: var(--app-neutrals-700);
         --app-input-icon-active: var(--app-neutrals-900);
         --app-input-icon-disabled: var(--app-neutrals-400);
+        --app-input-clear-background: var(--app-neutrals-150);
+
+        /* Scrollbar — mirrors the dark theme's neutrals-650 / 600 */
+        --app-scrollbar-thumb: var(--app-neutrals-300);
+        --app-scrollbar-thumb-hover: var(--app-neutrals-400);
 
         /* Text Colors */
         --app-text-states-disabled: var(--app-neutrals-400);
@@ -219,6 +306,42 @@
         --app-toggle-background-hover-enabled: var(--app-blue);
         --app-toggle-circle: var(--app-neutrals-0);
 
+        /* Status */
+        --app-status-active: var(--app-green-700);
+        --app-status-error: var(--app-red-700);
+
+        /* Tool trace */
+        /* Open step: header and body read as one light-grey block; the selected tab is a darker grey on it */
+        --app-trace-row-expanded-background: var(--app-neutrals-25);
+        --app-trace-body-background: var(--app-neutrals-25);
+        /* Icon buttons (toolbar + content): one hover fill, one selected/open fill — translucent
+           so hover/selected read the same on white, the n10 canvas, the n25 sidebar and hovered
+           rows */
+        /* Keyboard focus ring (inset 2px) for every custom control */
+        --app-focus-ring: var(--app-neutrals-400);
+        --app-icon-button-hover: rgba(0, 0, 0, 0.05);
+        --app-icon-button-selected: rgba(0, 0, 0, 0.08);
+        --app-trace-skeleton: var(--app-neutrals-100);
+        --app-trace-label: var(--app-neutrals-600);
+
+        /* Permission request card icon: blue on the light-blue tile */
+        --app-permission-icon: var(--app-neutrals-650);
+        --app-permission-icon-background: rgba(75, 146, 251, 0.05);
+
+        /* Scroll-to-bottom button */
+        --app-scroll-button-background: var(--app-neutrals-0);
+        --app-scroll-button-background-hover: var(--app-neutrals-25);
+        /* Working Context "Available context" cards, one step off the dialog */
+        --app-context-card-background: var(--app-neutrals-25);
+        /* green-800: green-700 is only 3.2:1 on n25, too faint for 11px text */
+        --app-context-card-label: var(--app-green-800);
+        /* Floating surfaces (tooltips, scroll-to-bottom): shared soft edge + lift */
+        --app-floating-border: rgba(0, 0, 0, 0.1);
+        --app-floating-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.1);
+        /* Spinner: ring + the lighter gap that shows the rotation */
+        --app-spinner-ring: var(--app-neutrals-300);
+        --app-spinner-gap: var(--app-neutrals-50);
+
         /* Prototype Colors */
         --app-proto-background: var(--prototype-temp-color-50);
         --app-proto-background-light: var(--prototype-temp-color-100);
@@ -227,10 +350,127 @@
         --app-proto-text-disabled: var(--prototype-temp-color-400);
     }
 
+    /* One keyboard focus style across io-assist and its overlays: no browser outline (the
+       blue/white double ring), just an inset ring in --app-focus-ring that follows each control's
+       own corners. :where() keeps it at zero specificity so components can still style their own
+       focus. Text fields show focus with their own border, so they get no ring. */
+    :where(.io-assist-root) :focus {
+        outline: none;
+    }
+
+    :where(.io-assist-root) :focus-visible {
+        outline: none;
+        box-shadow: inset 0 0 0 2px var(--app-focus-ring);
+    }
+
+    :where(.io-assist-root) :where(input, textarea, select):focus-visible {
+        box-shadow: none;
+    }
+
+    /* Toolbar icon button: a 32px square around a 12px icon. The icon sets its own 12px size
+       inline, so the padding sits outside it (content-box). Pair with the icon-button tokens. */
+    .app-toolbar-icon-button {
+        box-sizing: content-box;
+        padding: 10px;
+        flex-shrink: 0;
+    }
+
     .custom-scrollbar {
-        scrollbar-width: thin;
-        scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
         scrollbar-gutter: stable both-edges;
+    }
+
+    /* Code panel (shared code/JSON viewer used by markdown code blocks): dark palette by
+       default, light palette under `.light`. Scoped to the component so it never leaks into
+       the rest of the app's tokens. */
+    .app-code-panel {
+        --app-code-panel-bg: #2e3033;
+        --app-code-panel-border: #494b50;
+        --app-code-panel-label: #9499a1;
+        --app-code-panel-gutter: #62656a;
+        --app-code-panel-text: #d9dbe0;
+        --app-code-panel-keyword: #c48cf5;
+        --app-code-panel-function: #548ced;
+        --app-code-panel-property: #4dc7c2;
+        --app-code-panel-string: #94d675;
+        --app-code-panel-number: #e59440;
+        --app-code-panel-comment: #73808c;
+        --app-code-panel-punctuation: #8c8f94;
+        --app-code-panel-scrollbar-thumb: var(--app-neutrals-750);
+        --app-code-panel-scrollbar-thumb-hover: var(--app-neutrals-700);
+    }
+
+    .light .app-code-panel {
+        --app-code-panel-bg: var(--app-neutrals-25);
+        --app-code-panel-border: var(--app-neutrals-150);
+        --app-code-panel-label: var(--app-neutrals-500);
+        --app-code-panel-gutter: var(--app-neutrals-400);
+        --app-code-panel-text: #24292f;
+        --app-code-panel-keyword: #8250df;
+        --app-code-panel-function: #0969da;
+        --app-code-panel-property: #0550ae;
+        --app-code-panel-string: #116329;
+        --app-code-panel-number: #953800;
+        --app-code-panel-comment: #6e7781;
+        --app-code-panel-punctuation: #57606a;
+        --app-code-panel-scrollbar-thumb: var(--app-neutrals-150);
+        --app-code-panel-scrollbar-thumb-hover: var(--app-neutrals-200);
+    }
+
+    .app-code-panel__code-area {
+        scrollbar-color: var(--app-code-panel-scrollbar-thumb) transparent;
+    }
+
+    .app-code-panel__code-area::-webkit-scrollbar-thumb {
+        background-color: var(--app-code-panel-scrollbar-thumb);
+    }
+
+    .app-code-panel__code-area::-webkit-scrollbar-thumb:hover {
+        background-color: var(--app-code-panel-scrollbar-thumb-hover);
+    }
+
+    /* Content fades out at an edge while there's more to scroll that way, instead of a hard
+       cut line. The second mask layer keeps a 12px strip on the right (scrollbar + gap) fully
+       visible. */
+    .app-code-panel__code-area--fade-top,
+    .app-code-panel__code-area--fade-bottom {
+        --fade-top: 0px;
+        --fade-bottom: 0px;
+        -webkit-mask-image:
+            linear-gradient(to bottom, transparent, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent), linear-gradient(#000, #000);
+        mask-image:
+            linear-gradient(to bottom, transparent, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent), linear-gradient(#000, #000);
+        -webkit-mask-size:
+            100% 100%,
+            12px 100%;
+        mask-size:
+            100% 100%,
+            12px 100%;
+        -webkit-mask-position:
+            0 0,
+            100% 0;
+        mask-position:
+            0 0,
+            100% 0;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+    }
+
+    .app-code-panel__code-area--fade-top {
+        --fade-top: 20px;
+    }
+
+    .app-code-panel__code-area--fade-bottom {
+        --fade-bottom: 32px;
+    }
+
+    /* Standard scrollbar properties only where the ::-webkit-scrollbar styles below aren't
+       supported (Firefox). Chrome/Safari ignore the webkit styles whenever scrollbar-color is
+       set, which would drop the 6px thumb and its hover color. */
+    @supports not selector(::-webkit-scrollbar) {
+        .custom-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: var(--app-scrollbar-thumb) transparent;
+        }
     }
 
     .custom-scrollbar-no-gutter {
@@ -263,12 +503,37 @@
     }
 
     .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: rgba(0, 0, 0, 0.25);
+        background: var(--app-scrollbar-thumb);
         border-radius: 10px;
     }
 
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: rgba(0, 0, 0, 0.35);
+        background: var(--app-scrollbar-thumb-hover);
+    }
+
+    /* Scrolling list whose content fades out at its edges instead of being cut off by a hard
+       line: 8px at the top (the list's own top padding, so nothing fades at rest) and 24px at
+       the bottom. The second mask layer keeps an 8px strip on the right fully visible so the
+       scrollbar itself doesn't fade. */
+    .scroll-fade-edges {
+        -webkit-mask-image: linear-gradient(to bottom, transparent, black 8px, black calc(100% - 24px), transparent), linear-gradient(black, black);
+        mask-image: linear-gradient(to bottom, transparent, black 8px, black calc(100% - 24px), transparent), linear-gradient(black, black);
+        -webkit-mask-size: 100% 100%, 8px 100%;
+        mask-size: 100% 100%, 8px 100%;
+        -webkit-mask-position: 0 0, right top;
+        mask-position: 0 0, right top;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+    }
+
+    /* !Important! - causes trouble and is needed fix -
+       mask-image establishes a new containing block, which would otherwise trap any
+       position:fixed descendant (e.g. a maximized inline MCP app widget) inside this
+       scrollable area instead of letting it cover the full viewport. Disable the mask
+       while a descendant is maximized so position:fixed can escape to the viewport. */
+    .scroll-fade-edges:has([data-testid="mcp-app-resource"].fixed) {
+        -webkit-mask-image: none;
+        mask-image: none;
     }
 
     .safe-word-break {

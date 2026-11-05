@@ -30,12 +30,27 @@ export function wireMcpAppEvents(ioIntelWeb: IoAiWeb.API, store: IoAssistStoreIn
     // Per-app onMessage unsubscribers so we can clean up on recreate.
     const chatMessageUnsubs = new Map<string, () => void>();
 
+    // Widget-initiated chat messages ("ui/message") received while the assistant is already
+    // generating a response. Flushed one at a time as each in-flight response finishes, instead
+    // of dispatching them immediately and interleaving a new stream mid-response.
+    const pendingMcpAppMessages: string[] = [];
+    let wasGeneratingResponse = store.getState().isGeneratingResponse;
+    store.subscribe((state) => {
+        if (wasGeneratingResponse && !state.isGeneratingResponse) {
+            const next = pendingMcpAppMessages.shift();
+            if (next !== undefined) {
+                void sendUserMessage(store, next, dynamicConfig);
+            }
+        }
+        wasGeneratingResponse = state.isGeneratingResponse;
+    });
+
     ioIntelWeb.mcpApps.onAppCreated((app: AppInstance) => {
         log.debug(`mcpApps.onAppCreated: ${safeStringify({ id: app?.id, threadId: app?.threadId, hasElement: !!app?.element, hasOnMessage: typeof app?.onMessage === "function" })}`);
         const activeThreadId = store.getState().activeThreadId;
         if (activeThreadId && app.threadId !== activeThreadId) return;
         store.getState().addMcpApp(app);
-        subscribeAppToChat(app, store, dynamicConfig, chatMessageUnsubs);
+        subscribeAppToChat(app, store, dynamicConfig, chatMessageUnsubs, pendingMcpAppMessages);
     });
 
     ioIntelWeb.mcpApps.onRecreateRequested((event: IoAiWeb.McpApps.RecreateRequestEvent) => {
@@ -68,9 +83,25 @@ export function wireMcpAppEvents(ioIntelWeb: IoAiWeb.API, store: IoAssistStoreIn
             chatMessageUnsubs.delete(event.oldId);
         }
     });
+
+    ioIntelWeb.mcpApps.onAppClosed((event: IoAiWeb.McpApps.AppClosedEvent) => {
+        log.debug(`mcpApps.onAppClosed: ${safeStringify({ id: event?.id })}`);
+        store.getState().removeMcpApp(event.id);
+        const unsub = chatMessageUnsubs.get(event.id);
+        if (unsub) {
+            unsub();
+            chatMessageUnsubs.delete(event.id);
+        }
+    });
 }
 
-function subscribeAppToChat(app: AppInstance, store: IoAssistStoreInstance, dynamicConfig: IoAssistDynamicConfig, unsubs: Map<string, () => void>): void {
+function subscribeAppToChat(
+    app: AppInstance,
+    store: IoAssistStoreInstance,
+    dynamicConfig: IoAssistDynamicConfig,
+    unsubs: Map<string, () => void>,
+    pendingMcpAppMessages: string[]
+): void {
     if (typeof app?.onMessage !== "function") {
         log.warn(`MCP app instance has no onMessage method: ${safeStringify({ id: app?.id })}`);
         return;
@@ -81,6 +112,15 @@ function subscribeAppToChat(app: AppInstance, store: IoAssistStoreInstance, dyna
         const activeThreadId = store.getState().activeThreadId;
         if (!activeThreadId) return;
         if (app.threadId && app.threadId !== activeThreadId) return;
+
+        // Queue rather than dispatch immediately: dispatching while a response is already
+        // streaming would start a second concurrent stream on the same thread and interleave
+        // the two replies. The queued message is flushed once the in-flight response finishes.
+        if (store.getState().isGeneratingResponse) {
+            pendingMcpAppMessages.push(text);
+            return;
+        }
+
         // Forward as a user message and stream the response — same as the
         // user typing into the input area.
         void sendUserMessage(store, text, dynamicConfig);

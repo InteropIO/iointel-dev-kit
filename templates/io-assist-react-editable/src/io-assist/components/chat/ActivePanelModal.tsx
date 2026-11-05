@@ -27,13 +27,38 @@ export const ActivePanelModal: React.FC = () => {
 
     const close = () => setActivePanelContent(null);
 
+    const description = activePanelContent === PANEL_CONTENT.WORKING_CONTEXT ? UI_STRINGS.WORKING_CONTEXT_PANEL_COMPONENT.SUBTITLE : undefined;
+
+    const isContentSelfScrolling = activePanelContent === PANEL_CONTENT.PROMPTS || activePanelContent === PANEL_CONTENT.TOOLS;
+    const fixedHeight = activePanelContent === PANEL_CONTENT.TOOLS ? "440px" : undefined;
+
+    const footer =
+        activePanelContent === PANEL_CONTENT.WORKING_CONTEXT ? (
+            <button
+                type="button"
+                data-testid="working-context-cancel-button"
+                onClick={close}
+                className="app-button flex justify-center items-center rounded-sm cursor-pointer gap-1 px-spacing-6 py-spacing-3 border border-border-default text-text-default hover:text-text-states-active hover:border-border-hover transition-colors"
+            >
+                {UI_STRINGS.GENERAL.CANCEL}
+            </button>
+        ) : null;
+
     return (
-        <Modal open onClose={close} title={title} showCloseIcon testId="active-panel-modal">
-            <div className="px-3 pb-6">
-                {activePanelContent === PANEL_CONTENT.WORKING_CONTEXT && <WorkingContextPanel />}
-                {activePanelContent === PANEL_CONTENT.PROMPTS && <PromptListPanel />}
-                {activePanelContent === PANEL_CONTENT.TOOLS && <ToolListPanel />}
-            </div>
+        <Modal
+            open
+            onClose={close}
+            title={title}
+            description={description}
+            showCloseIcon
+            footer={footer}
+            testId="active-panel-modal"
+            isContentSelfScrolling={isContentSelfScrolling}
+            fixedHeight={fixedHeight}
+        >
+            {activePanelContent === PANEL_CONTENT.WORKING_CONTEXT && <WorkingContextPanel />}
+            {activePanelContent === PANEL_CONTENT.PROMPTS && <PromptListPanel />}
+            {activePanelContent === PANEL_CONTENT.TOOLS && <ToolListPanel />}
         </Modal>
     );
 };

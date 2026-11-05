@@ -21,7 +21,7 @@ type Props = {
  * regenerates it.
  */
 export const MessageFooter: React.FC<Props> = ({ copyText, onReload, isGenerating = false }) => (
-    <div data-testid="message-footer" className="flex flex-1 gap-[2px] items-center pt-2 text-text-secondary">
+    <div data-testid="message-footer" className="flex gap-[2px] items-center pt-2 pb-4 text-text-secondary">
         <CopyButton textToCopy={copyText} testId="message-footer-copy-button" className="size-6" />
         {onReload && (
             <Tooltip position="top" offset={6} disabled={!isGenerating} content={UI_STRINGS.MESSAGE_FOOTER_COMPONENT.RELOAD_DISABLED_TOOLTIP}>
