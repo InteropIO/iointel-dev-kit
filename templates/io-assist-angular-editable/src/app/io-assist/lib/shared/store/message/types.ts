@@ -64,6 +64,8 @@ export type UIToolMessage = UIMessageBase & {
     args?: Record<string, unknown>;
     result?: ToolResult | [ToolResult];
     isExpanded?: boolean;
+    startedAt?: number;
+    completedAt?: number;
 };
 
 export type ToolTextResult = {
@@ -90,6 +92,8 @@ export type ToolTraceState = {
     isExpanded?: boolean;
     displayFooter?: boolean;
     responseForUserQueryId?: string;
+    startedAt?: number;
+    completedAt?: number;
 };
 
 export type ToolResult = ToolTextResult | ToolImageResult | ToolAudioResult;

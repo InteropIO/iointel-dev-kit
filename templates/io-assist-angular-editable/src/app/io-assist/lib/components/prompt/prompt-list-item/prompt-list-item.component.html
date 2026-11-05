@@ -4,23 +4,24 @@
 @let isFavorite = isCurrentPromptInFavorites();
 
 <div
-    class="flex flex-1 justify-between items-center p-2 gap-2 cursor-pointer min-w-0"
+    class="flex flex-1 justify-between items-center gap-2 cursor-pointer min-w-0 focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--app-focus-ring)]"
     data-testid="prompt-list-item"
     tabindex="0"
+    role="button"
     [ngClass]="{
-        'hover:bg-app-background-secondary rounded-md': !isDisplayedInFavoriteList(),
-        'h-[48px] hover:shadow-[0_0.5px_0.5px_0.5px_rgba(0,0,0,0.15)] rounded-2xl': isDisplayedInFavoriteList(),
+        'min-h-[36px] pl-[14px] pr-[7px] hover:bg-app-background-secondary': !isDisplayedInFavoriteList(),
+        'pl-3 pr-[5px] h-10 hover:shadow-[0_0.5px_0.5px_0.5px_rgba(0,0,0,0.15)] rounded-xl': isDisplayedInFavoriteList(),
     }"
     (click)="handlePromptSelect()"
-    (keyup)="handlePromptSelect()"
+    (keydown.enter)="handlePromptSelect()"
+    (keydown.space)="$event.preventDefault(); handlePromptSelect()"
 >
-    <!-- Prompt Icon -->
-    <app-icon data-testid="prompt-icon" class="shrink-0" [variant]="APP_ICON_VARIANTS.PROMPT_PANEL" [customIcon]="customIcon()" [isHoveredExternal]="isHostHoveredSignal()"></app-icon>
-
     <!-- Prompt Title -->
     <span
-        class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-xs"
+        class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
         [ngClass]="{
+            'text-[13px]': !isDisplayedInFavoriteList(),
+            'text-xs': isDisplayedInFavoriteList(),
             'text-text-default': true,
             'text-text-states-hover': isHostHoveredSignal(),
         }"

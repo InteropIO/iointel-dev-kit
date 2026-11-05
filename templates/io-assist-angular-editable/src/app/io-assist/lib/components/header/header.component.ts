@@ -1,6 +1,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, inject, OnInit, Signal, WritableSignal } from "@angular/core";
 
+import { AppButtonComponent } from "../../shared/components/app-button/app-button.component";
 import { APP_BUTTON_TYPES } from "../../shared/components/app-button/enum";
 import { AppIconComponent } from "../../shared/components/app-icon/app-icon.component";
 import { APP_ICON_SIZES, APP_ICON_VARIANTS } from "../../shared/components/app-icon/enum";
@@ -18,7 +19,7 @@ import { WorkingContextFacade } from "../../shared/store/working-context/working
 import { WorkingContextPanelComponent } from "../working-context-panel/working-context-panel.component";
 
 const MODULES = [CommonModule];
-const COMPONENTS = [AppIconComponent, AppTooltipComponent];
+const COMPONENTS = [AppIconComponent, AppTooltipComponent, AppButtonComponent];
 
 @Component({
     selector: "header",
@@ -33,6 +34,7 @@ export class HeaderComponent implements OnInit {
     protected readonly APP_SPINNER_COMPONENT_SIZE = APP_SPINNER_COMPONENT_SIZE;
     protected readonly UI_STRINGS = UI_STRINGS;
     protected readonly APP_ICON_VARIANTS = APP_ICON_VARIANTS;
+    protected readonly APP_BUTTON_TYPES = APP_BUTTON_TYPES;
     protected readonly APP_ICON_SIZES = APP_ICON_SIZES;
     protected readonly AnimationType = AnimationType;
     protected readonly TOOLTIP_POSITIONS = TOOLTIP_POSITIONS;
@@ -71,6 +73,7 @@ export class HeaderComponent implements OnInit {
     protected handleWorkingContextPanelOpen(): void {
         this._overlayService.showPanelOverlay({
             title: UI_STRINGS.WORKING_CONTEXT_PANEL_COMPONENT.TITLE,
+            description: UI_STRINGS.WORKING_CONTEXT_PANEL_COMPONENT.SUBTITLE,
             content: WorkingContextPanelComponent,
             isHeaderCloseButtonDisplayed: true,
             footerButtons: [

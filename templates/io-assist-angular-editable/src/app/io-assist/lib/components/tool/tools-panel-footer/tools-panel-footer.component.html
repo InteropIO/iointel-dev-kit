@@ -1,0 +1,12 @@
+@let isCodeModeOn = isCodeModeEnabled();
+
+<div class="flex w-full items-center justify-between gap-4" data-testid="tools-panel-footer">
+    <div class="flex items-center gap-1" data-testid="tools-panel-code-mode">
+        <span class="text-[10px] font-weight-550 leading-[18px] text-text-default">{{ UI_STRINGS.CODE_MODE_LABEL }}</span>
+
+        <span class="flex items-center gap-1 text-[10px] leading-4 text-text-secondary" [class.text-status-active]="isCodeModeOn">
+            <span class="size-1 rounded-full bg-current" aria-hidden="true"></span>
+            {{ isCodeModeOn ? UI_STRINGS.CODE_MODE_ACTIVE : UI_STRINGS.CODE_MODE_OFF }}
+        </span>
+    </div>
+</div>

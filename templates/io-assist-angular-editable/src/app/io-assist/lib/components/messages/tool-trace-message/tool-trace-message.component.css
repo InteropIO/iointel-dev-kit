@@ -1,0 +1,146 @@
+/* Both collapsed and expanded states now render the same tight, 12x12-viewBox
+   CHEVRON_DOWN_LIGHT asset - CHEVRON_DOWN is a separate Font Awesome glyph with a much bulkier
+   640x640 viewBox (lots of internal padding), so at an identical `size`, it renders visibly
+   smaller than the light variant. Rotating it keeps both states pixel-identical in size
+   instead of swapping to a mismatched icon asset. */
+/* Light chevron-down: points right while collapsed, down when expanded. */
+.tool-trace-message__expand-icon {
+    transform: rotate(-90deg);
+}
+
+.tool-trace-message__expand-icon--rotated {
+    transform: rotate(0deg);
+}
+
+@keyframes tool-trace-breathe {
+    0%,
+    100% {
+        opacity: 0.35;
+        scale: 0.75;
+    }
+    25% {
+        opacity: 1;
+        scale: 1;
+    }
+    50% {
+        opacity: 0.35;
+        scale: 0.75;
+    }
+}
+
+@keyframes tool-trace-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.tool-trace-message__breathing-dots {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-right: 4px;
+    opacity: 1;
+    animation: tool-trace-fade-in 200ms ease-out;
+    transition: opacity 250ms ease-out;
+}
+
+/* Applied for a brief grace period after the trace completes, instead of the dots simply
+   disappearing the instant the last tool gets its result. */
+.tool-trace-message__breathing-dots--fading-out {
+    opacity: 0;
+}
+
+.tool-trace-message__dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--app-accent-color-1);
+    animation: tool-trace-breathe 2s ease-in-out infinite;
+}
+
+/* Negative delays instead of positive: each dot starts already mid-cycle (as if the
+   animation had begun that many seconds ago), so all three are immediately active on the
+   very first frame - a positive delay would leave dots 2/3 sitting at their static,
+   non-animated style for 0.4s/0.8s before joining in, which read as the dots being slow
+   to appear relative to the title's shimmer (which animates from frame one). */
+.tool-trace-message__dot:nth-child(2) {
+    animation-delay: -0.4s;
+}
+
+.tool-trace-message__dot:nth-child(3) {
+    animation-delay: -0.8s;
+}
+
+.tool-trace-message__header {
+    padding-bottom: 4px;
+}
+
+/* No color transition here on purpose: clicking to toggle expanded/collapsed swaps in a
+   structurally different header element (different layout/size between the two states), so
+   the hover state can still legitimately flip for an instant during that swap. An animated
+   transition would make that momentary flip visible as a flash; snapping instantly does not. */
+.tool-trace-message__title {
+    font-size: 12px;
+    line-height: 19px;
+    letter-spacing: -0.196px;
+    font-weight: 300;
+}
+
+/* Once the trace is complete, default (non-hover) text uses the app's secondary text token.
+   The hover-brightened state is applied directly via [ngClass] + a JS-tracked isHovered()
+   signal instead of :hover, since clicking to toggle expanded/collapsed swaps in a whole
+   new header element that :hover doesn't reliably re-engage on under a stationary cursor. */
+.tool-trace-message__title--complete {
+    color: var(--app-text-secondary);
+}
+
+/* Separator between the header's "Done" / "Worked for Xs" / "Used N tools" segments - a
+   fixed color (not currentColor) so it stays visible even when the title text itself goes
+   transparent for the shimmer effect (title--shimmer relies on background-clip: text with
+   color: transparent to reveal its gradient). */
+.tool-trace-message__title-separator {
+    display: inline-block;
+    width: 2px;
+    height: 2px;
+    margin: 0 5px;
+    border-radius: 50%;
+    background-color: var(--app-text-secondary);
+    vertical-align: middle;
+}
+
+@keyframes tool-trace-shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.tool-trace-message__title--shimmer {
+    background: linear-gradient(90deg, var(--app-text-default) 40%, var(--app-text-states-active) 50%, var(--app-text-default) 60%);
+    background-size: 250% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: tool-trace-shimmer 2s linear infinite;
+}
+
+/* All steps in one bordered, rounded card with 1px dividers between them. */
+.tool-trace-message__card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-top: 4px;
+    border: 1px solid var(--app-border-default);
+    border-radius: 12px;
+    background: var(--app-raised-background);
+    overflow: hidden;
+}
+
+.tool-trace-message__card > trace-step + trace-step {
+    border-top: 1px solid var(--app-border-default);
+}

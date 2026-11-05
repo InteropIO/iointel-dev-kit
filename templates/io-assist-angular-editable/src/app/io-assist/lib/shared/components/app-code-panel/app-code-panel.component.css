@@ -1,0 +1,268 @@
+:host {
+    display: block;
+    width: 100%;
+
+    --app-code-panel-bg: #2e3033;
+    --app-code-panel-border: #494b50;
+    --app-code-panel-label: #9499a1;
+    --app-code-panel-gutter: #62656a;
+    --app-code-panel-text: #d9dbe0;
+    --app-code-panel-keyword: #c48cf5;
+    --app-code-panel-function: #548ced;
+    --app-code-panel-property: #4dc7c2;
+    --app-code-panel-string: #94d675;
+    --app-code-panel-number: #e59440;
+    --app-code-panel-comment: #73808c;
+    --app-code-panel-punctuation: #8c8f94;
+
+    /* Softer scrollbar thumb than the app default — a step closer to the panel background. */
+    --app-scrollbar-thumb: var(--app-neutrals-750);
+    --app-scrollbar-thumb-hover: var(--app-neutrals-700);
+}
+
+:host-context(.light) {
+    --app-code-panel-bg: var(--app-neutrals-25);
+    --app-code-panel-border: var(--app-neutrals-150);
+    --app-code-panel-label: var(--app-neutrals-500);
+    --app-code-panel-gutter: var(--app-neutrals-400);
+    --app-code-panel-text: #24292f;
+    --app-code-panel-keyword: #8250df;
+    --app-code-panel-function: #0969da;
+    --app-code-panel-property: #0550ae;
+    --app-code-panel-string: #116329;
+    --app-code-panel-number: #953800;
+    --app-code-panel-comment: #6e7781;
+    --app-code-panel-punctuation: #57606a;
+
+    --app-scrollbar-thumb: var(--app-neutrals-150);
+    --app-scrollbar-thumb-hover: var(--app-neutrals-200);
+}
+
+/* Fill mode: for a container with a genuine fixed height to distribute — flex-grow only
+   produces a non-zero size there. */
+:host.app-code-panel-host--fill {
+    display: flex;
+    flex-direction: column;
+    flex: 1 0 0;
+    min-height: 0;
+}
+
+.app-code-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--app-code-panel-border);
+    border-radius: 12px;
+    background: var(--app-code-panel-bg);
+}
+
+:host.app-code-panel-host--embedded .app-code-panel {
+    gap: 6px;
+    padding: var(--app-code-panel-embedded-padding, 8px 12px 10px);
+    border: none;
+    border-radius: 0;
+}
+
+.app-code-panel__inline-label {
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    letter-spacing: 0.3px;
+    color: var(--app-trace-label, var(--app-code-panel-label));
+}
+
+:host.app-code-panel-host--fill .app-code-panel {
+    flex: 1 0 0;
+    min-height: 0;
+}
+
+.app-code-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    flex-shrink: 0;
+}
+
+.app-code-panel__label {
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--app-code-panel-label);
+}
+
+.app-code-panel__code-area {
+    width: 100%;
+    max-height: 296px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    /* Themed 6px scrollbar (custom-scrollbar): it sits in the card's right padding, 3px from
+       the border, instead of eating into the code. The gutter is reserved on the right only
+       so the line numbers don't shift. */
+    scrollbar-gutter: stable;
+    margin-right: -9px;
+    padding-right: 3px;
+    transform: translateZ(0);
+}
+
+/* Content fades out at an edge while there's more to scroll to that way, instead of being cut
+   off by a hard line. The second mask layer keeps a 12px strip on the right (the scrollbar and
+   its gap) fully visible.
+   transform: translateZ(0) forces this element onto its own GPU layer so the mask is
+   rasterized as a single texture — without it, Chrome can tile the masked, scrollable content
+   and leave faint 1px seams at the boundary of every row (`.app-code-panel__line`). */
+.app-code-panel__code-area--fade-top,
+.app-code-panel__code-area--fade-bottom {
+    --fade-top: 0px;
+    --fade-bottom: 0px;
+    transform: translateZ(0);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent), linear-gradient(#000, #000);
+    mask-image: linear-gradient(to bottom, transparent, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent), linear-gradient(#000, #000);
+    -webkit-mask-size:
+        100% 100%,
+        12px 100%;
+    mask-size:
+        100% 100%,
+        12px 100%;
+    -webkit-mask-position:
+        0 0,
+        100% 0;
+    mask-position:
+        0 0,
+        100% 0;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+}
+
+.app-code-panel__code-area--fade-top {
+    --fade-top: 20px;
+}
+
+.app-code-panel__code-area--fade-bottom {
+    --fade-bottom: 32px;
+}
+
+:host.app-code-panel-host--fill .app-code-panel__code-area {
+    flex: 1 0 0;
+    min-height: 0;
+    max-height: none;
+}
+
+.app-code-panel__lines {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+/* One row per source line — number and content live together, so a long line that wraps across
+   several visual rows just grows this row's height, keeping the gutter number aligned with the
+   start of its own line instead of drifting out of sync with later lines. */
+.app-code-panel__line {
+    display: flex;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.app-code-panel__gutter-number {
+    flex-shrink: 0;
+    width: 24px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    line-height: 18px;
+    color: var(--app-code-panel-gutter);
+    text-align: right;
+    user-select: none;
+}
+
+.app-code-panel__gutter-spacer {
+    flex-shrink: 0;
+    width: 14px;
+}
+
+.app-code-panel__code-line {
+    display: block;
+    flex: 1 0 0;
+    min-width: 0;
+    min-height: 18px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 18px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--app-code-panel-text);
+    /* Overrides the global Prism theme (libs/io-assist-ng/src/styles.css imports
+       prismjs/themes/prism-twilight.css). Its "inline code" rule — `:not(pre) >
+       code[class*="language-"]` — targets any bare `<code class="language-...">` not wrapped
+       in a <pre> (exactly what each row renders here) and gives it its own background, a
+       visible border, a box-shadow, and padding, which looks like a stray border/box around
+       every line unless reset here. */
+    background: transparent;
+    text-shadow: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+}
+
+.app-code-panel__code-line.language-plain {
+    font-size: 11px;
+}
+
+:host ::ng-deep .app-code-panel__code-line .token {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    background: transparent;
+    text-shadow: none;
+    color: var(--app-code-panel-text);
+}
+
+:host ::ng-deep .app-code-panel__code-line .token.keyword,
+:host ::ng-deep .app-code-panel__code-line .token.boolean,
+:host ::ng-deep .app-code-panel__code-line .token.null,
+:host ::ng-deep .app-code-panel__code-line .token.important,
+:host ::ng-deep .app-code-panel__code-line .token.atrule {
+    color: var(--app-code-panel-keyword);
+}
+
+:host ::ng-deep .app-code-panel__code-line .token.function,
+:host ::ng-deep .app-code-panel__code-line .token.class-name {
+    color: var(--app-code-panel-function);
+}
+
+:host ::ng-deep .app-code-panel__code-line .token.property,
+:host ::ng-deep .app-code-panel__code-line .token.property-access,
+:host ::ng-deep .app-code-panel__code-line .token.parameter,
+:host ::ng-deep .app-code-panel__code-line .token.attr-name {
+    color: var(--app-code-panel-property);
+}
+
+:host ::ng-deep .app-code-panel__code-line .token.string,
+:host ::ng-deep .app-code-panel__code-line .token.char,
+:host ::ng-deep .app-code-panel__code-line .token.builtin,
+:host ::ng-deep .app-code-panel__code-line .token.url,
+:host ::ng-deep .app-code-panel__code-line .token.regex,
+:host ::ng-deep .app-code-panel__code-line .token.attr-value {
+    color: var(--app-code-panel-string);
+}
+
+:host ::ng-deep .app-code-panel__code-line .token.number {
+    color: var(--app-code-panel-number);
+}
+
+:host ::ng-deep .app-code-panel__code-line .token.comment,
+:host ::ng-deep .app-code-panel__code-line .token.prolog,
+:host ::ng-deep .app-code-panel__code-line .token.doctype,
+:host ::ng-deep .app-code-panel__code-line .token.cdata {
+    color: var(--app-code-panel-comment);
+    font-style: italic;
+}
+
+:host ::ng-deep .app-code-panel__code-line .token.operator,
+:host ::ng-deep .app-code-panel__code-line .token.punctuation,
+:host ::ng-deep .app-code-panel__code-line .token.tag,
+:host ::ng-deep .app-code-panel__code-line .token.entity {
+    color: var(--app-code-panel-punctuation);
+}

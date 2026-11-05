@@ -30,7 +30,8 @@
             @if (showWelcomeMessage) {
                 <div
                     [ngClass]="{
-                        'flex flex-col gap-3 items-center px-4 pt-[160px]': true,
+                        'flex flex-col gap-3 items-center px-4 pt-[160px] w-full max-w-[920px] mx-auto': true,
+                        'md:max-w-[720px]': true,
                     }"
                 >
                     <h2
@@ -71,6 +72,7 @@
                     <favorite-prompt-list
                         [ngClass]="{
                             'max-w-[920px] w-full px-4': true,
+                            'md:max-w-[720px]': true,
                         }"
                     ></favorite-prompt-list>
                 }
@@ -84,7 +86,7 @@
                 >
                     <span
                         [ngClass]="{
-                            'text-xs text-text-default tracking-wide': true,
+                            'text-[11px] text-text-default tracking-wide': true,
                         }"
                         >{{ UI_STRINGS.GENERAL.AI_CONTENT_INFO }}</span
                     >

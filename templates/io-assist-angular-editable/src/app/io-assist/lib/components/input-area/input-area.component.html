@@ -28,7 +28,7 @@
                 <div
                     class="input-area__textarea-wrapper"
                     [ngClass]="{
-                        'flex gap-3 items-start px-2': true,
+                        'flex gap-3 items-start ps-[1px] pt-1': true,
                     }"
                 >
                     <textarea
@@ -38,8 +38,8 @@
                         class="input-area__textarea"
                         rows="1"
                         [ngClass]="{
-                            'flex-1 custom-scrollbar custom-scrollbar-snap-right text-text-default text-sm leading-4 h-auto min-h-[17px] max-h-[260px] resize-none border-none outline-none overflow-y-auto whitespace-pre-wrap': true,
-                            'placeholder:text-text-states-default': true,
+                            'flex-1 custom-scrollbar custom-scrollbar-snap-right text-input-text text-sm leading-4 h-auto min-h-[17px] max-h-[260px] resize-none border-none outline-none overflow-y-auto whitespace-pre-wrap': true,
+                            'placeholder:text-text-default hover:placeholder:text-text-states-active': true,
                             'hover:text-text-states-active': true,
                         }"
                         [value]="inputValue()"

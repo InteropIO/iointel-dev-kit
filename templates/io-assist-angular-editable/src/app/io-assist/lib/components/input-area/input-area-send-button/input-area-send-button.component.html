@@ -9,6 +9,7 @@
         data-testid="chat-send-button"
         [isDisabled]="disableInputButton"
         [backgroundColor]="'--app-icon-background-disabled'"
+        [hoverBackgroundShape]="APP_ICON_BACKGROUND_SHAPES.CIRCLE"
         [disabledIconFill]="'--app-icon-disabled'"
         [variant]="APP_ICON_VARIANTS.PAPER_PLANE"
         [size]="APP_ICON_SIZES.S"
@@ -23,6 +24,7 @@
         [iconFill]="'--app-neutrals-0'"
         [hoverIconFill]="'--app-neutrals-0'"
         [hoverBackgroundColor]="'--app-accent-color-1'"
+        [hoverBackgroundShape]="APP_ICON_BACKGROUND_SHAPES.CIRCLE"
         [size]="APP_ICON_SIZES.S"
         (onClick)="handleSendMessage()"
     ></app-icon>
@@ -36,6 +38,7 @@
         [iconFill]="'--app-neutrals-0'"
         [hoverIconFill]="'--app-neutrals-0'"
         [hoverBackgroundColor]="'--app-accent-color-1'"
+        [hoverBackgroundShape]="APP_ICON_BACKGROUND_SHAPES.CIRCLE"
         [size]="APP_ICON_SIZES.S"
         (onClick)="handleStopMessage()"
     ></app-icon>

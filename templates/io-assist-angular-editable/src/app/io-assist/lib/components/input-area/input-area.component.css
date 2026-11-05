@@ -1,6 +1,6 @@
 /* Thin glow strip centered on the top border edge, bleeding upward above the box. */
 .input-area__container::before {
-    content: '';
+    content: "";
     position: absolute;
     left: 5%;
     right: 5%;
@@ -9,16 +9,7 @@
     pointer-events: none;
     z-index: 0;
     background:
-        radial-gradient(
-            ellipse 40% 100% at 15% 50%,
-            var(--color-app-accent-color-1),
-            transparent 100%
-        ),
-        radial-gradient(
-            ellipse 40% 100% at 85% 50%,
-            var(--color-app-accent-color-2),
-            transparent 100%
-        );
+        radial-gradient(ellipse 40% 100% at 15% 50%, var(--color-app-accent-color-1), transparent 100%), radial-gradient(ellipse 40% 100% at 85% 50%, var(--color-app-accent-color-2), transparent 100%);
     filter: blur(12px);
     opacity: 0.75;
 }

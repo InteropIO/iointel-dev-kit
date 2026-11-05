@@ -1,36 +1,31 @@
 import { inject, Injectable } from "@angular/core";
 import { IoAiWeb } from "@interopio/ai-web";
 import { IOConnectCore } from "@interopio/core";
-import { IOConnectModals } from "@interopio/modals-api";
-import { take } from "rxjs/operators";
 
 import { SAMPLING_ACTION } from "./enums";
 import { APP_BUTTON_TYPES } from "../../../components/app-button/enum";
-import { PANEL_BUTTON_ACTION_TYPE } from "../../../components/app-panel/enums";
 import { APP_SELECT_IDS, AppSelectService } from "../../../components/app-select/app-select.service";
 import { UI_STRINGS } from "../../../constants/ui-strings";
 import { PERMISSION_MODE } from "../../../enums/permission-mode.enum";
 import { GetResponseParams } from "../../../store/message/types";
 import { ThreadFacade } from "../../../store/thread/thread.facade";
 import { AgentService } from "../../agent/agent.service";
-import { IOConnectService } from "../../io/io.service";
 import { LoggerService } from "../../logger/logger.service";
-import { OverlayService } from "../../overlay/overlay.service";
+import { PermissionRequestService } from "../../permission-request/permission-request.service";
 import { SAMPLING_STOP_REASONS } from "../types";
 
 @Injectable({
     providedIn: "root",
 })
 export class SamplingService {
-    private readonly UI_STRINGS = UI_STRINGS.SAMPLING_MODAL;
-    private readonly _ioConnectService: IOConnectService = inject(IOConnectService);
+    private readonly UI_STRINGS = UI_STRINGS.SAMPLING_PERMISSION_CARD;
     private readonly _agentService: AgentService = inject(AgentService);
     private readonly _appSelectService: AppSelectService = inject(AppSelectService);
-    private readonly _overlayService: OverlayService = inject(OverlayService);
+    private readonly _permissionRequestService: PermissionRequestService = inject(PermissionRequestService);
     private readonly _threadFacade: ThreadFacade = inject(ThreadFacade);
     private readonly _logger: LoggerService = inject(LoggerService);
     protected readonly LOGGER_NAME: string = "SamplingService";
-    private _isSamplingModalActive = false;
+    private _isSamplingPermissionRequestActive = false;
 
     public async handleSamplingRequest(serverName: string, request: IoAiWeb.SamplingRequestParams): Promise<IoAiWeb.SamplingSuccessResponse | IoAiWeb.SamplingErrorResponse> {
         const isAutoAccept = this._appSelectService.getSelected(APP_SELECT_IDS.PERMISSION)()?.value === PERMISSION_MODE.AUTO_ACCEPT;
@@ -53,7 +48,7 @@ export class SamplingService {
             };
         }
 
-        if (this._isSamplingModalActive) {
+        if (this._isSamplingPermissionRequestActive) {
             this._logger.get(this.LOGGER_NAME).warn("Sampling request rejected: another sampling is already in progress.");
 
             return {
@@ -62,19 +57,19 @@ export class SamplingService {
             };
         }
 
-        this._isSamplingModalActive = true;
+        this._isSamplingPermissionRequestActive = true;
 
         try {
-            return await this.getSamplingModalResponse(serverName, request);
+            return await this.getSamplingPermissionCardResponse(serverName, request);
         } catch (error) {
-            this._logger.get(this.LOGGER_NAME).error(`Error occurred while getting sampling modal response: ${error instanceof Error ? error.message : String(error)}`);
+            this._logger.get(this.LOGGER_NAME).error(`Error occurred while getting sampling permission card response: ${error instanceof Error ? error.message : String(error)}`);
 
             return {
                 code: -1,
                 message: "An error occurred while processing the sampling request.",
             };
         } finally {
-            this._isSamplingModalActive = false;
+            this._isSamplingPermissionRequestActive = false;
         }
     }
 
@@ -90,93 +85,19 @@ export class SamplingService {
         return this.handleSamplingRequest.bind(this);
     }
 
-    private async getSamplingModalResponse(serverName: string, request: IoAiWeb.SamplingRequestParams): Promise<IoAiWeb.SamplingSuccessResponse | IoAiWeb.SamplingErrorResponse> {
+    private async getSamplingPermissionCardResponse(serverName: string, request: IoAiWeb.SamplingRequestParams): Promise<IoAiWeb.SamplingSuccessResponse | IoAiWeb.SamplingErrorResponse> {
         this.getLogger().info(`Showing sampling request from server: ${serverName}, requesting: ${JSON.stringify(request)}`);
 
-        const isModalsApiAvailable: boolean = await this._ioConnectService.isModalsAvailable();
+        const action: string = await this._permissionRequestService.request(
+            this.UI_STRINGS.TEXT,
+            [
+                { id: SAMPLING_ACTION.ACCEPT, label: "Allow", buttonType: APP_BUTTON_TYPES.SUBMIT },
+                { id: SAMPLING_ACTION.DECLINE, label: "Deny", buttonType: APP_BUTTON_TYPES.SECONDARY },
+            ],
+            SAMPLING_ACTION.DECLINE
+        );
 
-        if (!isModalsApiAvailable) {
-            this.getLogger().info("IO Modals not available, using built-in panel for sampling");
-
-            return await this.getBuiltInPanelResponse(request);
-        }
-
-        return await this.getModalsApiPanelResponse(request);
-    }
-
-    private async getBuiltInPanelResponse(request: IoAiWeb.SamplingRequestParams): Promise<IoAiWeb.SamplingSuccessResponse | IoAiWeb.SamplingErrorResponse> {
-        return new Promise((resolve) => {
-            const { overlayRef } = this._overlayService.showPanelOverlay({
-                title: this.UI_STRINGS.TITLE,
-                content: `<div class="flex flex-col g-2">
-                            <span class="text-text-black-white text-lg">Permission to proceed</span>
-                            <span class="text-text-default text-sm">${this.UI_STRINGS.TEXT}</span>
-                          </div>`,
-                isHeaderCloseButtonDisplayed: false,
-                footerButtons: [
-                    {
-                        label: "Continue",
-                        action: PANEL_BUTTON_ACTION_TYPE.CUSTOM,
-                        type: APP_BUTTON_TYPES.SUBMIT,
-                        onClick: () => this.resolveBuiltInPanel(resolve, SAMPLING_ACTION.ACCEPT, request),
-                    },
-                    {
-                        label: "Cancel",
-                        action: PANEL_BUTTON_ACTION_TYPE.CUSTOM,
-                        type: APP_BUTTON_TYPES.DEFAULT,
-                        onClick: () => this.resolveBuiltInPanel(resolve, SAMPLING_ACTION.DECLINE, request),
-                    },
-                ],
-            });
-
-            // The overlay service disposes the overlay on backdrop click;
-            // subscribe here so the pending promise resolves as CANCEL instead of hanging.
-            overlayRef
-                .backdropClick()
-                .pipe(take(1))
-                .subscribe(() => this.resolveBuiltInPanel(resolve, SAMPLING_ACTION.DECLINE, request));
-        });
-    }
-
-    private async getModalsApiPanelResponse(request: IoAiWeb.SamplingRequestParams): Promise<IoAiWeb.SamplingSuccessResponse | IoAiWeb.SamplingErrorResponse> {
-        const dialogOptions: IOConnectModals.DialogRequestConfig = {
-            templateName: "noInputsConfirmationDialog",
-            variables: {
-                title: this.UI_STRINGS.TITLE,
-                heading: this.UI_STRINGS.HEADING,
-                text: this.UI_STRINGS.TEXT,
-                actionButtons: [
-                    { variant: "primary", text: "Continue", id: "yes" },
-                    { variant: "outline", text: "Cancel", id: "no" },
-                ],
-            },
-        };
-
-        const samplingDialogResponse: IOConnectModals.DialogResponse = await this._ioConnectService.requestModalDialog(dialogOptions);
-
-        if (!samplingDialogResponse || !samplingDialogResponse.responseButtonClicked) {
-            throw new Error("No response from sampling modal dialog.");
-        }
-
-        if (samplingDialogResponse.responseButtonClicked?.id === "yes") {
-            return await this.getSamplingResponse(request);
-        }
-
-        this._logger.get(this.LOGGER_NAME).info("User denied the sampling request.");
-
-        return {
-            code: -1,
-            message: "User denied the sampling request.",
-        };
-    }
-
-    private async resolveBuiltInPanel(
-        resolve: (value: IoAiWeb.SamplingSuccessResponse | IoAiWeb.SamplingErrorResponse) => void,
-        action: SAMPLING_ACTION,
-        request: IoAiWeb.SamplingRequestParams
-    ): Promise<void> {
-        this._overlayService.closeCurrentOverlay();
-        resolve(await this.handleResponseType(action, request));
+        return await this.handleResponseType(action as SAMPLING_ACTION, request);
     }
 
     private async handleResponseType(type: SAMPLING_ACTION, request: IoAiWeb.SamplingRequestParams): Promise<IoAiWeb.SamplingSuccessResponse | IoAiWeb.SamplingErrorResponse> {

@@ -6,6 +6,9 @@ import IOWorkspaces from "@interopio/workspaces-api";
 // this must be defined; ships empty — you must set it to your agent server URL
 const AGENT_SERVER_URL = "";
 
+// this must be defined; ships empty — you must set it to your sandbox proxy URL
+const SANDBOX_PROXY_URL = "";
+
 const createIOConnect: typeof IOBrowser = async (config) => {
     const io = await IOBrowser(config);
 
@@ -35,7 +38,15 @@ export const appConfig: ApplicationConfig = {
             aiWebConfig: {
                 agentServer: {
                     baseUrl: AGENT_SERVER_URL,
-                }
+                },
+                mcp: {
+                    clientsConfig: {
+                        capabilities: {},
+                    },
+                    mcpApps: {
+                        sandboxProxyUrl: SANDBOX_PROXY_URL,
+                    },
+                },
             },
         }),
     ],

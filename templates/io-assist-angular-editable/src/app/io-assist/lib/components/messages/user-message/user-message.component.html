@@ -3,7 +3,7 @@
 @let showError = error() && message().id === lastUserMessage()?.id;
 
 <div
-    class="user-message"
+    class="user-message group"
     data-testid="user-message"
     [ngClass]="{
         'flex flex-col justify-end': true,
@@ -25,11 +25,11 @@
             }
         </div>
 
-        <div class="user-message__content flex min-w-0">
+        <div class="user-message__content flex flex-col items-end min-w-0 pt-4">
             <div
                 class="user-message__bubble"
                 [ngClass]="{
-                    'p-4 list-none text-[14px] leading-[18px] font-weight-400 text-user-message-text bg-user-message-background rounded-2xl max-w-[620px]': true,
+                    'list-none text-[13px] leading-[18px] font-weight-350 text-user-message-text bg-user-message-background max-w-[620px] rounded-lg py-3 px-4': true,
                     'min-w-0 whitespace-pre-wrap break-words': true,
                 }"
             >
@@ -38,11 +38,15 @@
         </div>
     </div>
 
+    <div class="flex justify-end mt-0.5 opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+        <app-copy-to-clipboard-button [data-testid]="'user-message-copy-button'" [textToCopy]="message().content ?? ''"></app-copy-to-clipboard-button>
+    </div>
+
     @if (showError) {
         <div
             class="user-message__error"
             [ngClass]="{
-                'flex justify-end py-1 text-text-default text-[13px] font-weight-400 leading-[100%]': true,
+                'flex justify-end py-1 text-text-default text-[13px] font-weight-350 leading-[100%]': true,
             }"
         >
             {{ error() }}

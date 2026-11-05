@@ -1,6 +1,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, inject, input, InputSignal, Signal } from "@angular/core";
 
+import { AppCopyToClipboardButtonComponent } from "../../../shared/components/app-copy-to-clipboard-button/app-copy-to-clipboard-button.component";
 import { AppIconComponent } from "../../../shared/components/app-icon/app-icon.component";
 import { APP_ICON_SIZES, APP_ICON_VARIANTS } from "../../../shared/components/app-icon/enum";
 import { AppSpinnerComponent } from "../../../shared/components/app-spinner/app-spinner.component";
@@ -12,7 +13,7 @@ import { UI_MESSAGE_ROLES, UIMessage, UIUserMessage } from "../../../shared/stor
 import { ThreadFacade } from "../../../shared/store/thread/thread.facade";
 
 const MODULES = [CommonModule];
-const COMPONENTS = [AppSpinnerComponent, AppIconComponent];
+const COMPONENTS = [AppSpinnerComponent, AppIconComponent, AppCopyToClipboardButtonComponent];
 const DIRECTIVES = [AnimationEffectDirective];
 
 @Component({

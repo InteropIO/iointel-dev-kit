@@ -1,34 +1,53 @@
 @let toolName = tool().name;
-<div
-    data-testid="tool-list-item"
-    class="flex justify-between content-center items-center px-2 py-1 gap-2 cursor-pointer rounded-md"
-    tabindex="0"
-    [ngClass]="{
-        'hover:bg-app-background-secondary': isHovered(),
-    }"
->
-    <app-toggle data-testid="tool-toggle" [isChecked]="isEnabled()" (onToggle)="handleToolToggle(tool())" />
-
-    <!-- Tool Title -->
-    <span
-        class="flex flex-1 text-text-default text-xs"
+<div data-testid="tool-list-item">
+    <div
+        class="flex justify-between content-center items-center min-h-[36px] pl-[14px] pr-2 gap-2 cursor-pointer"
         [ngClass]="{
-            'text-text-states-hover': isHovered(),
+            'hover:bg-app-background-secondary': isHovered(),
+            'bg-app-background-secondary': isDetailsOpen(),
         }"
-        >{{ toolName }}</span
+        (click)="handleDetailsToggle($event)"
     >
+        <app-toggle data-testid="tool-toggle" [isChecked]="isEnabled()" (onToggle)="handleToolToggle(tool())" />
 
-    <!-- Tool Info -->
-    <app-tooltip [tooltipPosition]="TOOLTIP_POSITIONS.TOP">
-        <app-icon
-            tooltip-trigger
+        <!-- Tool Title -->
+        <span
+            class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-text-default text-[13px]"
+            [ngClass]="{
+                'text-text-states-hover': isHovered(),
+            }"
+            >{{ toolName }}</span
+        >
+
+        <!-- Tool details toggle (click / tap / Enter / Space) -->
+        <button
+            type="button"
+            class="inline-flex shrink-0 items-center justify-center w-6 h-6 p-0 rounded-full bg-transparent cursor-pointer focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--app-focus-ring)]"
             data-testid="tool-info-icon"
-            [variant]="APP_ICON_VARIANTS.INFO"
-            [iconFill]="!isHovered() ? '--app-text-default' : '--app-text-states-active'"
-            [hoverBackgroundColor]="'--app-icon-background-hover'"
-            [size]="APP_ICON_SIZES.XS"
-        ></app-icon>
+            [ngClass]="{
+                'bg-icon-button-selected hover:bg-icon-button-selected': isDetailsOpen(),
+                'hover:bg-icon-button-hover': !isDetailsOpen(),
+            }"
+            [attr.aria-expanded]="isDetailsOpen()"
+            [attr.aria-controls]="detailsId()"
+            [attr.aria-label]="UI_STRINGS.SHOW_DETAILS(toolName)"
+            (click)="handleDetailsToggle($event)"
+        >
+            <app-icon
+                aria-hidden="true"
+                [title]="''"
+                [tabIndex]="-1"
+                [isWrapped]="false"
+                [variant]="APP_ICON_VARIANTS.INFO"
+                [iconFill]="isDetailsOpen() || isHovered() ? '--app-text-states-active' : '--app-text-default'"
+                [hoverIconFill]="'--app-text-states-active'"
+                [size]="APP_ICON_SIZES.XS"
+            ></app-icon>
+        </button>
+    </div>
 
-        <tool-info tooltip-content [tool]="tool()"></tool-info>
-    </app-tooltip>
+    @if (isDetailsOpen()) {
+        <tool-details data-testid="tool-details" [id]="detailsId()" [tool]="tool()"></tool-details>
+    }
 </div>
+

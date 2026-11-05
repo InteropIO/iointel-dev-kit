@@ -2,12 +2,16 @@
     class="app-button"
     [attr.data-testid]="testId() || null"
     [ngClass]="{
-        'flex justify-center items-center rounded-sm cursor-pointer gap-1 px-spacing-6 py-spacing-3': true,
-        'hover:text-text-states-active hover:border-border-hover': !disabled(),
-        'disabled:bg-button-background-disabled disabled:text-button-text-states-disabled disabled:cursor-not-allowed': disabled(),
-        'border-border-default text-text-default border': buttonType() === APP_BUTTON_TYPES.DEFAULT,
-        'bg-button-submit-background hover:opacity-95 text-white': buttonType() === APP_BUTTON_TYPES.SUBMIT,
+        'flex justify-center items-center cursor-pointer gap-1 rounded-lg font-weight-350': true,
+        'px-4 py-2 text-[12px]': size() !== 'small',
+        'px-[10px] py-[3px] text-[12px] leading-4': size() === 'small',
+        'disabled:bg-button-background-disabled disabled:text-button-text-disabled disabled:cursor-not-allowed': disabled(),
+        'relative z-0 border-0 text-white before:content-[\'\'] before:absolute before:inset-0 before:z-[-1] before:rounded-[inherit] before:p-px before:[background:linear-gradient(180deg,rgba(255,255,255,0.25)_0%,rgba(255,255,255,0)_100%)] before:[-webkit-mask:linear-gradient(#fff_0_0)_content-box,linear-gradient(#fff_0_0)] before:[-webkit-mask-composite:xor] before:[mask:linear-gradient(#fff_0_0)_content-box,linear-gradient(#fff_0_0)] before:[mask-composite:exclude] before:pointer-events-none':
+            buttonType() === APP_BUTTON_TYPES.SUBMIT || buttonType() === APP_BUTTON_TYPES.DANGER,
+        'bg-button-submit-background hover:bg-[color-mix(in_srgb,var(--app-blue)_85%,black_15%)]': buttonType() === APP_BUTTON_TYPES.SUBMIT,
         'bg-button-danger-background': buttonType() === APP_BUTTON_TYPES.DANGER,
+        'bg-transparent border border-border-default text-text-default hover:text-text-states-hover hover:bg-icon-button-hover active:text-text-states-active':
+            buttonType() === APP_BUTTON_TYPES.SECONDARY || buttonType() === APP_BUTTON_TYPES.DEFAULT,
     }"
     [disabled]="disabled()"
     (click)="onClick.emit()"

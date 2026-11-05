@@ -1,20 +1,24 @@
 <div
     class="app-panel"
     [ngClass]="{
-        'flex flex-col bg-panel-background rounded-2xl border border-panel-border shadow-panel-box-shadow w-auto md:min-w-[540px] min-w-[320px] max-w-[960px] max-h-[90vh] box-border overflow-hidden': true,
+        'flex flex-col bg-panel-background rounded-2xl border border-panel-border shadow-panel-box-shadow box-border overflow-hidden': true,
+        'bg-panel-background': true,
     }"
+    [style.height]="fixedHeight()"
+    [style.width]="fixedWidth()"
 >
     <!-- Panel Header -->
     <div
         class="app-panel__header"
         [ngClass]="{
-            'flex justify-end text-text-black-white text-xl font-weight-600 gap-2 flex-shrink-0 px-6 pt-6': true,
+            'flex justify-end text-text-black-white gap-2 flex-shrink-0 px-4 pt-4': true,
         }"
     >
         @if (title()) {
             <span
+                data-testid="panel-header-title"
                 [ngClass]="{
-                    'flex flex-1 items-center text-text-black-white leading-[24px] truncate': true,
+                    'flex flex-1 items-center text-text-black-white text-[15px] font-medium leading-[22px] truncate': true,
                 }"
                 >{{ title() }}</span
             >
@@ -22,11 +26,13 @@
 
         @if (isHeaderCloseButtonDisplayed()) {
             <app-icon
+                class="mr-2"
                 data-testid="panel-close-button"
                 [variant]="APP_ICON_VARIANTS.CLOSE"
-                [size]="APP_ICON_SIZES.M"
-                [iconFill]="'--app-text-black-white'"
-                [hoverIconFill]="'--app-text-black-white'"
+                [size]="APP_ICON_SIZES.XS"
+                [iconFill]="'--app-icon-default'"
+                [hoverIconFill]="'--app-icon-hover'"
+                [hoverBackgroundColor]="'--app-icon-button-hover'"
                 (onClick)="onClose.emit()"
             ></app-icon>
         }
@@ -36,12 +42,12 @@
         <div
             class="app-panel__description"
             [ngClass]="{
-                'flex-shrink-0 px-6 pt-3': true,
+                'flex-shrink-0 px-4 pt-[2px]': true,
             }"
         >
             <p
                 [ngClass]="{
-                    'text-text-secondary text-sm truncate': true,
+                    'text-text-secondary text-[12px] leading-[16px]': true,
                 }"
             >
                 {{ description() }}
@@ -53,13 +59,16 @@
     <div
         class="app-panel__scrollable-wrapper"
         [ngClass]="{
-            'flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar mt-3': true,
+            'flex-1 min-h-0 mt-1': true,
+            'overflow-y-auto overflow-x-hidden custom-scrollbar scroll-fade-edges': !isContentSelfScrolling(),
+            'flex flex-col overflow-hidden': isContentSelfScrolling(),
         }"
     >
         <div
             class="app-panel__scrollable-content"
             [ngClass]="{
-                'px-3 pb-6': true,
+                'px-3 pb-6': !isContentSelfScrolling(),
+                'flex flex-col flex-1 min-h-0': isContentSelfScrolling(),
             }"
         >
             @if (htmlContent()) {
@@ -75,7 +84,7 @@
             <div
                 class="app-panel__content"
                 [ngClass]="{
-                    'text-text-black-white font-weight-400 break-words w-full': true,
+                    'text-text-black-white font-weight-350 break-words w-full': true,
                 }"
             >
                 <ng-content select="[panel-content]"></ng-content>
@@ -88,10 +97,11 @@
     <div
         class="app-panel__footer"
         [ngClass]="{
-            'empty:hidden flex justify-end gap-2 flex-shrink-0 w-full px-6 pb-6 pt-3': true,
+            'empty:hidden flex justify-end gap-2 flex-shrink-0 w-full px-4 pb-4 pt-4': true,
         }"
     >
         <ng-content select="[panel-footer]"></ng-content>
+        <ng-container #panelFooterContent></ng-container>
 
         @if (footerButtons()) {
             @for (button of footerButtons(); track button) {

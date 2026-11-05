@@ -1,0 +1,41 @@
+@switch (status()) {
+    @case ("running") {
+        <span class="block box-border size-3 rounded-full border-[1.5px] border-trace-skeleton border-t-[color:var(--app-blue,#4a8cff)] animate-spin motion-reduce:[animation-duration:2.4s]" aria-hidden="true"></span>
+    }
+    @case ("success") {
+        <app-icon
+            aria-hidden="true"
+            iconFill="--app-status-active"
+            hoverIconFill="--app-status-active"
+            [title]="''"
+            [tabIndex]="-1"
+            [isWrapped]="false"
+            [size]="APP_ICON_SIZES.XXS"
+            [variant]="APP_ICON_VARIANTS.CHECK"
+        ></app-icon>
+    }
+    @case ("error") {
+        <app-icon
+            aria-hidden="true"
+            iconFill="--app-status-error"
+            hoverIconFill="--app-status-error"
+            [title]="''"
+            [tabIndex]="-1"
+            [isWrapped]="false"
+            [size]="APP_ICON_SIZES.XXS"
+            [variant]="APP_ICON_VARIANTS.CLOSE"
+        ></app-icon>
+    }
+    @default {
+        <app-icon
+            aria-hidden="true"
+            iconFill="--app-text-secondary"
+            hoverIconFill="--app-text-secondary"
+            [title]="''"
+            [tabIndex]="-1"
+            [isWrapped]="false"
+            [size]="APP_ICON_SIZES.XS"
+            [variant]="APP_ICON_VARIANTS.INFO"
+        ></app-icon>
+    }
+}

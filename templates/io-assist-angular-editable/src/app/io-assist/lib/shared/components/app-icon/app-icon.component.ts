@@ -56,12 +56,11 @@ import { isInlineSvg, shouldRenderAsImage, stripSvgAttributes, validateIconResou
  * <app-icon
  *     [variant]="APP_ICON_VARIANTS.CLOSE"
  *     [size]="APP_ICON_SIZES.M"
- *     [iconFill]="'app-text-primary'"
- *     [backgroundColor]="'app-bg-secondary'"
- *     [hoverIconFill]="'app-text-primary-dark'"
- *     [disabledIconFill]="'app-text-states-disabled'"
- *     [hoverBackgroundColor]="'app-bg-hover-secondary'"
- *     [hoverBackgroundShape]="APP_ICON_BACKGROUND_SHAPES.CIRCLE"
+ *     [iconFill]="'--app-icon-default'"
+ *     [hoverIconFill]="'--app-icon-hover'"
+ *     [disabledIconFill]="'--app-icon-disabled'"
+ *     [hoverBackgroundColor]="'--app-icon-button-hover'"
+ *     [hoverBackgroundShape]="APP_ICON_BACKGROUND_SHAPES.ROUNDED_RECTANGLE"
  *     [isHoveredExternal]="isHovered"
  *     [title]="'Close window'"
  *     (onClick)="handleIconClick()"
@@ -69,25 +68,27 @@ import { isInlineSvg, shouldRenderAsImage, stripSvgAttributes, validateIconResou
  * ```
  *
  * Color Variables:
- * - Provide CSS variable names with/without the `--` prefix
- *  - Example: `[iconFill]="'app-text-primary'"` uses `var(--app-text-primary)`
+ * - Pass the token name with its `--` prefix, e.g. `[iconFill]="'--app-icon-default'"` uses
+ *   `var(--app-icon-default)` (the prefix is optional, but the codebase always includes it)
  * - Colors must be defined in `_defaults.css`
  *
  * Available Inputs:
  * @input variant - Required. Icon type from APP_ICON_VARIANTS enum
  * @input size - Icon size from APP_ICON_SIZES or custom px value (default: XS)
- * @input iconFill - Fill color for normal state (default: app-text-default)
- * @input disabledIconFill - Fill color when disabled (default: app-text-states-disabled)
- * @input hoverIconFill - Fill color on hover (default: app-text-states-hover)
+ * @input iconFill - Fill color for normal state (default: app-icon-default)
+ * @input disabledIconFill - Fill color when disabled (default: app-icon-disabled)
+ * @input hoverIconFill - Fill color on hover (default: app-icon-hover)
  * @input hoverVariant - Alternative icon variant to render on hover (optional). When provided,
  *     swaps the entire SVG to this variant while hovered. Ideal for paired outline/filled icons
  *     (e.g., PROMPT_PANEL → PROMPT_PANEL_FILLED on hover). Takes precedence over hoverIconFilled.
  * @input backgroundColor - Background color (optional)
  * @input hoverBackgroundColor - Background color on hover (optional)
- * @input hoverBackgroundShape - Shape of hover background (default: CIRCLE)
+ * @input hoverBackgroundShape - Shape of hover background (default: ROUNDED_RECTANGLE — corners at
+ *     25% of the button, so 8px on 32px buttons and 6px on 24px ones)
  * @input isDisabled - Disables icon and applies disabled styles (default: false)
  * @input isWrapped - Determines if host element should be 2x size of icon (default: true)
- * @input title - Custom tooltip text (optional, auto-generated from variant if not provided)
+ * @input title - Custom tooltip text (optional, auto-generated from variant if not provided;
+ *     an empty string means no tooltip, e.g. for decorative icons)
  * @input customIcon - Custom icon resource (svg/url/data-url) to render instead of variant icon
  *     When provided, takes precedence over the variant icon. Supports:
  *     - type: 'svg' - Inline SVG string
@@ -118,6 +119,8 @@ import { isInlineSvg, shouldRenderAsImage, stripSvgAttributes, validateIconResou
         "(keydown)": "handleKeyDown($event)",
         "(mouseenter)": "onMouseEnter()",
         "(mouseleave)": "onMouseLeave()",
+        "(focus)": "onFocus()",
+        "(blur)": "onBlur()",
         "[attr.title]": "getTitle()",
         "[attr.tabindex]": "tabIndex()",
         "[attr.data-testid]": "dataTestId() || null",
@@ -146,7 +149,7 @@ export class AppIconComponent implements OnInit {
     public hoverVariant: InputSignal<AppIconVariantsType | undefined> = input<AppIconVariantsType | undefined>(undefined);
     public isDisabled: InputSignal<boolean> = input<boolean>(false);
     public isWrapped: InputSignal<boolean> = input<boolean>(true);
-    public title: InputSignal<string> = input<string>("");
+    public title: InputSignal<string | undefined> = input<string | undefined>(undefined);
     // eslint-disable-next-line @angular-eslint/no-input-rename -- alias is the kebab-case DOM attribute name, not a style choice
     public dataTestId: InputSignal<string> = input<string>("", { alias: "data-testid" });
 
@@ -160,7 +163,7 @@ export class AppIconComponent implements OnInit {
 
     // For host element
     public backgroundColor: InputSignal<string> = input<string>("");
-    public hoverBackgroundShape: InputSignal<AppIconBackgroundShapeType> = input<AppIconBackgroundShapeType>(APP_ICON_BACKGROUND_SHAPES.CIRCLE);
+    public hoverBackgroundShape: InputSignal<AppIconBackgroundShapeType> = input<AppIconBackgroundShapeType>(APP_ICON_BACKGROUND_SHAPES.ROUNDED_RECTANGLE);
     public hoverBackgroundColor: InputSignal<string> = input<string>("");
     public onClick: OutputEmitterRef<Event> = output<Event>();
     public isHoveredExternal: InputSignal<boolean | null> = input<boolean | null>(null);
@@ -172,10 +175,15 @@ export class AppIconComponent implements OnInit {
     private readonly _effectService: EffectService = inject(EffectService);
 
     public isHostHoveredSignal: WritableSignal<boolean> = signal(false);
+    public isFocused: WritableSignal<boolean> = signal(false);
 
     protected isHovered: Signal<boolean> = computed<boolean>(() => {
         // Use external hover if provided, otherwise internal signal
         return this.isHoveredExternal() !== null ? !!this.isHoveredExternal() : this.isHostHoveredSignal();
+    });
+
+    protected isActiveState: Signal<boolean> = computed<boolean>(() => {
+        return this.isHovered();
     });
 
     protected hasCustomIcon: Signal<boolean> = computed(() => {
@@ -243,9 +251,11 @@ export class AppIconComponent implements OnInit {
         return icon.data;
     });
 
-    public getTitle: Signal<string> = computed<string>(() => {
-        if (this.title()) {
-            return this.title();
+    public getTitle: Signal<string | null> = computed<string | null>(() => {
+        const title: string | undefined = this.title();
+
+        if (title !== undefined) {
+            return title || null;
         }
 
         const match: AppIcon | undefined = this._iconList.find((icon: AppIcon) => icon.name === this.variant());
@@ -258,10 +268,19 @@ export class AppIconComponent implements OnInit {
     });
 
     protected hostClasses: Signal<string> = computed<string>(() => {
+        const shape: string = this.hoverBackgroundShape() as string;
+
+        const shapeClassMap: Record<string, string> = {
+            [APP_ICON_BACKGROUND_SHAPES.CIRCLE]: "rounded-full",
+            [APP_ICON_BACKGROUND_SHAPES.ROUNDED_RECTANGLE]: "rounded-[25%]",
+            [APP_ICON_BACKGROUND_SHAPES.RECTANGLE]: "",
+        };
+
         const classListArray: string[] = [
             "flex items-center justify-center",
+            "transition-colors duration-200 ease-in-out",
             this.isDisabled() ? "cursor-not-allowed" : "cursor-pointer",
-            this.hoverBackgroundShape() === APP_ICON_BACKGROUND_SHAPES.CIRCLE ? "rounded-full" : "",
+            shapeClassMap[shape] ?? "",
         ];
 
         return classListArray.filter((c) => c !== "").join(" ");
@@ -289,7 +308,7 @@ export class AppIconComponent implements OnInit {
 
         const dynamicFill: string = this.isDisabled() ? this.trimPrefix(this.disabledIconFill()) : this.trimPrefix(this.iconFill());
 
-        const staticFill: string = this.isDisabled() ? "var(--app-text-states-disabled)" : "var(--app-text-default)";
+        const staticFill: string = this.isDisabled() ? "var(--app-icon-disabled)" : "var(--app-icon-default)";
 
         const fillValue: string = dynamicFill ? `var(--${dynamicFill})` : staticFill;
 
@@ -318,13 +337,13 @@ export class AppIconComponent implements OnInit {
 
         if (this.isDisabled()) {
             const dynamicFill = this.trimPrefix(this.disabledIconFill());
-            fillValue = dynamicFill ? `var(--${dynamicFill})` : "var(--app-text-states-disabled)";
-        } else if (this.isHovered()) {
+            fillValue = dynamicFill ? `var(--${dynamicFill})` : "var(--app-icon-disabled)";
+        } else if (this.isActiveState()) {
             const hoverFill = this.trimPrefix(this.hoverIconFill());
-            fillValue = hoverFill ? `var(--${hoverFill})` : "var(--app-text-states-hover)";
+            fillValue = hoverFill ? `var(--${hoverFill})` : "var(--app-icon-hover)";
         } else {
             const dynamicFill = this.trimPrefix(this.iconFill());
-            fillValue = dynamicFill ? `var(--${dynamicFill})` : "var(--app-text-default)";
+            fillValue = dynamicFill ? `var(--${dynamicFill})` : "var(--app-icon-default)";
         }
 
         // Apply the icon as a mask and use background-color for the actual color
@@ -344,13 +363,19 @@ export class AppIconComponent implements OnInit {
      * PROMPT_PANEL_FILLED).
      */
     protected iconSvgContent: Signal<SafeHtml> = computed(() => {
-        const activeVariant = this.isHovered() && this.hoverVariant() ? this.hoverVariant() : this.variant();
+        const activeVariant = this.isActiveState() && this.hoverVariant() ? this.hoverVariant() : this.variant();
 
         const svgString = this._iconList.find((icon: AppIcon) => icon.name === activeVariant)?.svgPath || this._defaultIcon.svgPath;
 
-        // Replace all fill attributes with an invalid value so SVG elements inherit
-        // the fill color cascaded via CSS from the parent container div
-        let processed = svgString.replace(/fill="[^"]*"/g, 'fill="defaultColor"');
+        // Strip any fill attribute from the root <svg> tag unconditionally (it's only ever
+        // used as a default/reset, e.g. fill="none", and must not affect inheritance below)
+        let processed = svgString.replace(/^(\s*<svg\b[^>]*?)\s+fill="[^"]*"/, "$1");
+
+        // Replace remaining fill attributes (on child elements) with an invalid value so
+        // SVG elements inherit the fill color cascaded via CSS from the parent container
+        // div. fill="none" is preserved since it intentionally leaves stroke-only shapes
+        // unfilled (e.g. the reload icon's ring).
+        processed = processed.replace(/fill="(?!none")[^"]*"/g, 'fill="defaultColor"');
 
         // Strip width/height so we can set explicit dimensions
         processed = processed.replace(/width="[^"]*"/g, "").replace(/height="[^"]*"/g, "");
@@ -378,11 +403,21 @@ export class AppIconComponent implements OnInit {
         this.isHostHoveredSignal.set(false);
     }
 
+    protected onFocus(): void {
+        if (this.isDisabled()) return;
+
+        this.isFocused.set(true);
+    }
+
+    protected onBlur(): void {
+        this.isFocused.set(false);
+    }
+
     private applyIconHoverStyles(): void {
         if (!this.iconDivRef) return;
 
         const hoverFill = this.trimPrefix(this.hoverIconFill());
-        const fillValue = hoverFill ? `var(--${hoverFill})` : "var(--app-text-states-hover)";
+        const fillValue = hoverFill ? `var(--${hoverFill})` : "var(--app-icon-hover)";
 
         // Set both fill (for SVG attributes) and color (for currentColor)
         this.iconDivRef.nativeElement.style.fill = fillValue;
@@ -394,7 +429,7 @@ export class AppIconComponent implements OnInit {
 
         const dynamicFill: string = this.isDisabled() ? this.trimPrefix(this.disabledIconFill()) : this.trimPrefix(this.iconFill());
 
-        const staticFill: string = this.isDisabled() ? "var(--app-text-states-disabled)" : "var(--app-text-default)";
+        const staticFill: string = this.isDisabled() ? "var(--app-icon-disabled)" : "var(--app-icon-default)";
 
         const fillValue: string = dynamicFill ? `var(--${dynamicFill})` : staticFill;
 
@@ -408,7 +443,7 @@ export class AppIconComponent implements OnInit {
         const widthClass = typeof sizeValue === "string" ? parseInt(sizeValue.replace("px", ""), 10) : sizeValue;
         const heightClass = widthClass;
 
-        return `w-[${widthClass}px] h-[${heightClass}px]`;
+        return `w-[${widthClass}px] h-[${heightClass}px] transition-colors duration-200 ease-in-out`;
     }
 
     protected sizeAsNumber(): number {
@@ -458,7 +493,7 @@ export class AppIconComponent implements OnInit {
         this._effectService.registerEffect("AppIcon.toggleHoverStylesEffect", () => {
             if (this.isDisabled()) return;
 
-            if (this.isHovered()) {
+            if (this.isActiveState()) {
                 this.applyIconHoverStyles();
 
                 return;

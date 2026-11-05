@@ -1,17 +1,22 @@
 import { inject, Injectable, Signal, signal, WritableSignal } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { IoAiWeb } from "@interopio/ai-web";
 import { IOConnectCore } from "@interopio/core";
+import { Actions, ofType } from "@ngrx/effects";
 import { Store } from "@ngrx/store";
 
 import { APP_BUTTON_TYPES } from "../../components/app-button/enum";
 import { PANEL_BUTTON_ACTION_TYPE } from "../../components/app-panel/enums";
 import { UI_STRINGS } from "../../constants/ui-strings";
-import { getResponse } from "../../store/message/message.actions";
+import { getResponse, getResponseFailure, getResponseSuccess } from "../../store/message/message.actions";
+import { selectIsGeneratingResponse } from "../../store/message/message.selector";
 import { UI_MESSAGE_ROLES } from "../../store/message/types";
 import { selectActiveThreadId } from "../../store/thread/thread.selector";
 import { IOConnectService } from "../io/io.service";
 import { LoggerService } from "../logger/logger.service";
 import { OverlayService } from "../overlay/overlay.service";
+
+type PendingMcpAppMessage = { threadId: string; text: string };
 
 /**
  * Centralized service for all MCP Apps interactions in io-assist.
@@ -30,15 +35,28 @@ export class McpAppsService {
     private readonly _ioConnectService: IOConnectService = inject(IOConnectService);
     private readonly _overlayService: OverlayService = inject(OverlayService);
     private readonly _store: Store = inject(Store);
+    private readonly _actions$: Actions = inject(Actions);
     private readonly _loggerService: LoggerService = inject(LoggerService);
 
     private readonly _activeThreadId: Signal<string | null> = this._store.selectSignal(selectActiveThreadId);
+    private readonly _isGeneratingResponse: Signal<boolean> = this._store.selectSignal(selectIsGeneratingResponse);
 
     private _api: IoAiWeb.McpApps.API | undefined;
 
     private readonly _instances: WritableSignal<IoAiWeb.McpApps.AppInstance[]> = signal([]);
     private readonly _unsubs: (() => void)[] = [];
     private readonly _chatMessageUnsubs = new Map<string, () => void>();
+
+    /**
+     * Widget-initiated chat messages ("ui/message") received while the assistant is already
+     * generating a response. Flushed one at a time as each in-flight response finishes, instead
+     * of dispatching them immediately and interleaving a new stream mid-response.
+     */
+    private readonly _pendingMcpAppMessages: PendingMcpAppMessage[] = [];
+
+    constructor() {
+        this._actions$.pipe(ofType(getResponseSuccess, getResponseFailure), takeUntilDestroyed()).subscribe(() => this._flushNextPendingMcpAppMessage());
+    }
 
     /**
      * When true, a replace-instance modal is already visible.
@@ -108,7 +126,17 @@ export class McpAppsService {
             }
         });
 
-        this._unsubs.push(unsubCreated, unsubRecreate, unsubRecreated);
+        const unsubClosed = this._api.onAppClosed((event) => {
+            this._instances.update((prev) => prev.filter((a) => a.id !== event.id));
+
+            const unsub = this._chatMessageUnsubs.get(event.id);
+            if (unsub) {
+                unsub();
+                this._chatMessageUnsubs.delete(event.id);
+            }
+        });
+
+        this._unsubs.push(unsubCreated, unsubRecreate, unsubRecreated, unsubClosed);
     }
 
     /** Clears tracked instances and tears down per-instance chat-message subscriptions. */
@@ -158,23 +186,39 @@ export class McpAppsService {
             const activeThreadId = this._activeThreadId();
             if (!activeThreadId) return;
 
-            this._store.dispatch(
-                getResponse({
-                    params: {
-                        messages: [
-                            {
-                                id: crypto.randomUUID(),
-                                role: UI_MESSAGE_ROLES.USER,
-                                content: text,
-                            },
-                        ],
-                    },
-                    threadId: activeThreadId,
-                })
-            );
+            if (this._isGeneratingResponse()) {
+                this._pendingMcpAppMessages.push({ threadId: activeThreadId, text });
+                return;
+            }
+
+            this._dispatchMcpAppMessage(activeThreadId, text);
         });
 
         this._chatMessageUnsubs.set(app.id, unsub);
+    }
+
+    private _dispatchMcpAppMessage(threadId: string, text: string): void {
+        this._store.dispatch(
+            getResponse({
+                params: {
+                    messages: [
+                        {
+                            id: crypto.randomUUID(),
+                            role: UI_MESSAGE_ROLES.USER,
+                            content: text,
+                        },
+                    ],
+                },
+                threadId,
+            })
+        );
+    }
+
+    private _flushNextPendingMcpAppMessage(): void {
+        const next = this._pendingMcpAppMessages.shift();
+        if (!next) return;
+
+        this._dispatchMcpAppMessage(next.threadId, next.text);
     }
 
     private async _showReplaceInstanceModal(toolName: string): Promise<boolean> {

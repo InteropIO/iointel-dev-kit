@@ -13,8 +13,8 @@
     [attr.aria-checked]="isChecked()"
     [attr.aria-disabled]="isDisabled()"
     [attr.tabindex]="isDisabled() ? -1 : 0"
-    (click)="handleToggle()"
-    (keydown)="handleKeyDown($event)"
+    (click)="$event.stopPropagation(); handleToggle()"
+    (keydown)="$event.stopPropagation(); handleKeyDown($event)"
 >
     <div
         class="app-toggle__icon-wrapper"
@@ -25,6 +25,7 @@
     >
         <app-icon
             class="app-toggle__icon"
+            aria-hidden="true"
             [ngClass]="{
                 'm-[4px]': true,
             }"
@@ -32,6 +33,8 @@
             [size]="APP_ICON_SIZES.XXS"
             [iconFill]="'--app-neutrals-0'"
             [hoverIconFill]="'--app-neutrals-0'"
+            [title]="''"
+            [tabIndex]="-1"
             [isWrapped]="false"
         >
         </app-icon>

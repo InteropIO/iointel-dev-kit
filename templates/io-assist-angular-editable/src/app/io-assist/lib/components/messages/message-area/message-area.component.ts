@@ -10,10 +10,11 @@ import { ToolTraceState, UI_MESSAGE_ROLES, UIMessage } from "../../../shared/sto
 import { ScrollAreaComponent } from "../../scroll-area/scroll-area.component";
 import { AssistantMessageComponent } from "../assistant-message/assistant-message.component";
 import { McpAppResourceComponent } from "../mcp-app-resource/mcp-app-resource.component";
+import { PermissionRequestCardComponent } from "../permission-request-card/permission-request-card.component";
 import { ToolTraceMessageComponent } from "../tool-trace-message/tool-trace-message.component";
 import { UserMessageComponent } from "../user-message/user-message.component";
 
-const COMPONENTS = [ScrollAreaComponent, AssistantMessageComponent, UserMessageComponent, AppSpinnerComponent, ToolTraceMessageComponent, McpAppResourceComponent];
+const COMPONENTS = [ScrollAreaComponent, AssistantMessageComponent, UserMessageComponent, AppSpinnerComponent, ToolTraceMessageComponent, McpAppResourceComponent, PermissionRequestCardComponent];
 const MODULES = [CommonModule];
 
 @Component({
@@ -49,7 +50,7 @@ export class MessageAreaComponent {
         for (const msg of messages) {
             if (msg.role !== UI_MESSAGE_ROLES.TOOL) continue;
             const instance = instances.find((i) => i.id === msg.id);
-            if (!instance || !msg.responseForUserQueryId) continue;
+            if (!instance || instance.displayMode !== "inline" || !msg.responseForUserQueryId) continue;
 
             const key = msg.responseForUserQueryId;
             const list = map.get(key) ?? [];
@@ -60,9 +61,23 @@ export class MessageAreaComponent {
         return map;
     });
 
+    protected readonly lastAssistantMessageIdByResponse: Signal<Map<string, string>> = computed(() => {
+        const map = new Map<string, string>();
+        for (const msg of this.allMessages()) {
+            if (msg.role !== UI_MESSAGE_ROLES.ASSISTANT || !msg.responseForUserQueryId) continue;
+            map.set(msg.responseForUserQueryId, msg.id);
+        }
+        return map;
+    });
+
     protected getMcpAppsForResponse(responseForUserQueryId: string | undefined): IoAiWeb.McpApps.AppInstance[] {
         if (!responseForUserQueryId) return [];
         return this.mcpAppsByResponse().get(responseForUserQueryId) ?? [];
+    }
+
+    protected isLastAssistantMessageForResponse(message: UIMessage): boolean {
+        if (!message.responseForUserQueryId) return false;
+        return this.lastAssistantMessageIdByResponse().get(message.responseForUserQueryId) === message.id;
     }
 
     protected showToolTraceForMessage(messageId: string): boolean {

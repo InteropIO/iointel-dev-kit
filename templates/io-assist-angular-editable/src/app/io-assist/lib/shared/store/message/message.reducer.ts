@@ -279,12 +279,12 @@ export const messageReducer = createReducer(
         };
     }),
 
-    on(addToolResult, (state, { toolCallId, result }) => {
-        const updatedToolTraceState: ToolTraceState[] = addToolTraceResultEntry(state.toolTraceState, toolCallId, result);
+    on(addToolResult, (state, { toolCallId, result, completedAt }) => {
+        const updatedToolTraceState: ToolTraceState[] = addToolTraceResultEntry(state.toolTraceState, toolCallId, result, completedAt);
 
         return {
             ...state,
-            messages: state.messages.map((msg) => (msg.id === toolCallId ? { ...msg, result } : msg)),
+            messages: state.messages.map((msg) => (msg.id === toolCallId ? { ...msg, result, completedAt } : msg)),
             toolTraceState: updatedToolTraceState,
         };
     }),

@@ -7,10 +7,12 @@
 
 <div
     data-testid="thread-list-item"
-    class="flex flex-1 justify-start gap-2 px-4 h-8 rounded-md hover:bg-thread-list-item-hover-background group"
+    class="flex flex-1 justify-start gap-2 h-8 rounded-md group"
     tabindex="0"
+    [attr.data-active]="isCurrentlyActive || null"
     [ngClass]="{
-        'bg-thread-list-item-hover-background': isCurrentlyActive,
+        'bg-[var(--app-thread-list-item-active-background)]': isCurrentlyActive,
+        'hover:bg-thread-list-item-hover-background': !isCurrentlyActive,
     }"
     (keyup.enter)="handleThreadSelection()"
     (click)="handleThreadSelection()"
@@ -32,7 +34,7 @@
                 </span>
 
                 @if (isThreadActionPending) {
-                    <app-spinner data-testid="thread-list-item-spinner" class="pl-2 flex-shrink-0" tabindex="-1" [size]="APP_SPINNER_COMPONENT_SIZE.SMALL"></app-spinner>
+                    <app-spinner data-testid="thread-list-item-spinner" class="pl-2 flex-shrink-0" tabindex="-1" [size]="APP_SPINNER_COMPONENT_SIZE.XSMALL"></app-spinner>
                 }
             </div>
         }
@@ -41,7 +43,7 @@
             <input
                 #threadNameInput
                 data-testid="thread-name-input"
-                class="flex-1 px-2 border border-proto-border-default rounded text-proto-text-default"
+                class="flex-1 min-w-0 h-6 -mx-1 px-[3px] text-xs text-text-states-active bg-input-background border border-input-border-active rounded-md outline-none"
                 [value]="thread().title"
                 (blur)="handleRenameOnBlur(threadNameInput.value)"
                 (keydown.enter)="handleEditModeDisable(); onRenameThread(threadNameInput.value)"
@@ -50,23 +52,31 @@
         }
 
         <!-- Thread Action Buttons -->
-        <div class="hidden group-hover:flex gap-2 ml-auto" [ngClass]="{ flex: isCurrentlyActive, hidden: !isCurrentlyActive }">
-            <app-icon
-                data-testid="thread-edit-button"
-                [variant]="APP_ICON_VARIANTS.EDIT"
-                [tabIndex]="isCurrentlyActive ? 0 : -1"
-                [size]="APP_ICON_SIZES.S"
-                [isDisabled]="isThreadActionPending"
-                (onClick)="handleEditModeEnable()"
-            />
-            <app-icon
-                data-testid="thread-delete-button"
-                [variant]="APP_ICON_VARIANTS.DELETE"
-                [tabIndex]="isCurrentlyActive ? 0 : -1"
-                [size]="APP_ICON_SIZES.S"
-                [isDisabled]="isCurrentlyActive || isThreadActionPending"
-                (onClick)="onDeleteThread(thread()); $event.stopPropagation()"
-            />
-        </div>
+        @if (!isEditModeEnabled()) {
+            <div class="hidden group-hover:flex items-center gap-[2px] ml-auto pr-1" [ngClass]="{ flex: isCurrentlyActive, hidden: !isCurrentlyActive }">
+                <app-icon
+                    data-testid="thread-edit-button"
+                    iconFill="--app-icon-default"
+                    hoverIconFill="--app-icon-hover"
+                    [variant]="APP_ICON_VARIANTS.EDIT"
+                    [tabIndex]="isCurrentlyActive ? 0 : -1"
+                    [size]="APP_ICON_SIZES.XS"
+                    [hoverBackgroundColor]="'--app-icon-button-selected'"
+                    [isDisabled]="isThreadActionPending"
+                    (onClick)="handleEditModeEnable()"
+                />
+                <app-icon
+                    data-testid="thread-delete-button"
+                    iconFill="--app-icon-default"
+                    hoverIconFill="--app-icon-hover"
+                    [variant]="APP_ICON_VARIANTS.DELETE"
+                    [tabIndex]="isCurrentlyActive ? 0 : -1"
+                    [size]="APP_ICON_SIZES.XS"
+                    [hoverBackgroundColor]="'--app-icon-button-selected'"
+                    [isDisabled]="isCurrentlyActive || isThreadActionPending"
+                    (onClick)="onDeleteThread(thread()); $event.stopPropagation()"
+                />
+            </div>
+        }
     </div>
 </div>

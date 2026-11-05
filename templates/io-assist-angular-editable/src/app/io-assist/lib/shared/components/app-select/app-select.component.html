@@ -9,11 +9,12 @@
         aria-haspopup="listbox"
         [attr.aria-expanded]="isOpen()"
         [attr.aria-controls]="selectId() + '-listbox'"
+        [attr.data-testid]="selectId() + '-select-trigger'"
         [ngClass]="{
             'flex items-center gap-spacing-2 py-spacing-4 px-spacing-4 rounded-[8px] text-input-text text-[12px] leading-none cursor-pointer w-full transition-colors outline-none hover:text-text-states-active': true,
             'text-text-states-active': isOpen() || isTriggerFocused(),
-            'bg-thread-list-item-hover-background': !outline() && (isOpen() || isTriggerFocused()),
-            'bg-transparent hover:bg-thread-list-item-hover-background': !outline() && !isOpen() && !isTriggerFocused(),
+            'bg-icon-button-selected': !outline() && (isOpen() || isTriggerFocused()),
+            'bg-transparent hover:bg-icon-button-hover': !outline() && !isOpen() && !isTriggerFocused(),
         }"
         (mouseenter)="isTriggerHovered.set(true)"
         (mouseleave)="isTriggerHovered.set(false)"
@@ -45,6 +46,7 @@
                     [id]="selectId() + '-opt-' + i"
                     [attr.aria-selected]="isSelected(option)"
                     [attr.aria-describedby]="option.description ? selectId() + '-desc-' + i : null"
+                    [attr.data-testid]="selectId() + '-select-option-' + option.value"
                     (mouseenter)="hoveredOptionTitle.set(option.title)"
                     (mouseleave)="hoveredOptionTitle.set(null)"
                     (click)="select(option)"
@@ -58,7 +60,15 @@
                         @if (hasAnyIcon()) {
                             <div class="w-4 shrink-0 flex items-center justify-center text-white text-[10px] font-light leading-4" [ngClass]="{ 'order-last': invertOrder() }">
                                 @if (option.icon) {
-                                    <app-icon [variant]="option.icon" [size]="APP_ICON_SIZES.XXS" [isWrapped]="false" [isHoveredExternal]="hoveredOptionTitle() === option.title" />
+                                    <app-icon
+                                        aria-hidden="true"
+                                        [title]="''"
+                                        [tabIndex]="-1"
+                                        [variant]="option.icon"
+                                        [size]="APP_ICON_SIZES.XXS"
+                                        [isWrapped]="false"
+                                        [isHoveredExternal]="hoveredOptionTitle() === option.title"
+                                    />
                                 }
                             </div>
                         }
@@ -80,7 +90,15 @@
                         <!-- Check column — fixed width so layout never shifts. -->
                         <div class="w-4 h-4 shrink-0 flex items-center justify-center leading-[16px]" [ngClass]="{ 'order-first': invertOrder() }">
                             @if (isSelected(option)) {
-                                <app-icon [variant]="APP_ICON_VARIANTS.CHECK" [size]="APP_ICON_SIZES.XXS" [isWrapped]="false" [isHoveredExternal]="hoveredOptionTitle() === option.title" />
+                                <app-icon
+                                    aria-hidden="true"
+                                    [title]="''"
+                                    [tabIndex]="-1"
+                                    [variant]="APP_ICON_VARIANTS.CHECK"
+                                    [size]="APP_ICON_SIZES.XXS"
+                                    [isWrapped]="false"
+                                    [isHoveredExternal]="hoveredOptionTitle() === option.title"
+                                />
                             }
                         </div>
                     </div>

@@ -11,165 +11,67 @@
     padding: 0px 2px;
 }
 
-/*
- * These wildcard rules live in @layer base so that Tailwind utility classes
- * used by child components always win (base < components < utilities).
- * Elements without a competing utility still receive the base value.
- */
-@layer base {
-    :host ::ng-deep remark-node * {
-        padding: 8px 0;
-    }
-
-    /* Code Block — reset the remark-node * padding for all code-block descendants */
-    :host ::ng-deep .io-assist-code-block * {
-        padding: 0;
-    }
-}
-
 :host ::ng-deep remark-node h1,
 :host ::ng-deep remark-node h2,
 :host ::ng-deep remark-node h3,
 :host ::ng-deep remark-node h4,
 :host ::ng-deep remark-node h5,
 :host ::ng-deep remark-node h6 {
-    font-family: Inter, sans-serif;
-    font-weight: 500;
+    font-family: "Inter Variable", "DM Sans", Arial, sans-serif;
+    font-weight: var(--app-font-weight-550);
     color: var(--color-text-states-active);
-    margin-top: 20px;
+    margin-top: 8px;
     padding: 0;
     line-height: normal;
 }
 
-:host ::ng-deep remark-node h1 { font-size: 20px; line-height: 28px; }
-:host ::ng-deep remark-node h2 { font-size: 18px; line-height: 26px; }
-:host ::ng-deep remark-node h3 { font-size: 16px; line-height: 24px; }
-:host ::ng-deep remark-node h4 { font-size: 15px; line-height: 22px; }
-:host ::ng-deep remark-node h5 { font-size: 14px; line-height: 20px; }
-:host ::ng-deep remark-node h6 { font-size: 13px; line-height: 18px; }
+:host ::ng-deep remark-node h1 {
+    font-size: 20px;
+    line-height: 28px;
+}
+:host ::ng-deep remark-node h2 {
+    font-size: 18px;
+    line-height: 26px;
+}
+:host ::ng-deep remark-node h3 {
+    font-size: 16px;
+    line-height: 24px;
+}
+:host ::ng-deep remark-node h4 {
+    font-size: 15px;
+    line-height: 22px;
+}
+:host ::ng-deep remark-node h5 {
+    font-size: 14px;
+    line-height: 20px;
+}
+:host ::ng-deep remark-node h6 {
+    font-size: 13px;
+    line-height: 18px;
+}
 
-/* Body text — base span */
-:host ::ng-deep remark-node span:not(h1 span, h2 span, h3 span, h4 span, h5 span, h6 span, a span, .io-assist-code-block__copy *) {
-    font-family: Inter, sans-serif;
+/* Body text — base span. table td span is excluded here (not just td span) so this stays
+   scoped to an actual <table>'s cells — everything outside a table keeps this 14px size. */
+:host ::ng-deep remark-node span:not(th span, h1 span, h2 span, h3 span, h4 span, h5 span, h6 span, a span, table td span, .io-assist-code-block *) {
+    font-family: "Inter Variable", "DM Sans", Arial, sans-serif;
     font-size: 14px;
     font-style: normal;
-    font-weight: 400;
+    font-weight: var(--app-font-weight-350);
     line-height: 20px;
     color: var(--color-text-default);
 }
 
-/* Code Block — outer wrapper */
-:host ::ng-deep .io-assist-code-block {
-    position: relative;
-    width: 100%;
-    background: var(--color-app-background-secondary, #36383b);
-    border-radius: 16px;
-    padding: 16px;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    margin: 8px 0;
-}
-
-/* Code Block — copy button: absolute top-right */
-:host ::ng-deep .io-assist-code-block__copy {
-    position: absolute;
-    top: 15px;
-    right: 20px;
-    z-index: 1;
-}
-
-/* Code Block — prism content */
-:host ::ng-deep .io-assist-code-theme {
-    display: block;
-    width: 100%;
-    padding-top: 16px;
-}
-
-:host ::ng-deep .io-assist-code-theme pre {
-    background: transparent;
-    padding: 0;
-    margin: 0;
-    border: none;
-    border-radius: 0;
-    box-shadow: none;
-    text-shadow: none;
-    outline: none;
-}
-
-:host ::ng-deep .io-assist-code-theme code {
-    display: block;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
+/* Text inside <strong>. The :not() only exists to out-rank the body-text span rule above
+   (which sets its own weight), so this weight actually applies. */
+:host ::ng-deep remark-node strong span:not(.io-assist-code-block *) {
     font-weight: 400;
-    line-height: 18px;
-    white-space: pre-wrap;
-    word-break: break-word;
-    max-width: 100%;
-    box-sizing: border-box;
-    padding: 0;
-    text-shadow: none;
 }
 
-/* Prism syntax token colors — matches the Figma design */
-:host ::ng-deep .io-assist-code-theme .token {
-    font-family: inherit;
-    font-size: inherit;
-    line-height: inherit;
-    padding: 0;
-    background: transparent;
-    text-shadow: none;
-    color: var(--color-text-default, #caccce); /* default token color */
-}
-
-/* Keywords: import, export, from, const, let, var, function, class, interface, return, if, else, etc. */
-:host ::ng-deep .io-assist-code-theme .token.keyword,
-:host ::ng-deep .io-assist-code-theme .token.module,
-:host ::ng-deep .io-assist-code-theme .token.important,
-:host ::ng-deep .io-assist-code-theme .token.atrule {
-    color: #fb4bba;
-}
-
-/* Identifiers: function names, class names, variables used as values */
-:host ::ng-deep .io-assist-code-theme .token.function,
-:host ::ng-deep .io-assist-code-theme .token.class-name,
-:host ::ng-deep .io-assist-code-theme .token.variable,
-:host ::ng-deep .io-assist-code-theme .token.attr-name,
-:host ::ng-deep .io-assist-code-theme .token.property {
-    color: #4b92fb;
-}
-
-/* Strings and types */
-:host ::ng-deep .io-assist-code-theme .token.string,
-:host ::ng-deep .io-assist-code-theme .token.char,
-:host ::ng-deep .io-assist-code-theme .token.builtin,
-:host ::ng-deep .io-assist-code-theme .token.url,
-:host ::ng-deep .io-assist-code-theme .token.regex,
-:host ::ng-deep .io-assist-code-theme .token.attr-value {
-    color: #e39292;
-}
-
-/* Numbers, booleans */
-:host ::ng-deep .io-assist-code-theme .token.number,
-:host ::ng-deep .io-assist-code-theme .token.boolean {
-    color: #4b92fb;
-}
-
-/* Comments */
-:host ::ng-deep .io-assist-code-theme .token.comment,
-:host ::ng-deep .io-assist-code-theme .token.prolog,
-:host ::ng-deep .io-assist-code-theme .token.doctype,
-:host ::ng-deep .io-assist-code-theme .token.cdata {
-    color: #6a6d72;
-    font-style: italic;
-}
-
-/* Operators and punctuation — default gray */
-:host ::ng-deep .io-assist-code-theme .token.operator,
-:host ::ng-deep .io-assist-code-theme .token.punctuation,
-:host ::ng-deep .io-assist-code-theme .token.tag,
-:host ::ng-deep .io-assist-code-theme .token.entity {
-    color: var(--color-text-default, #caccce);
+/* Code Block — rendered by the shared code panel (line numbers, syntax colors, copy),
+   the same bordered card as the tool trace. */
+:host ::ng-deep .io-assist-code-block {
+    display: block;
+    margin: 8px 0;
 }
 
 /* Ensure remark and remark-node form proper block formatting contexts */
@@ -185,13 +87,26 @@
     max-width: 100%;
 }
 
-/* Table Theming */
+/* Table Theming — bordered card with a divider between every row, matching the
+   Field/Value reference design. Uses border-collapse: separate (not collapse) so the
+   outer border-radius renders cleanly; row dividers live on the cells themselves instead
+   of collapsed table-row borders. All colors are theme-flipping tokens (--app-table-border,
+   --app-text-secondary, --app-text-states-active), so light theme gets real light-theme
+   contrast instead of the dark-only hex values this block used before. --app-table-border
+   is its own token (not --app-border-default) so the dark-theme table border can use
+   neutrals-750 specifically, independent of the app's general border color. */
 :host ::ng-deep remark-node table {
-    margin: 8px 0;
+    margin: 16px 0;
     width: 100%;
     max-width: 100%;
-    border-collapse: collapse;
-    display: block;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--app-table-border);
+    border-radius: 8px;
+    box-shadow: 0 3px 10px #00000020;
+}
+
+:host ::ng-deep remark-node:has(table) {
     overflow-x: auto;
 }
 
@@ -200,45 +115,73 @@
 }
 
 :host ::ng-deep remark-node table thead th {
-    padding: 12px 12px 12px 0;
-    font-family: Inter, sans-serif;
-    font-size: 14px;
+    padding: 4px 12px;
+    font-family: "Inter Variable", "DM Sans", Arial, sans-serif;
+    font-size: 11px;
     font-weight: 500;
     line-height: 20px;
-    color: var(--color-text-states-active);
-    border-bottom: 2px solid var(--color-panel-border);
+    color: var(--app-text-secondary);
+    background: var(--app-input-background-hover);
+    border-bottom: 1px solid var(--app-table-border);
+}
+
+/* The header row's own background would otherwise square off past the table's rounded
+   corners now that it's no longer transparent. */
+:host ::ng-deep remark-node table thead th:first-child {
+    border-top-left-radius: 8px;
 }
 
 :host ::ng-deep remark-node table thead th:last-child {
-    padding-right: 0;
+    border-top-right-radius: 8px;
 }
 
-:host ::ng-deep remark-node table tbody tr {
-    border-top: 1px solid var(--color-panel-border);
+:host ::ng-deep remark-node table tbody tr:not(:last-child) td {
+    border-bottom: 1px solid var(--app-table-border);
 }
 
 :host ::ng-deep remark-node td {
-    padding: 12px 12px 12px 0;
-    font-family: Inter, sans-serif;
+    padding: 4px 12px;
+    font-family: "Inter Variable", "DM Sans", Arial, sans-serif;
     font-size: 14px;
     font-weight: 400;
     line-height: 20px;
-    color: var(--color-text-default);
+    color: var(--app-text-states-active);
+    background: var(--app-background-secondary);
 }
 
-:host ::ng-deep remark-node td:last-child {
-    padding-right: 0;
+/* Same corner-clipping concern as the header, but for the last row's bottom corners. */
+:host ::ng-deep remark-node table tbody tr:last-child td:first-child {
+    border-bottom-left-radius: 8px;
+}
+
+:host ::ng-deep remark-node table tbody tr:last-child td:last-child {
+    border-bottom-right-radius: 8px;
+}
+
+/* First column reads as the row's label (e.g. "Client", "Portfolio ID") — default text
+   color, a step below the active value color. */
+:host ::ng-deep remark-node td:first-child {
+    font-weight: var(--app-font-weight-350);
+    color: var(--app-text-default);
+}
+
+/* The cell's actual text content (rendered as a span by the markdown renderer) — kept
+   separate from the td rule above since remark-node span:not(...) would otherwise win on
+   specificity and force it back to the 14px body-text size. Scoped with "table" in the
+   chain (not just "td span") so this can never match a span outside an actual table. */
+:host ::ng-deep remark-node table td span {
+    font-size: 12px;
 }
 
 /* Lists — shared base */
 :host ::ng-deep remark-node ul,
 :host ::ng-deep remark-node ol {
-    margin: 16px 0 8px 0;
+    margin: 16px 0 16px 0;
     padding: 0;
-    font-family: Inter, sans-serif;
+    font-family: "Inter Variable", "DM Sans", Arial, sans-serif;
     font-size: 14px;
     font-style: normal;
-    font-weight: 400;
+    font-weight: var(--app-font-weight-350);
     line-height: 20px;
     color: var(--color-text-default);
     list-style: none;
@@ -277,21 +220,18 @@
 /* All UL direct-child items */
 :host ::ng-deep remark-node ul > li {
     position: relative;
-    padding: 6px 0 6px 14px;
+    padding: 2px 0 2px 12px;
 }
 
-/* Bullet: vertically centered with the first text line.
-   li padding-top = 6px, line-height = 20px → text center = 6 + 10 = 16px
-   Bullet is 6px tall → top = 16 - 3 = 13px */
 :host ::ng-deep remark-node ul > li::before {
-    content: '';
+    content: "";
     position: absolute;
-    left: 1px;
-    top: 13px;
-    width: 6px;
-    height: 6px;
+    left: 0px;
+    top: 10px;
+    width: 3px;
+    height: 3px;
     border-radius: 50%;
-    background-color: var(--color-text-default);
+    background-color: var(--app-accent-color-1);
 }
 
 /* L3 bullet: hollow circle */
@@ -330,14 +270,14 @@
 
 /* Number: top = li padding-top = 6px, aligns with start of text line */
 :host ::ng-deep remark-node ol > li::before {
-    content: counters(item, '.') '.';
+    content: counters(item, ".") ".";
     position: absolute;
     left: 0;
     top: 6px;
-    font-family: Inter, sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 20px;
+    font-family: "Inter Variable", "DM Sans", Arial, sans-serif;
+    font-size: 13px;
+    font-weight: var(--app-font-weight-550);
+    line-height: 21px;
     color: var(--color-text-states-active);
 }
 
@@ -352,26 +292,27 @@
     position: relative;
 }
 
+/* Light theme: same soft fill as the user message bubble instead of the dark-theme hex. */
+:host-context(.light) ::ng-deep remark-node blockquote {
+    background: var(--app-user-message-background);
+}
+
 :host ::ng-deep remark-node blockquote::before {
-    content: '';
+    content: "";
     position: absolute;
     left: 0;
     top: 0;
-    width: 6px;
+    width: 2px;
     height: 100%;
     border-radius: 4px 0 0 4px;
-    background: linear-gradient(
-        180deg,
-        var(--color-app-accent-color-1),
-        var(--app-blue, #4b92fb)
-    );
+    background: linear-gradient(180deg, var(--color-app-accent-color-1), var(--app-blue, #4b92fb));
 }
 
 :host ::ng-deep remark-node blockquote p,
 :host ::ng-deep remark-node blockquote span {
-    font-family: Inter, sans-serif;
+    font-family: "Inter Variable", "DM Sans", Arial, sans-serif;
     font-size: 14px;
-    font-weight: 400;
+    font-weight: var(--app-font-weight-350);
     line-height: 20px;
     color: var(--color-text-default, #caccce);
     padding: 0;
@@ -384,11 +325,12 @@
     z-index: 1;
     position: relative;
     margin-top: 16px;
+    margin-bottom: 8px;
     padding-bottom: 8px;
 }
 
 :host ::ng-deep remark-node hr::before {
-    content: '';
+    content: "";
     background: var(--color-panel-border, #3a3c40);
     position: absolute;
     z-index: -1;
@@ -396,6 +338,11 @@
     left: 0px;
     width: 100%;
     height: 1px;
+}
+
+/* Light theme: the panel border token is dark in both themes, which reads too heavy as a divider. */
+:host-context(.light) ::ng-deep remark-node hr::before {
+    background: var(--app-neutrals-100);
 }
 
 /* Paragraph — body text */
@@ -407,7 +354,7 @@
     line-height: 20px;
     color: var(--color-text-default);
     padding: 0;
-    margin: 0 0 8px 0;
+    margin: 12px 0 12px 0;
 }
 
 :host ::ng-deep remark-node p:last-child {
@@ -461,7 +408,6 @@
 }
 
 :host ::ng-deep remark-node strong span {
-    font-weight: inherit;
     padding: 0;
 }
 
@@ -490,16 +436,22 @@
     padding: 0;
 }
 
-/* Inline code: JetBrains Mono 13px/18px, blue, dark bg pill */
+/* Inline code: a flat pill — 12px, default text color, rounded, no border or shadow. The resets matter:
+   the global Prism theme styles every inline code[class*="language-"] (ngx-remark adds
+   class="language-plain") with its own border, background and shadow. */
 :host ::ng-deep remark-node code:not(pre code) {
     display: inline;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
     font-weight: 400;
-    line-height: 18px;
-    color: var(--app-blue, #4b92fb);
-    background: var(--color-app-background-secondary);
-    border-radius: 2px;
-    padding: 0 2px;
+    line-height: inherit;
+    color: var(--app-text-default);
+    background: var(--app-input-background-hover);
+    border: none;
+    border-radius: 4px;
+    box-shadow: none;
+    text-shadow: none;
+    padding: 1px 5px;
+    white-space: normal;
     vertical-align: baseline;
 }

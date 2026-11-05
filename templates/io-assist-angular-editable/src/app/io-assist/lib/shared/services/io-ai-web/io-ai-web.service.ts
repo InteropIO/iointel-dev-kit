@@ -4,9 +4,11 @@ import { computed, inject, Injectable, Signal, signal, WritableSignal } from "@a
 import { IoAiWeb } from "@interopio/ai-web";
 import { IoIntelWorkingContext } from "@interopio/working-context";
 
+import { CustomMcpCapabilityHandlersService } from "./custom-mcp-capability-handlers/custom-mcp-capability-handlers.service";
 import { ElicitationService } from "./elicitation/elicitation.service";
 import { SamplingService } from "./sampling/sampling.service";
 import { IO_ASSIST_CONFIG, IO_ASSIST_DYNAMIC_CONFIG, IoAssistStaticConfig, IoAssistDynamicConfig } from "../../../io-assist.config";
+import { UI_STRINGS } from "../../constants/ui-strings";
 import { LOADING_STATE } from "../../enums/loading-state.enum";
 import { LoadingType } from "../../types/loading.type";
 import { IOConnectService } from "../io/io.service";
@@ -20,6 +22,7 @@ export class IOAiWebService {
     private readonly _ioConnectService: IOConnectService = inject(IOConnectService);
     private readonly _samplingService: SamplingService = inject(SamplingService);
     private readonly _elicitationService: ElicitationService = inject(ElicitationService);
+    private readonly _customMcpCapabilityHandlersService: CustomMcpCapabilityHandlersService = inject(CustomMcpCapabilityHandlersService);
     private readonly _ioAssistConfig: IoAssistStaticConfig = inject(IO_ASSIST_CONFIG);
     private readonly _dynamicConfig: Signal<IoAssistDynamicConfig> = inject(IO_ASSIST_DYNAMIC_CONFIG);
     private readonly _logger: LoggerService = inject(LoggerService);
@@ -67,6 +70,9 @@ export class IOAiWebService {
 
     private _hasContextConfig: WritableSignal<boolean> = signal(false);
 
+    private readonly _isCodeModeEnabled: WritableSignal<boolean> = signal(false);
+    public readonly isCodeModeEnabled: Signal<boolean> = this._isCodeModeEnabled.asReadonly();
+
     /** Note that initialization takes time and must be handled accordingly across components - display proper UI loading indication.
      *  Initialization takes place when the app is mounted.
      */
@@ -106,6 +112,8 @@ export class IOAiWebService {
         if (this.isError()) {
             throw new Error(this.isError());
         }
+
+        this.validateCustomMcpCapabilityHandlerConfig(this._ioAssistConfig.aiWebConfig.mcp);
 
         this._loadingState.set({ type: LOADING_STATE.LOADING });
 
@@ -175,6 +183,12 @@ export class IOAiWebService {
             config.context = contextConfig;
         }
 
+        if (aiWebConfig.codeMode) {
+            config.codeMode = aiWebConfig.codeMode;
+        }
+
+        this._isCodeModeEnabled.set(!!aiWebConfig.codeMode);
+
         return config;
     }
 
@@ -205,5 +219,23 @@ export class IOAiWebService {
                 },
             },
         };
+    }
+
+    private validateCustomMcpCapabilityHandlerConfig(mcp: IoAiWeb.WebConfig["mcp"] | undefined): void {
+        const { hasCustomSamplingHandler, hasCustomElicitationHandler } = this._customMcpCapabilityHandlersService.getCustomMcpCapabilityHandlerPresence(mcp);
+
+        if (hasCustomSamplingHandler === hasCustomElicitationHandler) return;
+
+        const providedHandler: "sampling" | "elicitation" = hasCustomSamplingHandler ? "sampling" : "elicitation";
+        const message = UI_STRINGS.GENERAL.MISMATCHED_CUSTOM_HANDLERS_ERROR(providedHandler);
+
+        this._logger.get(this.LOGGER_NAME).error(message);
+
+        this._loadingState.set({
+            type: LOADING_STATE.ERROR,
+            message,
+        });
+
+        throw new Error(message);
     }
 }

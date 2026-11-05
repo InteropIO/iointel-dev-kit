@@ -23,6 +23,11 @@ const UNCATEGORIZED_CATEGORY_NAME = "Default Prompts";
     templateUrl: "./prompt-list.component.html",
     imports: [...COMPONENTS, ...MODULES],
     providers: [PromptFacade],
+    // In the Available Prompts panel, fill the panel body so the search row stays fixed and
+    // only the list scrolls. The favorites list on the welcome screen keeps its normal layout.
+    host: {
+        "[class]": "!showFavoriteOnly() ? 'flex flex-col flex-1 min-h-0' : ''",
+    },
 })
 export class PromptListComponent {
     private readonly _promptFacade: PromptFacade = inject(PromptFacade);
@@ -49,7 +54,9 @@ export class PromptListComponent {
         const search: string = this.searchTerm().toLowerCase();
 
         if (showFavoriteOnly) {
-            return allPrompts.filter((p) => favoriteNames.includes(p.name));
+            return favoriteNames
+                .map((name) => allPrompts.find((p) => p.name === name))
+                .filter((p): p is UIPrompt => p !== undefined);
         }
 
         if (search) {
@@ -94,7 +101,6 @@ export class PromptListComponent {
     }
 
     protected onDocsLinkClick(): void {
-        // TODO: Provide the exact link to io-assist
-        window.open("https://docs-ai.interop.io/", "_blank", "noopener,noreferrer");
+        window.open("https://docs-ai.interop.io/modules/io-assist-ng/overview?_highlight=prompts#prompt-library", "_blank", "noopener,noreferrer");
     }
 }

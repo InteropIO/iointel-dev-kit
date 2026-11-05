@@ -17,9 +17,13 @@ export type AppPanelOverlayConfig = {
     title?: string;
     description?: string;
     content?: Type<unknown> | string;
+    isContentSelfScrolling?: boolean;
     footerButtons?: AppPanelFooterButton[];
     isHeaderCloseButtonDisplayed?: boolean;
     isDisplayedSignal?: WritableSignal<boolean>;
+    fixedHeight?: string;
+    fixedWidth?: string;
+    footerContent?: Type<unknown>;
 };
 
 export type AppPanelActionType = PANEL_BUTTON_ACTION_TYPE.CLOSE | PANEL_BUTTON_ACTION_TYPE.SUBMIT | PANEL_BUTTON_ACTION_TYPE.CUSTOM;

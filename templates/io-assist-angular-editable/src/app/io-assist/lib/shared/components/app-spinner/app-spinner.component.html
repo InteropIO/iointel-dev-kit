@@ -7,7 +7,8 @@
     <div
         class="app-spinner__circle"
         [ngClass]="{
-            'rounded-full animate-spin border-t-proto-background-light border-proto-text-disabled': true,
+            'rounded-full animate-spin border-[var(--app-spinner-ring)] border-t-[var(--app-spinner-gap)]': true,
+            'w-3 h-3 border-[1.5px]': size() === APP_SPINNER_COMPONENT_SIZE.XSMALL,
             'w-6 h-6 border-2': size() === APP_SPINNER_COMPONENT_SIZE.SMALL,
             'w-12 h-12 border-4': size() === APP_SPINNER_COMPONENT_SIZE.MEDIUM,
             'w-16 h-16 border-8': size() === APP_SPINNER_COMPONENT_SIZE.LARGE,

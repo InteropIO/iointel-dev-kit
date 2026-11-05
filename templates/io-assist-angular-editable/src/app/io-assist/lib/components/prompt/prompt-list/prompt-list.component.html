@@ -9,11 +9,12 @@
     <app-input
         data-testid="prompt-filter-input"
         [ngClass]="{
-            'sticky top-0': true,
+            'shrink-0 mx-4': true,
         }"
         [placeholder]="UI_STRINGS.INPUT_TOOLTIP"
         [showLeadingIcon]="true"
         [showTrailingIcon]="true"
+        [autoFocus]="true"
         (onValueChange)="searchTerm.set($event)"
     />
 }
@@ -22,21 +23,23 @@
     class="prompt-list"
     data-testid="prompt-panel"
     [ngClass]="{
-        'flex flex-col w-full h-full gap-[10px] py-2 pt-2 min-h-0': true,
+        'flex flex-col w-full gap-[10px] min-h-0': true,
+        'h-full py-2': isFavoriteOnlyList,
+        'flex-1': !isFavoriteOnlyList,
     }"
 >
     @if (isFavoriteOnlyList) {
         <div
             class="prompt-list__header"
             [ngClass]="{
-                'flex items-center p-2 w-full shrink-0': true,
+                'flex items-center px-[2px] w-full shrink-0': true,
             }"
         >
             <span
                 [ngClass]="{
                     'text-xs text-text-default tracking-wide': true,
                 }"
-                ><p>{{ UI_STRINGS.FAVORITE_PROMPTS }}</p></span
+                ><p data-testid="favorite-prompts-header">{{ UI_STRINGS.FAVORITE_PROMPTS }}</p></span
             >
         </div>
     }
@@ -56,11 +59,10 @@
                 >
                     <span
                         [ngClass]="{
-                            'text-proto-text-default': true,
+                            'text-text-default': true,
                         }"
                         >{{ UI_STRINGS.NO_PROMPTS_CONFIGURED }}</span
                     >
-                    <!-- TODO: Add link to documentation -->
                     <button
                         type="button"
                         [ngClass]="{
@@ -76,7 +78,7 @@
             @if (noAvailablePrompts && !isFavoriteOnlyList && hasAnyPromptsInSystem) {
                 <span
                     [ngClass]="{
-                        'text-proto-text-default': true,
+                        'text-text-default': true,
                     }"
                     >{{ UI_STRINGS.NO_PROMPTS }}</span
                 >
@@ -85,7 +87,7 @@
             @if (noAvailablePrompts && isFavoriteOnlyList) {
                 <span
                     [ngClass]="{
-                        'text-proto-text-default': true,
+                        'text-text-default': true,
                     }"
                     >{{ UI_STRINGS.NO_FAVORITE_PROMPTS }}</span
                 >
@@ -96,35 +98,46 @@
     <div
         class="prompt-list__items"
         [ngClass]="{
-            'flex flex-col gap-3 w-full min-h-0 ': true,
-            'md:flex-row md:flex-wrap md:justify-center gap-3': isFavoriteOnlyList,
-            'overflow-y-auto overflow-x-hidden custom-scrollbar': !isFavoriteOnlyList,
+            'min-h-0': true,
+            'flex flex-col gap-5': !isFavoriteOnlyList,
+            'grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2': isFavoriteOnlyList,
+            'flex-1 pt-2 pb-6 overflow-y-auto overflow-x-hidden custom-scrollbar scroll-fade-edges [scrollbar-gutter:stable] pl-4 pr-[7px] mr-[3px]': !isFavoriteOnlyList,
         }"
     >
         @if (hasPrompts) {
             <!-- Render with categories when not in favorite mode and has category groups -->
             @if (!isFavoriteOnlyList && hasCategories) {
                 @for (group of promptGroups(); track group.category) {
-                    <!-- Category header -->
-                    <div
-                        class="prompt-category-header"
-                        data-testid="prompt-category-header"
-                        [ngClass]="{
-                            'flex items-center px-2 py-1 mb-1': true,
-                        }"
-                    >
-                        <span
+                    <div class="flex flex-col gap-2" data-testid="prompt-list-group">
+                        <!-- Category header -->
+                        <div
+                            class="prompt-category-header"
+                            data-testid="prompt-category-header"
                             [ngClass]="{
-                                'text-[10px] font-normal text-text-default leading-[13px] tracking-[0.1px]': true,
+                                'flex items-center px-[3px]': true,
                             }"
-                            >{{ group.category }}</span
                         >
-                    </div>
+                            <span
+                                [ngClass]="{
+                                    'text-[10px] font-normal text-text-secondary leading-[13px] tracking-[0.1px]': true,
+                                }"
+                                >{{ group.category }}</span
+                            >
+                        </div>
 
-                    <!-- Prompts in this category -->
-                    @for (prompt of group.prompts; track prompt.name) {
-                        <prompt-list-item [prompt]="prompt" [isDisplayedInFavoriteList]="false"></prompt-list-item>
-                    }
+                        <!-- Prompts in this category: one bordered card, dividers between items -->
+                        <div class="flex flex-col border border-border-default rounded-lg overflow-hidden" data-testid="prompt-list-group-items">
+                            @for (prompt of group.prompts; track prompt.name; let i = $index) {
+                                <prompt-list-item
+                                    class="block"
+                                    [class.border-t]="i > 0"
+                                    [class.border-border-default]="i > 0"
+                                    [prompt]="prompt"
+                                    [isDisplayedInFavoriteList]="false"
+                                ></prompt-list-item>
+                            }
+                        </div>
+                    </div>
                 }
             }
 

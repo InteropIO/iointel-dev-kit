@@ -49,6 +49,9 @@ export class OverlayService {
         panelRef.setInput("description", config.description ?? "");
         panelRef.setInput("footerButtons", config.footerButtons ?? []);
         panelRef.setInput("isHeaderCloseButtonDisplayed", config.isHeaderCloseButtonDisplayed ?? true);
+        panelRef.setInput("fixedHeight", config.fixedHeight);
+        panelRef.setInput("fixedWidth", config.fixedWidth);
+        panelRef.setInput("isContentSelfScrolling", config.isContentSelfScrolling ?? false);
 
         // Handle HTML content if provided as string
         if (config.content && typeof config.content === "string") {
@@ -90,6 +93,12 @@ export class OverlayService {
         if (config.content && typeof config.content !== "string") {
             setTimeout(() => {
                 result.contentRef = panelRef.instance.injectBodyContent(config.content as Type<unknown>) as ComponentRef<T>;
+            }, 0);
+        }
+
+        if (config.footerContent) {
+            setTimeout(() => {
+                panelRef.instance.injectFooterContent(config.footerContent as Type<unknown>);
             }, 0);
         }
 
