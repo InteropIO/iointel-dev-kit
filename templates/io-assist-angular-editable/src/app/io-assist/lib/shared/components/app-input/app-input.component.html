@@ -13,8 +13,8 @@
 <div
     class="app-input"
     [ngClass]="{
-        'flex flex-col items-start justify-center w-full p-2 mb-1 rounded-input-radius border-[1px]': true,
-        'hover:bg-input-background-hover hover:border-input-border-hover': !disabled() && !error() && !isActive(),
+        'flex flex-col items-start justify-center w-full p-2 pr-[14px] mt-2 mb-1 rounded-input-radius border-[1px] border-input-border': true,
+        'hover:border-input-border-hover': !disabled() && !error() && !isActive(),
         'focus-within:bg-input-background-active focus-within:border-input-border-active': !disabled() && !error() && isActive(),
         'bg-input-background-disabled border-none': disabled(),
         'border-input-border bg-input-background': !error() && !disabled(),
@@ -40,6 +40,7 @@
         }
 
         <input
+            #inputEl
             class="app-input-wrapper__field"
             [ngClass]="{
                 'flex-1 min-w-0 bg-transparent border-0 outline-none font-default text-xs': true,
@@ -59,15 +60,19 @@
         @if (showTrailingIcon() && value()) {
             <app-icon
                 data-testid="input-clear-button"
-                class="app-input-wrapper__trailing-icon"
+                class="app-input-wrapper__trailing-icon box-content p-[2px]"
                 [ngClass]="{
                     'cursor-pointer': true,
                 }"
                 [variant]="trailingIconVariant()"
-                [size]="iconsSize()"
+                [size]="'8px'"
                 [isDisabled]="disabled()"
-                [disabledIconFill]="'app-input-icon-disabled'"
-                [iconFill]="isActive() ? 'app-input-icon-active' : 'app-input-icon'"
+                [disabledIconFill]="'--app-input-icon-disabled'"
+                [iconFill]="'--app-icon-default'"
+                [hoverIconFill]="'--app-icon-hover'"
+                [backgroundColor]="'--app-input-clear-background'"
+                [hoverBackgroundColor]="'--app-input-clear-background'"
+                [hoverBackgroundShape]="APP_ICON_BACKGROUND_SHAPES.CIRCLE"
                 [isWrapped]="false"
                 (onClick)="clearContent()"
             ></app-icon>

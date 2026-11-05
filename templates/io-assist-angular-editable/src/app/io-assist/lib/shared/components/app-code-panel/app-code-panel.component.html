@@ -1,0 +1,25 @@
+<div class="app-code-panel" data-testid="app-code-panel">
+    @if (showHeader()) {
+        <div class="app-code-panel__header">
+            <span class="app-code-panel__label">{{ label() }}</span>
+
+            <app-copy-to-clipboard-button data-testid="app-code-panel-copy" [textToCopy]="code()"></app-copy-to-clipboard-button>
+        </div>
+    }
+
+    @if (isEmbedded() && showInlineLabel()) {
+        <span class="app-code-panel__inline-label">{{ label() }}</span>
+    }
+
+    <div #codeArea class="app-code-panel__code-area custom-scrollbar" [class.app-code-panel__code-area--fade-top]="canScrollUp()" [class.app-code-panel__code-area--fade-bottom]="canScrollDown()">
+        <div class="app-code-panel__lines">
+            @for (line of lines(); track line.number) {
+                <div class="app-code-panel__line">
+                    <span class="app-code-panel__gutter-number" aria-hidden="true">{{ line.number }}</span>
+                    <span class="app-code-panel__gutter-spacer"></span>
+                    <code class="app-code-panel__code-line language-{{ prismLanguage() }}" data-testid="app-code-panel-content" [innerHTML]="line.html"></code>
+                </div>
+            }
+        </div>
+    </div>
+</div>

@@ -1,0 +1,32 @@
+@let text = description();
+
+@if (text) {
+    <p class="m-0 whitespace-pre-wrap text-[11.5px] leading-[17px] text-text-default [overflow-wrap:anywhere]">
+        {{ displayText() }}
+    </p>
+
+    @if (canExpand()) {
+        <button
+            type="button"
+            class="inline-flex items-center self-start gap-1.5 -ml-1 px-1 border-0 rounded bg-none text-[11px] leading-4 text-text-default cursor-pointer hover:text-text-states-active focus-visible:outline-none focus-visible:text-text-states-active focus-visible:shadow-[inset_0_0_0_2px_var(--app-focus-ring)]"
+            [attr.aria-expanded]="isExpanded()"
+            (click)="toggleExpanded()"
+        >
+            {{ isExpanded() ? UI_STRINGS.SHOW_LESS : UI_STRINGS.SHOW_MORE }}
+            <span
+                aria-hidden="true"
+                class="w-[5px] h-[5px] border-r-[1.5px] border-b-[1.5px] border-current"
+                [ngClass]="{
+                    '-mt-[3px] rotate-45': !isExpanded(),
+                    'mt-[3px] -rotate-[135deg]': isExpanded(),
+                }"
+            ></span>
+        </button>
+    }
+}
+
+@if (!text) {
+    <p class="m-0 text-[11.5px] leading-[17px] text-text-default whitespace-pre-wrap [overflow-wrap:anywhere]">
+        {{ UI_STRINGS.DEFAULT_TOOL_DESCRIPTION }}
+    </p>
+}

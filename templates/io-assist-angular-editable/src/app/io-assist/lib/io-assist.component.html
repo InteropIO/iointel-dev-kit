@@ -12,9 +12,8 @@
                 }
 
                 @if (showAppCoreServicesError) {
-                    <p class="text-sm text-red-500">{{ appCoreServicesError() }}</p>
+                    <p class="text-sm text-red-500" data-testid="app-core-services-error">{{ appCoreServicesError() }}</p>
                     <p class="text-sm text-gray-500 mt-2">{{ UI_STRINGS.IO_INTEL_INIT_ERROR }}</p>
-                    <!-- TODO: ADD PROPER DOCUMENTATION LINK -->
                     <p class="text-sm text-gray-500 mt-2">{{ UI_STRINGS.DOCUMENTATION_LINK() }}</p>
 
                     <button class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" (click)="refreshPage()">

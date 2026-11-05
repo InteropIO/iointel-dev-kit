@@ -1,6 +1,7 @@
 import { CommonModule } from "@angular/common";
-import { Component, inject, WritableSignal } from "@angular/core";
+import { Component, computed, inject, Signal, WritableSignal } from "@angular/core";
 
+import { IO_ASSIST_CONFIG, IoAssistStaticConfig } from "../../../io-assist.config";
 import { AppIconComponent } from "../../../shared/components/app-icon/app-icon.component";
 import { APP_ICON_SIZES, APP_ICON_VARIANTS, APP_ICON_BACKGROUND_SHAPES } from "../../../shared/components/app-icon/enum";
 import { AppSelectComponent } from "../../../shared/components/app-select/app-select.component";
@@ -8,9 +9,11 @@ import { APP_SELECT_IDS } from "../../../shared/components/app-select/app-select
 import { AppSelectOption } from "../../../shared/components/app-select/types";
 import { UI_STRINGS } from "../../../shared/constants/ui-strings";
 import { PERMISSION_MODE } from "../../../shared/enums/permission-mode.enum";
+import { CustomMcpCapabilityHandlersService } from "../../../shared/services/io-ai-web/custom-mcp-capability-handlers/custom-mcp-capability-handlers.service";
 import { OverlayService } from "../../../shared/services/overlay/overlay.service";
 import { PromptListComponent } from "../../prompt/prompt-list/prompt-list.component";
 import { ToolListComponent } from "../../tool/tool-list/tool-list.component";
+import { ToolsPanelFooterComponent } from "../../tool/tools-panel-footer/tools-panel-footer.component";
 
 const MODULES = [CommonModule];
 const COMPONENTS = [AppIconComponent, AppSelectComponent];
@@ -45,9 +48,14 @@ export class InputAreaActionBarComponent {
     protected readonly APP_SELECT_IDS = APP_SELECT_IDS;
 
     private readonly _overlayService: OverlayService = inject(OverlayService);
+    private readonly _ioAssistConfig: IoAssistStaticConfig = inject(IO_ASSIST_CONFIG);
+    private readonly _customMcpCapabilityHandlersService: CustomMcpCapabilityHandlersService = inject(CustomMcpCapabilityHandlersService);
 
     protected readonly isPromptPanelDisplayed: WritableSignal<boolean> = this._overlayService.isPromptPanelDisplayed;
     protected readonly isToolPanelDisplayed: WritableSignal<boolean> = this._overlayService.isToolPanelDisplayed;
+    protected readonly isPermissionSelectDisplayed: Signal<boolean> = computed(
+        () => !this._customMcpCapabilityHandlersService.hasBothCustomMcpCapabilityHandlers(this._ioAssistConfig.aiWebConfig.mcp)
+    );
 
     protected handlePromptPanelOverlayOpen(): void {
         this._overlayService.showPanelOverlay({
@@ -55,6 +63,7 @@ export class InputAreaActionBarComponent {
             content: PromptListComponent,
             isHeaderCloseButtonDisplayed: true,
             isDisplayedSignal: this._overlayService.isPromptPanelDisplayed,
+            isContentSelfScrolling: true,
         });
     }
 
@@ -64,6 +73,9 @@ export class InputAreaActionBarComponent {
             content: ToolListComponent,
             isHeaderCloseButtonDisplayed: true,
             isDisplayedSignal: this._overlayService.isToolPanelDisplayed,
+            isContentSelfScrolling: true,
+            fixedHeight: "440px",
+            footerContent: ToolsPanelFooterComponent,
         });
     }
 }

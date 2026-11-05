@@ -12,6 +12,8 @@
         [hoverVariant]="APP_ICON_VARIANTS.PROMPT_PANEL_FILLED"
         [size]="APP_ICON_SIZES.XS"
         [hoverBackgroundShape]="APP_ICON_BACKGROUND_SHAPES.ROUNDED_RECTANGLE"
+        [hoverBackgroundColor]="'--app-icon-button-hover'"
+        [backgroundColor]="isPromptPanelDisplayed() ? '--app-icon-button-selected' : ''"
         (onClick)="handlePromptPanelOverlayOpen()"
     >
     </app-icon>
@@ -22,9 +24,13 @@
         [hoverVariant]="APP_ICON_VARIANTS.TOOL_PANEL_FILLED"
         [size]="APP_ICON_SIZES.XS"
         [hoverBackgroundShape]="APP_ICON_BACKGROUND_SHAPES.ROUNDED_RECTANGLE"
+        [hoverBackgroundColor]="'--app-icon-button-hover'"
+        [backgroundColor]="isToolPanelDisplayed() ? '--app-icon-button-selected' : ''"
         (onClick)="handleToolPanelOverlayOpen()"
     >
     </app-icon>
 
-    <app-select class="min-w-[63px]" [selectId]="APP_SELECT_IDS.PERMISSION" [options]="PERMISSION_OPTIONS" />
+    @if (isPermissionSelectDisplayed()) {
+        <app-select class="min-w-[63px]" [selectId]="APP_SELECT_IDS.PERMISSION" [options]="PERMISSION_OPTIONS" />
+    }
 </div>

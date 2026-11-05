@@ -55,6 +55,23 @@
     /* Thread History [Colors] */
     --color-thread-list-item-hover-background: var(--app-thread-list-item-hover-background);
 
+    /* Icon Button */
+    /* Icon Button [Colors] */
+    --color-icon-button-hover: var(--app-icon-button-hover);
+    --color-icon-button-selected: var(--app-icon-button-selected);
+
+    /* Status */
+    /* Status [Colors] */
+    --color-status-active: var(--app-status-active);
+    --color-status-error: var(--app-status-error);
+
+    /* TraceStepComponent / TraceStatusIconComponent */
+    /* TraceStepComponent [Colors] */
+    --color-trace-row-expanded-background: var(--app-trace-row-expanded-background);
+    --color-trace-body-background: var(--app-trace-body-background);
+    --color-trace-label: var(--app-trace-label);
+    --color-trace-skeleton: var(--app-trace-skeleton);
+
     /* Font [Weights] */
     --font-weight-weight-250: var(--app-font-weight-250);
     --font-weight-weight-350: var(--app-font-weight-350);
@@ -68,6 +85,7 @@
     /* AppPanelComponent */
     /* AppPanelComponent [Colors] */
     --color-panel-background: var(--app-panel-background);
+    --color-dialog-background: var(--app-dialog-background);
     --color-panel-border: var(--app-panel-border);
     --shadow-panel-box-shadow: var(--app-default-box-shadow);
 
@@ -115,7 +133,6 @@
     --tracking-input-error: var(--app-letter-spacing-01);
 
     /* AppIconComponent [Colors] */
-    --color-app-icon-background-hover: var(--app-icon-background-hover);
     --color-app-icon-background-disabled: var(--app-icon-background-disabled);
 
     /* AppToggleComponent */
@@ -129,8 +146,9 @@
     /* AppTooltipComponent */
     /* AppTooltipComponent [Colors] */
     --color-tooltip-background: var(--app-tooltip-background);
-    --color-tooltip-border: var(--app-tooltip-border);
+    --color-tooltip-border: var(--app-floating-border);
     --color-tooltip-text: var(--app-tooltip-text);
+    --shadow-tooltip-shadow: var(--app-floating-shadow);
 
     /* Prototype Colors */
     --color-proto-background: var(--app-proto-background);
@@ -140,16 +158,8 @@
     --color-proto-text-disabled: var(--app-proto-text-disabled);
 }
 
-/*
-    Global keyboard-focus indicator.
-    Uses :focus-visible so the outline only appears on keyboard navigation,
-    not on mouse/pointer clicks.
-    Input-like elements are excluded because browsers always match :focus-visible
-    on them (even on click); they handle focus styles at the component level.
-
-    Placed in @layer base so Tailwind utilities (e.g. outline-none) can override
-    it in components that provide their own focus styling.
-*/
+/* Base typography for io-assist. Keyboard focus styling lives in _defaults.css
+   (the shared --app-focus-ring inset ring). */
 @layer base {
     io-assist {
         font-weight: var(--app-font-weight-350);
@@ -173,10 +183,5 @@
     io-assist input,
     io-assist textarea {
         font-weight: var(--app-font-weight-350);
-    }
-
-    io-assist *:focus-visible:not(input):not(textarea):not(select) {
-        outline: 2px solid var(--app-border-hover);
-        outline-offset: -2px;
     }
 }

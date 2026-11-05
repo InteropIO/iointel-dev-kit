@@ -1,9 +1,5 @@
 <remark class="remark" [processor]="processor" [markdown]="content()">
-    <!-- Handles Code Blocks Rendering -->
-    <div *remarkTemplate="'code'; let node" class="io-assist-code-block">
-        <app-copy-to-clipboard-button class="io-assist-code-block__copy" [textToCopy]="node.value" />
-        <remark-prism class="io-assist-code-theme" [code]="node.value" [language]="node.lang" />
-    </div>
+    <app-code-panel *remarkTemplate="'code'; let node" class="io-assist-code-block" [label]="languageLabel(node.lang)" [code]="node.value" [language]="node.lang || 'text'"></app-code-panel>
 
     <!-- Custom Links Rendering -->
     <span *remarkTemplate="'link'; let node">

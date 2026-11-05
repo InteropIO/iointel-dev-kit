@@ -31,15 +31,18 @@ export enum APP_ICON_VARIANTS {
     CHECK = "check",
     RELOAD = "reload",
     COPY = "copy",
-    COPY_HOVER = "copy-hover",
     CHEVRON_DOWN = "chevron-down",
     CHEVRON_UP = "chevron-up",
     CHEVRON_RIGHT = "chevron-right",
+    CHEVRON_DOWN_LIGHT = "chevron-down-light",
     CIRCLE_FILLED = "circle-filled",
     CIRCLE_OUTLINE = "circle-outline",
     ERROR_CLOSE = "error-close",
     HAND = "hand",
     HAND_EDIT = "hand-edit",
+    MAXIMIZE = "maximize",
+    MINIMIZE = "minimize",
+    CODE_LIGHT = "code-light",
 }
 
 export enum APP_ICON_BACKGROUND_SHAPES {

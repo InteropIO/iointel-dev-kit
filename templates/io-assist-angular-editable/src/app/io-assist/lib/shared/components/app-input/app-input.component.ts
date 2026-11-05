@@ -1,10 +1,11 @@
 import { CommonModule } from "@angular/common";
-import { Component, input, InputSignal, output, OutputEmitterRef, signal, WritableSignal } from "@angular/core";
+import { afterNextRender, Component, ElementRef, input, InputSignal, output, OutputEmitterRef, signal, viewChild, Signal, WritableSignal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 
 import { UI_STRINGS } from "../../constants/ui-strings";
 import { AppIconComponent } from "../app-icon/app-icon.component";
-import { APP_ICON_SIZES, APP_ICON_VARIANTS } from "../app-icon/enum";
+import { APP_ICON_BACKGROUND_SHAPES, APP_ICON_SIZES, APP_ICON_VARIANTS } from "../app-icon/enum";
+import { AppIconSizeType } from "../app-icon/types";
 
 enum INPUT_TYPES_ENUM {
     TEXT = "text",
@@ -37,6 +38,7 @@ const COMPONENTS = [AppIconComponent];
  * @type {InputSignal<boolean>} showTrailingIcon - Whether to show a trailing icon.
  * @type {InputSignal<APP_ICON_VARIANTS>} trailingIconVariant - Variant of the trailing icon.
  * @type {InputSignal<APP_ICON_SIZES>} iconsSize - Size of the icons.
+ * @type {InputSignal<boolean>} autoFocus - Whether to focus the field as soon as it renders.
  *
  * Outputs:
  * @type {OutputEmitterRef<string>} onValueChange - Emits the current value of the input field on change.
@@ -49,6 +51,7 @@ const COMPONENTS = [AppIconComponent];
 export class AppInputComponent {
     protected readonly APP_INPUT_COMPONENT_STRINGS = UI_STRINGS.INPUT_COMPONENT;
     protected readonly APP_ICON_VARIANTS = APP_ICON_VARIANTS;
+    protected readonly APP_ICON_BACKGROUND_SHAPES = APP_ICON_BACKGROUND_SHAPES;
     protected readonly APP_ICON_SIZES = APP_ICON_SIZES;
 
     public readonly placeholder: InputSignal<string> = input<string>(this.APP_INPUT_COMPONENT_STRINGS.DEFAULT_PLACEHOLDER);
@@ -62,11 +65,20 @@ export class AppInputComponent {
     public readonly showTrailingIcon: InputSignal<boolean> = input<boolean>(false);
     public readonly trailingIconVariant: InputSignal<APP_ICON_VARIANTS> = input<APP_ICON_VARIANTS>(APP_ICON_VARIANTS.CLOSE);
     public readonly iconsSize: InputSignal<APP_ICON_SIZES> = input<APP_ICON_SIZES>(APP_ICON_SIZES.XS);
+    public readonly autoFocus: InputSignal<boolean> = input<boolean>(false);
 
     public onValueChange: OutputEmitterRef<string> = output<string>();
 
     protected isActive: WritableSignal<boolean> = signal<boolean>(false);
     protected value: WritableSignal<string> = signal<string>("");
+
+    private readonly _inputRef: Signal<ElementRef<HTMLInputElement> | undefined> = viewChild<ElementRef<HTMLInputElement>>("inputEl");
+
+    constructor() {
+        afterNextRender(() => {
+            if (this.autoFocus()) this._inputRef()?.nativeElement.focus();
+        });
+    }
 
     protected onInput(event: Event): void {
         const target: HTMLInputElement = event.target as HTMLInputElement;

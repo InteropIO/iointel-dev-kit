@@ -1,20 +1,16 @@
 import { inject, Injectable } from "@angular/core";
 import { IoAiWeb } from "@interopio/ai-web";
 import { IOConnectCore } from "@interopio/core";
-import { IOConnectModals } from "@interopio/modals-api";
-import { take } from "rxjs/operators";
 
 import { ELICITATION_ACTION } from "./enums";
 import { validateElicitationRequest } from "./utils";
 import { APP_BUTTON_TYPES } from "../../../components/app-button/enum";
-import { PANEL_BUTTON_ACTION_TYPE } from "../../../components/app-panel/enums";
 import { APP_SELECT_IDS, AppSelectService } from "../../../components/app-select/app-select.service";
 import { UI_STRINGS } from "../../../constants/ui-strings";
 import { PERMISSION_MODE } from "../../../enums/permission-mode.enum";
 import { ThreadFacade } from "../../../store/thread/thread.facade";
-import { IOConnectService } from "../../io/io.service";
 import { LoggerService } from "../../logger/logger.service";
-import { OverlayService } from "../../overlay/overlay.service";
+import { PermissionRequestService } from "../../permission-request/permission-request.service";
 
 /**
  * Service responsible for handling elicitation requests from the IoAiWeb API.
@@ -23,8 +19,8 @@ import { OverlayService } from "../../overlay/overlay.service";
  *
  * - When an elicitation request is received, it is first validated using `validateElicitationRequest`.
  * - An elicitation request is considered valid based on set of checks - currently, it checks if the request is intended for io-tool.
- *    - If the request is VALID, a modal dialog is presented to the user asking for their approval to proceed with the elicitation.
- *   - The user has three options in the modal dialog:
+ *    - If the request is VALID, an inline permission card is shown in the chat thread asking for the user's approval to proceed with the elicitation.
+ *   - The user has three options on the card:
  *      - ACCEPT: The user agrees to provide the requested information.
  *         - We are currently using dummy data for the elicited information. In the future, this should be replaced with actual user input handling
  *           TODO: Future Task - Replace dummy data with actual user input handling - https://interopio.atlassian.net/browse/IOINTEL-160
@@ -37,14 +33,13 @@ import { OverlayService } from "../../overlay/overlay.service";
     providedIn: "root",
 })
 export class ElicitationService {
-    private readonly UI_STRINGS = UI_STRINGS.ELICITATION_MODAL;
-    private readonly _ioConnectService: IOConnectService = inject(IOConnectService);
+    private readonly UI_STRINGS = UI_STRINGS.ELICITATION_PERMISSION_CARD;
     private readonly _appSelectService: AppSelectService = inject(AppSelectService);
-    private readonly _overlayService: OverlayService = inject(OverlayService);
+    private readonly _permissionRequestService: PermissionRequestService = inject(PermissionRequestService);
     private readonly _threadFacade: ThreadFacade = inject(ThreadFacade);
     private readonly _logger: LoggerService = inject(LoggerService);
     protected readonly LOGGER_NAME: string = "ElicitationService";
-    private _isElicitationModalActive = false;
+    private _isElicitationPermissionRequestActive = false;
 
     public selectElicitationHandler(mcp: IoAiWeb.WebConfig["mcp"]): (serverName: string, params: IoAiWeb.ElicitationRequestParams) => Promise<IoAiWeb.ElicitationResponse> {
         if (this.isCustomElicitationHandlerProvided(mcp)) {
@@ -71,133 +66,52 @@ export class ElicitationService {
         if (isFromBackgroundThread) {
             this.getLogger().warn(`Elicitation request rejected: active thread (${activeThreadId}) does not match request thread (${requestThreadId})`);
 
-            return this.handleResponseType(ELICITATION_ACTION.CANCEL, undefined, `Elicitation request rejected: User was not on the thread that the elicitation request was intended for.`);
+            return this.handleResponseType(ELICITATION_ACTION.CANCEL, `Elicitation request rejected: User was not on the thread that the elicitation request was intended for.`);
         }
 
         const isRequestValid: boolean = validateElicitationRequest(request, this.getLogger());
 
         if (!isRequestValid) {
-            return this.handleResponseType(ELICITATION_ACTION.CANCEL, undefined, "Elicitation request validation failed.");
+            return this.handleResponseType(ELICITATION_ACTION.CANCEL, "Elicitation request validation failed.");
         }
 
-        if (this._isElicitationModalActive) {
-            return this.handleResponseType(ELICITATION_ACTION.CANCEL, undefined, "Elicitation request rejected: another elicitation is already in progress.");
+        if (this._isElicitationPermissionRequestActive) {
+            return this.handleResponseType(ELICITATION_ACTION.CANCEL, "Elicitation request rejected: another elicitation is already in progress.");
         }
 
-        this._isElicitationModalActive = true;
+        this._isElicitationPermissionRequestActive = true;
 
         try {
-            return await this.getElicitationModalResponse(serverName, request);
+            return await this.getElicitationPermissionCardResponse(serverName, request);
         } catch (error) {
-            const errorMessage: string = "Error occurred while getting elicitation modal response. Request canceled. " + (error instanceof Error ? error.message : String(error));
+            const errorMessage: string = "Error occurred while getting elicitation permission card response. Request canceled. " + (error instanceof Error ? error.message : String(error));
 
-            return this.handleResponseType(ELICITATION_ACTION.CANCEL, undefined, errorMessage);
+            return this.handleResponseType(ELICITATION_ACTION.CANCEL, errorMessage);
         } finally {
-            this._isElicitationModalActive = false;
+            this._isElicitationPermissionRequestActive = false;
         }
     }
 
-    private async getElicitationModalResponse(serverName: string, request: IoAiWeb.ElicitationRequestParams): Promise<IoAiWeb.ElicitationResponse> {
+    private async getElicitationPermissionCardResponse(serverName: string, request: IoAiWeb.ElicitationRequestParams): Promise<IoAiWeb.ElicitationResponse> {
         this.getLogger().info(`Showing elicitation request from server: ${serverName}, requesting: ${JSON.stringify(request)}`);
 
-        const isModalsApiAvailable: boolean = await this._ioConnectService.isModalsAvailable();
+        const description: string = request.message ?? this.UI_STRINGS.FALLBACK_TEXT;
 
-        if (!isModalsApiAvailable) {
-            this.getLogger().info("IO Modals not available, using built-in panel for elicitation");
+        const action: string = await this._permissionRequestService.request(
+            description,
+            [
+                { id: ELICITATION_ACTION.ACCEPT, label: "Accept", buttonType: APP_BUTTON_TYPES.SUBMIT },
+                { id: ELICITATION_ACTION.DECLINE, label: "Decline", buttonType: APP_BUTTON_TYPES.SECONDARY },
+                { id: ELICITATION_ACTION.CANCEL, label: "Cancel", buttonType: APP_BUTTON_TYPES.SECONDARY },
+            ],
+            ELICITATION_ACTION.CANCEL
+        );
 
-            return await this.getBuiltInPanelResponse(request);
-        }
-
-        return await this.getModalsApiPanelResponse(request);
-    }
-
-    private async getBuiltInPanelResponse(request: IoAiWeb.ElicitationRequestParams): Promise<IoAiWeb.ElicitationResponse> {
-        return new Promise((resolve) => {
-            const message = request.message ?? this.UI_STRINGS.FALLBACK_TEXT;
-
-            const { overlayRef } = this._overlayService.showPanelOverlay({
-                title: this.UI_STRINGS.TITLE,
-                content: `<div class="flex flex-col g-2">
-                            <span class="text-text-black-white text-lg">Permission to proceed</span>
-                            <span class="text-text-default text-sm">${message}</span>
-                          </div>`,
-                isHeaderCloseButtonDisplayed: false,
-                footerButtons: [
-                    {
-                        label: "Accept",
-                        action: PANEL_BUTTON_ACTION_TYPE.CUSTOM,
-                        type: APP_BUTTON_TYPES.SUBMIT,
-                        onClick: () => this.resolveBuiltInPanel(resolve, ELICITATION_ACTION.ACCEPT),
-                    },
-                    {
-                        label: "Decline",
-                        action: PANEL_BUTTON_ACTION_TYPE.CUSTOM,
-                        type: APP_BUTTON_TYPES.DEFAULT,
-                        onClick: () => this.resolveBuiltInPanel(resolve, ELICITATION_ACTION.DECLINE),
-                    },
-                    {
-                        label: "Cancel",
-                        action: PANEL_BUTTON_ACTION_TYPE.CUSTOM,
-                        type: APP_BUTTON_TYPES.DEFAULT,
-                        onClick: () => this.resolveBuiltInPanel(resolve, ELICITATION_ACTION.CANCEL),
-                    },
-                ],
-            });
-
-            // The overlay service disposes the overlay on backdrop click;
-            // subscribe here so the pending promise resolves as CANCEL instead of hanging.
-            overlayRef
-                .backdropClick()
-                .pipe(take(1))
-                .subscribe(() => this.resolveBuiltInPanel(resolve, ELICITATION_ACTION.CANCEL));
-        });
-    }
-
-    private async getModalsApiPanelResponse(request: IoAiWeb.ElicitationRequestParams): Promise<IoAiWeb.ElicitationResponse> {
-        const dialogOptions: IOConnectModals.DialogRequestConfig = {
-            templateName: "noInputsConfirmationDialog",
-            variables: {
-                title: this.UI_STRINGS.TITLE,
-                heading: this.UI_STRINGS.HEADING,
-                text: request.message ?? this.UI_STRINGS.FALLBACK_TEXT,
-                actionButtons: [
-                    { variant: "primary", text: "Accept", id: ELICITATION_ACTION.ACCEPT },
-                    { variant: "outline", text: "Decline", id: ELICITATION_ACTION.DECLINE },
-                    { variant: "outline", text: "Cancel", id: ELICITATION_ACTION.CANCEL },
-                ],
-            },
-        };
-
-        const elicitationDialogResponse: IOConnectModals.DialogResponse = await this._ioConnectService.requestModalDialog(dialogOptions);
-
-        if (!elicitationDialogResponse || !elicitationDialogResponse.responseButtonClicked) {
-            throw new Error("No response from elicitation modal dialog.");
-        }
-
-        switch (elicitationDialogResponse.responseButtonClicked.id) {
-            case ELICITATION_ACTION.ACCEPT:
-                return this.handleResponseType(ELICITATION_ACTION.ACCEPT);
-            case ELICITATION_ACTION.DECLINE:
-                return this.handleResponseType(ELICITATION_ACTION.DECLINE);
-            case ELICITATION_ACTION.CANCEL:
-                return this.handleResponseType(ELICITATION_ACTION.CANCEL);
-            default:
-                // At this point probably a timeout has occurred
-                return this.handleResponseType(ELICITATION_ACTION.CANCEL, undefined, "Elicitation dialog was closed without a response.");
-        }
-    }
-
-    private resolveBuiltInPanel(resolve: (value: IoAiWeb.ElicitationResponse) => void, action: ELICITATION_ACTION): void {
-        this._overlayService.closeCurrentOverlay();
-        resolve(this.handleResponseType(action));
+        return this.handleResponseType(action as ELICITATION_ACTION);
     }
 
     // TODO: Future Task - Replace dummy data with actual user input handling
-    private handleResponseType(type: ELICITATION_ACTION, onBuiltInPanelResponse?: (value: IoAiWeb.ElicitationResponse) => void, logMessage?: string): IoAiWeb.ElicitationResponse {
-        if (onBuiltInPanelResponse) {
-            this._overlayService.closeCurrentOverlay();
-        }
-
+    private handleResponseType(type: ELICITATION_ACTION, logMessage?: string): IoAiWeb.ElicitationResponse {
         let response: IoAiWeb.ElicitationResponse | undefined;
 
         if (type === ELICITATION_ACTION.ACCEPT) {
@@ -226,10 +140,6 @@ export class ElicitationService {
 
         if (!response) {
             throw new Error("No response generated for the given elicitation action type.");
-        }
-
-        if (onBuiltInPanelResponse) {
-            onBuiltInPanelResponse(response);
         }
 
         return response;

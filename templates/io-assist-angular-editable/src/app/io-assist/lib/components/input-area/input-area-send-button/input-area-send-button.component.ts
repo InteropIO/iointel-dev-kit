@@ -2,7 +2,7 @@ import { CommonModule } from "@angular/common";
 import { Component, inject, input, InputSignal, output, OutputEmitterRef, Signal } from "@angular/core";
 
 import { AppIconComponent } from "../../../shared/components/app-icon/app-icon.component";
-import { APP_ICON_SIZES, APP_ICON_VARIANTS } from "../../../shared/components/app-icon/enum";
+import { APP_ICON_BACKGROUND_SHAPES, APP_ICON_SIZES, APP_ICON_VARIANTS } from "../../../shared/components/app-icon/enum";
 import { MessageFacade } from "../../../shared/store/message/message.facade";
 import { UIUserMessage, UI_MESSAGE_ROLES } from "../../../shared/store/message/types";
 import { ThreadFacade } from "../../../shared/store/thread/thread.facade";
@@ -17,6 +17,7 @@ const MODULES = [CommonModule];
 })
 export class InputAreaSendButtonComponent {
     public readonly APP_ICON_VARIANTS = APP_ICON_VARIANTS;
+    public readonly APP_ICON_BACKGROUND_SHAPES = APP_ICON_BACKGROUND_SHAPES;
     public readonly APP_ICON_SIZES = APP_ICON_SIZES;
 
     public readonly userQuery: InputSignal<string> = input.required<string>();

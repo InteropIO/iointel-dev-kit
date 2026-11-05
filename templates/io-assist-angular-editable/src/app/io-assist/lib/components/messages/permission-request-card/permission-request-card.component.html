@@ -1,0 +1,64 @@
+@if (request(); as req) {
+    <div
+        class="permission-request-card"
+        data-testid="permission-request-card"
+        [ngClass]="{
+            'flex flex-col items-stretch gap-2 w-full mt-4 p-4 bg-input-background border border-border-default rounded-xl': true,
+        }"
+    >
+        <div
+            class="permission-request-card__content"
+            [ngClass]="{
+                'flex items-start gap-2': true,
+            }"
+        >
+            <div
+                class="permission-request-card__icon"
+                [ngClass]="{
+                    'flex items-center justify-center flex-shrink-0 w-8 h-8 bg-[var(--app-permission-icon-background)] border border-[var(--app-blue)] rounded-lg': true,
+                }"
+            >
+                <app-icon
+                    class="!cursor-default pointer-events-none"
+                    iconFill="--app-permission-icon"
+                    hoverIconFill="--app-permission-icon"
+                    [variant]="APP_ICON_VARIANTS.HAND"
+                    [size]="APP_ICON_SIZES.S"
+                    [tabIndex]="-1"
+                ></app-icon>
+            </div>
+
+            <p
+                class="permission-request-card__text"
+                data-testid="permission-request-text"
+                [ngClass]="{
+                    'flex-1 text-[13px] leading-[18px] text-text-default': true,
+                }"
+            >
+                {{ text() }}
+            </p>
+        </div>
+
+        <div
+            class="permission-request-card__actions"
+            [ngClass]="{
+                'flex items-center justify-end gap-2': true,
+            }"
+        >
+            @for (button of req.buttons; track button.id) {
+                <button
+                    type="button"
+                    [attr.data-testid]="'permission-request-' + button.id"
+                    [ngClass]="{
+                        'flex justify-center items-center rounded-sm cursor-pointer gap-1 px-spacing-6 py-spacing-3 text-[12px]': true,
+                        'bg-button-submit-background text-white hover:opacity-95 transition-opacity': button.buttonType === APP_BUTTON_TYPES.SUBMIT,
+                        'border border-border-default text-text-default hover:text-text-states-active hover:border-border-hover transition-colors': button.buttonType !== APP_BUTTON_TYPES.SUBMIT,
+                    }"
+                    (click)="respond(button.id)"
+                >
+                    {{ button.label }}
+                </button>
+            }
+        </div>
+    </div>
+}

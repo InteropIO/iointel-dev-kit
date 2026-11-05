@@ -1,0 +1,9 @@
+:host ::ng-deep .app-panel__footer .app-button {
+    min-width: 100px;
+}
+
+.app-panel {
+    width: calc(100vw - 32px);
+    max-width: 700px;
+    max-height: 90vh;
+}

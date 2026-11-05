@@ -1,0 +1,147 @@
+@let current = step();
+@let id = domId();
+@let expanded = isExpanded();
+@let tabContent = content();
+
+<button
+    type="button"
+    class="group flex w-full min-h-9 items-center gap-2.5 border-none bg-transparent px-3.5 text-left text-text-default cursor-pointer hover:bg-trace-row-expanded-background focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--app-focus-ring)]"
+    data-testid="trace-step-row"
+    [class.bg-trace-row-expanded-background]="expanded"
+    [class.text-text-states-active]="expanded"
+    [attr.aria-expanded]="expanded"
+    [attr.aria-controls]="id + '-body'"
+    (click)="toggle()"
+    (mouseenter)="isRowHovered.set(true)"
+    (mouseleave)="isRowHovered.set(false)"
+>
+    <span class="inline-flex w-4 shrink-0 items-center justify-center" aria-hidden="true">
+        <app-icon
+            iconFill="--app-text-secondary"
+            hoverIconFill="--app-text-secondary"
+            [title]="''"
+            [tabIndex]="-1"
+            [isWrapped]="false"
+            [size]="APP_ICON_SIZES.XS"
+            [variant]="current.type === 'code' ? APP_ICON_VARIANTS.CODE_LIGHT : APP_ICON_VARIANTS.TOOL_PANEL"
+        ></app-icon>
+    </span>
+
+    <span class="flex-[0_1_auto] min-w-0 truncate text-[13px] leading-[18px]" data-testid="trace-step-title">
+        {{ current.title }}
+        @if (isStepError()) {
+            <span class="ml-1 text-status-error" data-testid="trace-step-failed-label">({{ UI_STRINGS.STATUS_LABELS.error }})</span>
+        }
+    </span>
+
+    <span class="flex-1"></span>
+
+    @if (duration()) {
+        <span class="shrink-0 text-xs text-text-secondary tabular-nums">{{ duration() }}</span>
+    }
+
+    @if (current.status === "running") {
+        <trace-status-icon [status]="current.status"></trace-status-icon>
+    }
+
+    <span class="inline-flex size-6 shrink-0 -mr-1 items-center justify-center rounded-md transition-colors duration-150 motion-reduce:transition-none group-hover:bg-icon-button-hover" aria-hidden="true">
+        <app-icon
+            class="inline-flex transition-transform duration-150 motion-reduce:transition-none"
+            [class.rotate-180]="expanded"
+            iconFill="--app-icon-default"
+            hoverIconFill="--app-icon-hover"
+            [title]="''"
+            [tabIndex]="-1"
+            [isWrapped]="false"
+            [isHoveredExternal]="isRowHovered()"
+            [size]="APP_ICON_SIZES.XS"
+            [variant]="APP_ICON_VARIANTS.CHEVRON_DOWN_LIGHT"
+        ></app-icon>
+    </span>
+</button>
+
+@if (expanded) {
+    <div class="flex flex-col border-t border-border-default bg-trace-body-background" data-testid="trace-step-body" [id]="id + '-body'">
+        <div class="flex h-9 items-center justify-between gap-2 pt-1 pr-2 pb-0 pl-[7px]">
+            <div class="flex items-center gap-0.5" role="tablist" [attr.aria-label]="UI_STRINGS.TABS_LABEL">
+                @for (tab of tabs(); track tab.id) {
+                    <button
+                        type="button"
+                        role="tab"
+                        class="rounded-md border-none bg-transparent px-[9px] py-[3px] text-xs leading-4 text-trace-label cursor-pointer hover:bg-icon-button-hover hover:text-text-states-active aria-selected:bg-icon-button-selected aria-selected:text-text-states-active focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--app-focus-ring)]"
+                        [attr.data-tab]="tab.id"
+                        [id]="id + '-tab-' + tab.id"
+                        [attr.aria-selected]="activeTab() === tab.id"
+                        [attr.aria-controls]="id + '-panel'"
+                        [attr.tabindex]="activeTab() === tab.id ? 0 : -1"
+                        (click)="selectTab(tab.id)"
+                        (keydown)="handleTabKeydown($event)"
+                    >
+                        {{ tab.label }}
+                    </button>
+                }
+            </div>
+
+            @if (tabContent) {
+                <div class="flex shrink-0 items-center gap-1.5">
+                    <span class="text-[11px] font-light leading-4 tracking-[0.3px] text-trace-label">{{ tabContent.language === "prose" ? UI_STRINGS.LANGUAGE_PLAIN_TEXT : tabContent.label }}</span>
+                    <app-tooltip class="shrink-0" [tooltipPosition]="TOOLTIP_POSITIONS.TOP" [displayMode]="TOOLTIP_DISPLAY_MODES.EVENT" [forceVisible]="isCopied()">
+                        <button
+                            tooltip-trigger
+                            type="button"
+                            class="inline-flex size-6 items-center justify-center rounded-md border-none bg-transparent p-0 cursor-pointer hover:bg-icon-button-hover focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--app-focus-ring)]"
+                            [attr.aria-label]="copyLabel()"
+                            (click)="copy()"
+                            (mouseenter)="isCopyHovered.set(true)"
+                            (mouseleave)="isCopyHovered.set(false)"
+                        >
+                            <app-icon
+                                aria-hidden="true"
+                                iconFill="--app-icon-default"
+                                hoverIconFill="--app-icon-hover"
+                                [title]="''"
+                                [tabIndex]="-1"
+                                [isWrapped]="false"
+                                [isHoveredExternal]="isCopyHovered()"
+                                [size]="APP_ICON_SIZES.XS"
+                                [variant]="isCopied() ? APP_ICON_VARIANTS.CHECK : APP_ICON_VARIANTS.COPY"
+                            ></app-icon>
+                        </button>
+                        <span tooltip-content class="whitespace-nowrap">{{ UI_STRINGS.COPIED }}</span>
+                    </app-tooltip>
+                    <span class="sr-only" aria-live="polite">{{ isCopied() ? UI_STRINGS.COPIED : "" }}</span>
+                </div>
+            }
+        </div>
+
+        <div role="tabpanel" [id]="id + '-panel'" [attr.aria-labelledby]="id + '-tab-' + activeTab()">
+            @switch (panelView()) {
+                @case ("prose") {
+                    <p class="m-0 px-4 pt-1.5 pb-3.5 text-xs leading-[18px] text-text-default whitespace-pre-wrap [overflow-wrap:anywhere]">{{ tabContent!.text }}</p>
+                }
+                @case ("code") {
+                    <app-code-panel
+                           [style.--app-code-panel-embedded-padding]="'6px 16px 14px'"
+                        [language]="tabContent!.language"
+                        [label]="tabContent!.label"
+                        [code]="tabContent!.text"
+                        [showHeader]="false"
+                        [isEmbedded]="true"
+                        [showInlineLabel]="false"
+                    ></app-code-panel>
+                }
+                @case ("running") {
+                    <div class="flex flex-col gap-2.5 px-4 pt-1.5 pb-3.5" aria-live="polite">
+                        <span class="text-xs leading-4 text-text-secondary">{{ UI_STRINGS.RUNNING }}</span>
+                        <span class="block h-2.5 w-[60%] rounded-md bg-trace-skeleton animate-pulse motion-reduce:animate-none" aria-hidden="true"></span>
+                        <span class="block h-2.5 w-[40%] rounded-md bg-trace-skeleton animate-pulse motion-reduce:animate-none" aria-hidden="true"></span>
+                    </div>
+                }
+                @default {
+                    <p class="m-0 px-4 pt-1.5 pb-3.5 text-xs text-text-secondary">{{ activeTab() === "code" ? UI_STRINGS.NO_CODE : UI_STRINGS.NO_OUTPUT }}</p>
+                }
+            }
+        </div>
+    </div>
+}
+

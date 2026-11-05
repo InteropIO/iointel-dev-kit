@@ -116,12 +116,14 @@ export class HoverTilt45ClickSpin270AnimationStrategy extends BaseAnimationStrat
         style.id = styleId;
         style.textContent = `
             /* Smooth transition for hover tilt and return */
-            .${BASE_CLASS} {
+            .${BASE_CLASS} > .icon-wrapper,
+            .${BASE_CLASS}:not(:has(> .icon-wrapper)) {
                 transition: transform ${HOVER_TRANSITION_MS}ms ease;
             }
 
             /* Hover state — 45° clockwise tilt */
-            .${HOVER_CLASS} {
+            .${HOVER_CLASS} > .icon-wrapper,
+            .${HOVER_CLASS}:not(:has(> .icon-wrapper)) {
                 transform: rotate(${HOVER_TILT_DEG}deg);
             }
 
@@ -132,7 +134,8 @@ export class HoverTilt45ClickSpin270AnimationStrategy extends BaseAnimationStrat
                 100% { transform: rotate(0deg); }
             }
 
-            .${CLICK_CLASS} {
+            .${CLICK_CLASS} > .icon-wrapper,
+            .${CLICK_CLASS}:not(:has(> .icon-wrapper)) {
                 animation: spin-270-return ${CLICK_SPIN_DURATION_MS}ms ${CLICK_SPIN_EASING} forwards;
                 /* CSS animation overrides the transition + hover transform */
                 transition: none;

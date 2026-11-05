@@ -1,11 +1,19 @@
 <div
     data-testid="thread-history-panel"
-    class="absolute left-0 top-0 md:static md:left-auto md:top-auto flex flex-col w-full h-full bg-app-background-secondary z-[1000] md:w-[368px] md:min-w-[368px] md:max-w-[368px] flex-shrink-0"
+    class="absolute left-0 top-0 md:static md:left-auto md:top-auto flex flex-col w-full h-full bg-app-background-secondary md:border-r md:border-[var(--app-thread-history-border)] z-[1000] md:w-[368px] md:min-w-[368px] md:max-w-[368px] flex-shrink-0"
 >
     <!-- Thread History Header -->
     <div class="flex items-center gap-4 px-4 py-2">
         <!-- Thread Header Title Section -->
-        <app-icon data-testid="thread-history-close-button" [variant]="APP_ICON_VARIANTS.THREAD_HISTORY" (click)="hideThreadHistory()" />
+        <app-icon
+            data-testid="thread-history-close-button"
+            iconFill="--app-icon-default"
+            hoverIconFill="--app-icon-hover"
+            [variant]="APP_ICON_VARIANTS.THREAD_HISTORY"
+            [size]="APP_ICON_SIZES.XS"
+            [hoverBackgroundColor]="'--app-icon-button-hover'"
+            (click)="hideThreadHistory()"
+        />
 
         <!-- IO.Assist Logo -->
         @if (isDarkMode()) {
@@ -108,7 +116,7 @@
                 class="thread-history__user-avatar"
                 data-testid="thread-user-avatar"
                 [ngClass]="{
-                    'flex items-center justify-center w-6 h-6 rounded-full bg-app-accent-color-1 text-white text-neutrals-0 font-weight-550 text-[12px] flex-shrink-0': true,
+                    'flex items-center justify-center w-6 h-6 rounded-full bg-app-accent-color-1 text-white text-neutrals-0 font-weight-550 text-[11px] flex-shrink-0': true,
                 }"
             >
                 {{ userInitial() }}
@@ -135,9 +143,9 @@
     }
 
     <!-- Thread History Footer TODO: Revert and implement once we decide to support chat model picking -->
-    <!-- <div class="flex items-center px-4 py-2 border-t border-proto-border-default">
+    <!-- <div class="flex items-center px-4 py-2 border-t border-border-default">
         <select
-            class="p-2 border border-proto-border-default rounded text-proto-text-default bg-proto-background-light w-full"
+            class="p-2 border border-border-default rounded text-text-default bg-input-background w-full"
         >
             <option value="gpt-4">GPT-4</option>
             <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>

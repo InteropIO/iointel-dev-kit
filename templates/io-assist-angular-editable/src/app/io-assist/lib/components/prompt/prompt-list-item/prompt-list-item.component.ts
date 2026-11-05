@@ -1,7 +1,6 @@
 import { CommonModule } from "@angular/common";
 import { Component, computed, inject, input, InputSignal, Signal, signal, WritableSignal } from "@angular/core";
 
-import { IconResource } from "../../../io-assist.types";
 import { AppIconComponent } from "../../../shared/components/app-icon/app-icon.component";
 import { APP_ICON_VARIANTS } from "../../../shared/components/app-icon/enum";
 import { APP_SPINNER_COMPONENT_SIZE } from "../../../shared/components/app-spinner/enum";
@@ -37,14 +36,13 @@ export class PromptListItemComponent {
 
     protected readonly isHostHoveredSignal: WritableSignal<boolean> = signal<boolean>(false);
 
-    protected readonly customIcon: Signal<IconResource | undefined> = computed(() => this.prompt().icon);
-
     protected hostClasses: Signal<string> = computed<string>(() => {
         const baseClasses = "flex w-full";
 
-        // Only apply width constraints on desktop for favorite lists
+        // Favorite cards fill their cell of the favorites grid (fixed columns, so they never resize
+        // or shift when favorites are added or removed)
         if (this.isDisplayedInFavoriteList()) {
-            return `${baseClasses} md:w-auto md:max-w-[352px] md:min-w-[250px] border border-border-default hover:border-border-hover rounded-2xl`;
+            return `${baseClasses} min-w-0 border border-border-default hover:border-border-hover rounded-xl`;
         }
 
         return baseClasses;

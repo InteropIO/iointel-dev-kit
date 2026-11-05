@@ -19,6 +19,7 @@ const COMPONENTS = [AppButtonComponent, AppIconComponent];
 @Component({
     selector: "app-panel",
     templateUrl: "./app-panel.component.html",
+    styleUrls: ["./app-panel.component.css"],
     imports: [...MODULES, ...COMPONENTS],
 })
 export class AppPanelComponent {
@@ -29,11 +30,17 @@ export class AppPanelComponent {
     @ViewChild("panelBodyContent", { read: ViewContainerRef, static: false })
     public panelBodyContent!: ViewContainerRef;
 
+    @ViewChild("panelFooterContent", { read: ViewContainerRef, static: false })
+    public panelFooterContent!: ViewContainerRef;
+
     public isHeaderCloseButtonDisplayed: InputSignal<boolean> = input<boolean>(false);
     public title: InputSignal<string | undefined> = input<string | undefined>(this.UI_STRINGS.DEFAULT_TITLE);
     public description: InputSignal<string | undefined> = input<string | undefined>(undefined);
     public htmlContent: InputSignal<string | undefined> = input<string | undefined>(undefined);
     public footerButtons: InputSignal<AppPanelFooterButton[]> = input<AppPanelFooterButton[]>([]);
+    public fixedHeight: InputSignal<string | undefined> = input<string | undefined>(undefined);
+    public fixedWidth: InputSignal<string | undefined> = input<string | undefined>(undefined);
+    public isContentSelfScrolling: InputSignal<boolean> = input<boolean>(false);
 
     public onClose: OutputEmitterRef<void> = output<void>();
     public onSubmit: OutputEmitterRef<AppPanelActionType> = output<AppPanelActionType>();
@@ -63,6 +70,15 @@ export class AppPanelComponent {
         const container: ViewContainerRef | undefined = this.panelBodyContent;
 
         if (!container) throw new Error("Panel body content container is not defined");
+
+        container.clear();
+        return container.createComponent(component);
+    }
+
+    public injectFooterContent<T>(component: Type<T>): ComponentRef<T> {
+        const container: ViewContainerRef | undefined = this.panelFooterContent;
+
+        if (!container) throw new Error("Panel footer content container is not defined");
 
         container.clear();
         return container.createComponent(component);

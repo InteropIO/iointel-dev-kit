@@ -57,7 +57,7 @@ export const addToolCall = createAction(MESSAGE_ACTIONS.ADD_TOOL_CALL, props<{ m
 
 export const updateToolCallArgs = createAction(MESSAGE_ACTIONS.UPDATE_TOOL_CALL_ARGS, props<{ toolCallId: string; args: Record<string, unknown>; threadId: string }>());
 
-export const addToolResult = createAction(MESSAGE_ACTIONS.ADD_TOOL_RESULT, props<{ toolCallId: string; result: ToolResult; threadId: string }>());
+export const addToolResult = createAction(MESSAGE_ACTIONS.ADD_TOOL_RESULT, props<{ toolCallId: string; result: ToolResult; threadId: string; completedAt?: number }>());
 
 export const abortResponseGeneration = createAction(MESSAGE_ACTIONS.ABORT_RESPONSE_GENERATION, props<{ threadId: string }>());
 

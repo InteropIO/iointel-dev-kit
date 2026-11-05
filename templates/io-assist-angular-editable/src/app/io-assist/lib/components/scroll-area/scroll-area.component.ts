@@ -1,8 +1,12 @@
 import { CommonModule } from "@angular/common";
-import { AfterViewInit, Component, ElementRef, input, InputSignal, OnDestroy, signal, Signal, viewChild, WritableSignal } from "@angular/core";
+import { AfterViewInit, Component, ElementRef, inject, input, InputSignal, signal, Signal, viewChild, WritableSignal } from "@angular/core";
+import { toObservable } from "@angular/core/rxjs-interop";
+import { filter, Subscription } from "rxjs";
 
 import { AppIconComponent } from "../../shared/components/app-icon/app-icon.component";
-import { APP_ICON_VARIANTS, APP_ICON_SIZES } from "../../shared/components/app-icon/enum";
+import { APP_ICON_SIZES, APP_ICON_VARIANTS } from "../../shared/components/app-icon/enum";
+import { UI_STRINGS } from "../../shared/constants/ui-strings";
+import { SubscriptionCleanupService } from "../../shared/services/subscription-cleanup/subscription-cleanup.service";
 
 const MODULES = [CommonModule];
 const COMPONENTS = [AppIconComponent];
@@ -31,16 +35,19 @@ const COMPONENTS = [AppIconComponent];
     selector: "scroll-area",
     templateUrl: "./scroll-area.component.html",
     imports: [...MODULES, ...COMPONENTS],
+    providers: [SubscriptionCleanupService],
     host: {
         class: "scroll-area flex flex-col flex-1 min-h-0 min-w-0 relative",
     },
 })
-export class ScrollAreaComponent implements AfterViewInit, OnDestroy {
+export class ScrollAreaComponent implements AfterViewInit {
     protected readonly APP_ICON_VARIANTS = APP_ICON_VARIANTS;
     protected readonly APP_ICON_SIZES = APP_ICON_SIZES;
+    protected readonly UI_STRINGS = UI_STRINGS.GENERAL;
 
     public shouldExpandSpacer: InputSignal<boolean> = input(false);
     public isForceScrollToBottomEnabled: InputSignal<boolean> = input(false);
+    public hasFadeEdges: InputSignal<boolean> = input(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public elementToObserve: InputSignal<ElementRef<any> | null> = input<ElementRef<any> | null>(null);
 
@@ -48,8 +55,21 @@ export class ScrollAreaComponent implements AfterViewInit, OnDestroy {
     protected readonly spacerElement: Signal<ElementRef | undefined> = viewChild<ElementRef | undefined>("spacerElement");
     protected isCloseToBottom: WritableSignal<boolean> = signal(true);
 
+    private readonly FORCE_SCROLL_TO_BOTTOM_SUB_KEY = "scroll-area-force-scroll-to-bottom-subscription";
+    private readonly MUTATION_OBSERVER_SUB_KEY = "scroll-area-mutation-observer-subscription";
+
+    private readonly _subscriptionCleanupService: SubscriptionCleanupService = inject(SubscriptionCleanupService);
+
     private readonly _threshold: number = 20; // in pixels
     private _mutationObserver?: MutationObserver | undefined;
+
+    constructor() {
+        const forceScrollToBottomSubscription: Subscription = toObservable(this.isForceScrollToBottomEnabled)
+            .pipe(filter((isEnabled) => isEnabled))
+            .subscribe(() => this.scrollToBottom());
+
+        this._subscriptionCleanupService.add(this.FORCE_SCROLL_TO_BOTTOM_SUB_KEY, () => forceScrollToBottomSubscription.unsubscribe());
+    }
 
     public ngAfterViewInit(): void {
         if (!this.scrollArea()?.nativeElement) return;
@@ -61,11 +81,8 @@ export class ScrollAreaComponent implements AfterViewInit, OnDestroy {
             this.handleSpacerBehavior();
 
             this.handleOnScroll(); // make sure to recalculate if we are close to bottom after content changes to show/hide button
-
-            if (this.isForceScrollToBottomEnabled()) {
-                this.scrollToBottom();
-            }
         });
+
 
         if (!this._mutationObserver) return;
 
@@ -73,7 +90,10 @@ export class ScrollAreaComponent implements AfterViewInit, OnDestroy {
 
         this._mutationObserver.observe(elToObserve, {
             childList: true,
+            subtree: true,
         });
+
+        this._subscriptionCleanupService.add(this.MUTATION_OBSERVER_SUB_KEY, () => this._mutationObserver?.disconnect());
     }
 
     protected scrollToBottom(): void {
@@ -116,22 +136,12 @@ export class ScrollAreaComponent implements AfterViewInit, OnDestroy {
             return;
         }
 
-        // If spacer is not expanded, reduce its height based on the overflow as content grows inside scroll area
-        const overflow: number = scrollElement.scrollHeight - scrollElement.scrollTop - scrollElement.clientHeight;
+        const contentHeight: number = scrollElement.scrollHeight - spacerElement.offsetHeight;
+        const idealHeight: number = Math.max(0, scrollElement.clientHeight - contentHeight);
 
         // We should not forget the threshold here as it plays part in showing the scroll to bottom button
-        if (overflow <= this._threshold) return;
+        if (Math.abs(idealHeight - spacerElement.offsetHeight) <= this._threshold) return;
 
-        // Reduce spacer height by the overflow amount
-        const newHeight: number = Math.max(spacerElement.offsetHeight - overflow, 0);
-
-        spacerElement.style.minHeight = `${newHeight}px`;
-    }
-
-    public ngOnDestroy(): void {
-        if (!this._mutationObserver) return;
-
-        this._mutationObserver.disconnect();
-        this._mutationObserver = undefined;
+        spacerElement.style.minHeight = `${idealHeight}px`;
     }
 }

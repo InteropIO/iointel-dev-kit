@@ -6,6 +6,7 @@ import { mergeMap, catchError, of, from, map, tap, Observable, switchMap, EMPTY 
 
 import {
     abortResponseGeneration,
+    addToolResult,
     fetchMessagesFromThread,
     fetchMessagesFromThreadFailure,
     fetchMessagesFromThreadSuccess,
@@ -19,6 +20,7 @@ import { UIMessage, UIResponseMessage, UIToolMessage, UI_MESSAGE_ROLES } from ".
 import { AgentService } from "../../services/agent/agent.service";
 import { LoggerService } from "../../services/logger/logger.service";
 import { McpAppsService } from "../../services/mcp-apps/mcp-apps.service";
+import { PermissionRequestService } from "../../services/permission-request/permission-request.service";
 import { ThreadService } from "../../services/thread/thread.service";
 import { abortThreadStream, completeThreadStream, failThreadStream, startThreadStream } from "../response-stream/response-stream.actions";
 import { selectIsThreadStreaming, selectStreamContentForThread } from "../response-stream/response-stream.selector";
@@ -34,6 +36,7 @@ export class MessageEffects {
     private readonly _logger: LoggerService = inject(LoggerService);
     protected readonly LOGGER_NAME: string = "MessageEffects";
     private readonly _mcpAppsService: McpAppsService = inject(McpAppsService);
+    private readonly _permissionRequestService: PermissionRequestService = inject(PermissionRequestService);
 
     private readonly _activeThreadId: Signal<string | null> = this._store.selectSignal(selectActiveThreadId);
 
@@ -162,6 +165,18 @@ export class MessageEffects {
                 tap(({ threadId }) => {
                     this._store.dispatch(abortThreadStream({ threadId }));
                     this._agentService.abortOperation(threadId);
+                    this._permissionRequestService.clear();
+                })
+            ),
+        { dispatch: false }
+    );
+
+    clearPermissionRequestCard$ = createEffect(
+        () =>
+            this._actions$.pipe(
+                ofType(abortResponseGeneration, changeActiveThread),
+                tap(() => {
+                    this._permissionRequestService.clear();
                 })
             ),
         { dispatch: false }
@@ -183,6 +198,18 @@ export class MessageEffects {
             this._actions$.pipe(
                 ofType(completeThreadStream, abortThreadStream, failThreadStream),
                 tap(() => this._mcpAppsService.notifyPendingResponse(false))
+            ),
+        { dispatch: false }
+    );
+
+    // Worth to mention that this is valid since the permission-request card should be cleared whenever a tool result is added, regardless of the thread state.
+    // And it is safe to use without checking for tool ids since when sampling/elicitation occurs for a certain tool
+    // we are guaranteed that the tool result corresponds to an active permission request since when it is triggered the response loop is pending and waiting for answer.
+    clearPermissionRequestOnToolResult$ = createEffect(
+        () =>
+            this._actions$.pipe(
+                ofType(addToolResult),
+                tap(() => this._permissionRequestService.clear())
             ),
         { dispatch: false }
     );

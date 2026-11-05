@@ -110,6 +110,7 @@ export const handleResponseStream = (runHandle: IoAiWeb.Agents.StreamResponse, t
                             toolName: (event as any).toolCallName || "unknown",
                             args: {},
                             role: UI_MESSAGE_ROLES.TOOL,
+                            startedAt: getEventTimestamp(event),
                         };
                         toolCallArgsMap.set(toolMessage.id, {
                             args: "",
@@ -250,6 +251,7 @@ export const handleResponseStream = (runHandle: IoAiWeb.Agents.StreamResponse, t
                                 toolCallId,
                                 result,
                                 threadId,
+                                completedAt: getEventTimestamp(event),
                             })
                         );
                         break;
@@ -451,6 +453,7 @@ export const addToolTraceCallEntry = (state: MessageReducerStateType, currentToo
         executedTools: [currentTool],
         uiMessage: `Called tool: ${currentTool.toolName}`,
         responseForUserQueryId: ownerUserMessageId,
+        startedAt: Date.now(),
     });
 };
 
@@ -495,7 +498,7 @@ export const updateToolTraceCallEntryArgs = (state: ToolTraceState[], toolCallId
  *
  * @returns Updated array of ToolTraceState
  */
-export const addToolTraceResultEntry = (state: ToolTraceState[], toolCallId: string, result: ToolResult): ToolTraceState[] => {
+export const addToolTraceResultEntry = (state: ToolTraceState[], toolCallId: string, result: ToolResult, completedAt?: number): ToolTraceState[] => {
     return state.map((traceState: ToolTraceState) => {
         const executedTools: UIToolMessage[] = traceState.executedTools;
 
@@ -508,11 +511,16 @@ export const addToolTraceResultEntry = (state: ToolTraceState[], toolCallId: str
         const updatedToolCall = {
             ...matchingToolCall,
             result,
+            completedAt,
         };
+
+        const updatedExecutedTools = executedTools.map((toolMsg: UIToolMessage) => (toolMsg.id === toolCallId ? updatedToolCall : toolMsg));
+        const isTraceNowComplete: boolean = updatedExecutedTools.every((toolMsg: UIToolMessage) => toolMsg.result !== undefined && toolMsg.result !== null);
 
         return {
             ...traceState,
-            executedTools: executedTools.map((toolMsg: UIToolMessage) => (toolMsg.id === toolCallId ? updatedToolCall : toolMsg)),
+            executedTools: updatedExecutedTools,
+            completedAt: traceState.completedAt ?? (isTraceNowComplete ? Date.now() : undefined),
         };
     });
 };
@@ -609,4 +617,13 @@ export const handleToolTraceStateOnThreadFetch = (fetchedMessages: UIMessage[]):
     }
 
     return toolTraceStates;
+};
+
+
+// The bridge stamps every stream event; fall back to the local clock if one is missing.
+// Used for per-step durations in the tool trace (start and result use the same source).
+const getEventTimestamp = (event: unknown): number => {
+    const timestamp = (event as { timestamp?: unknown } | null)?.timestamp;
+
+    return typeof timestamp === "number" && Number.isFinite(timestamp) ? timestamp : Date.now();
 };

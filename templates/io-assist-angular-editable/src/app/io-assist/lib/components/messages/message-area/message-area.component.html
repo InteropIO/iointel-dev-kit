@@ -1,4 +1,4 @@
-<scroll-area [isForceScrollToBottomEnabled]="isSuccessFetchedFromThread()" [shouldExpandSpacer]="isLastUserMessage()" [elementToObserve]="messageAreaRef() ?? null">
+<scroll-area [isForceScrollToBottomEnabled]="isSuccessFetchedFromThread()" [shouldExpandSpacer]="isLastUserMessage()" [elementToObserve]="messageAreaRef() ?? null" [hasFadeEdges]="true">
     @if (isLoadingMessagesFromThread()) {
         <div
             [ngClass]="{
@@ -13,7 +13,7 @@
         #messageArea
         class="message-area"
         [ngClass]="{
-            'flex flex-1 flex-col gap-8 w-full min-w-[200px] max-w-[920px] mx-auto px-3': true,
+            'flex flex-1 flex-col w-full min-w-[200px] max-w-[920px] mx-auto px-4': true,
             'md:max-w-[720px]': true,
             '[&>*:last-child]:pb-8': true,
         }"
@@ -27,8 +27,10 @@
             @if (message.role === UI_MESSAGE_ROLES.ASSISTANT) {
                 <assistant-message [message]="message"></assistant-message>
 
-                @for (instance of getMcpAppsForResponse(message.responseForUserQueryId); track instance.id) {
-                    <mcp-app-resource [appInstance]="instance"></mcp-app-resource>
+                @if (isLastAssistantMessageForResponse(message)) {
+                    @for (instance of getMcpAppsForResponse(message.responseForUserQueryId); track instance.id) {
+                        <mcp-app-resource data-testid="mcp-app-resource" [attr.data-instance-id]="instance.id" [appInstance]="instance"></mcp-app-resource>
+                    }
                 }
             }
 
@@ -36,5 +38,7 @@
                 <tool-trace-message [parentMessage]="message.id"></tool-trace-message>
             }
         }
+
+        <permission-request-card></permission-request-card>
     </div>
 </scroll-area>

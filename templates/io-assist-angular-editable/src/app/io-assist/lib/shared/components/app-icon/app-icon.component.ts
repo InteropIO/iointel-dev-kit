@@ -56,12 +56,11 @@ import { isInlineSvg, shouldRenderAsImage, stripSvgAttributes, validateIconResou
  * <app-icon
  *     [variant]="APP_ICON_VARIANTS.CLOSE"
  *     [size]="APP_ICON_SIZES.M"
- *     [iconFill]="'app-text-primary'"
- *     [backgroundColor]="'app-bg-secondary'"
- *     [hoverIconFill]="'app-text-primary-dark'"
- *     [disabledIconFill]="'app-text-states-disabled'"
- *     [hoverBackgroundColor]="'app-bg-hover-secondary'"
- *     [hoverBackgroundShape]="APP_ICON_BACKGROUND_SHAPES.CIRCLE"
+ *     [iconFill]="'--app-icon-default'"
+ *     [hoverIconFill]="'--app-icon-hover'"
+ *     [disabledIconFill]="'--app-icon-disabled'"
+ *     [hoverBackgroundColor]="'--app-icon-button-hover'"
+ *     [hoverBackgroundShape]="APP_ICON_BACKGROUND_SHAPES.ROUNDED_RECTANGLE"
  *     [isHoveredExternal]="isHovered"
  *     [title]="'Close window'"
  *     (onClick)="handleIconClick()"
@@ -69,8 +68,8 @@ import { isInlineSvg, shouldRenderAsImage, stripSvgAttributes, validateIconResou
  * ```
  *
  * Color Variables:
- * - Provide CSS variable names with/without the `--` prefix
- *  - Example: `[iconFill]="'app-text-primary'"` uses `var(--app-text-primary)`
+ * - Pass the token name with its `--` prefix, e.g. `[iconFill]="'--app-icon-default'"` uses
+ *   `var(--app-icon-default)` (the prefix is optional, but the codebase always includes it)
  * - Colors must be defined in `_defaults.css`
  *
  * Available Inputs:
@@ -84,10 +83,12 @@ import { isInlineSvg, shouldRenderAsImage, stripSvgAttributes, validateIconResou
  *     (e.g., PROMPT_PANEL → PROMPT_PANEL_FILLED on hover). Takes precedence over hoverIconFilled.
  * @input backgroundColor - Background color (optional)
  * @input hoverBackgroundColor - Background color on hover (optional)
- * @input hoverBackgroundShape - Shape of hover background (default: CIRCLE)
+ * @input hoverBackgroundShape - Shape of hover background (default: ROUNDED_RECTANGLE — corners at
+ *     25% of the button, so 8px on 32px buttons and 6px on 24px ones)
  * @input isDisabled - Disables icon and applies disabled styles (default: false)
  * @input isWrapped - Determines if host element should be 2x size of icon (default: true)
- * @input title - Custom tooltip text (optional, auto-generated from variant if not provided)
+ * @input title - Custom tooltip text (optional, auto-generated from variant if not provided;
+ *     an empty string means no tooltip, e.g. for decorative icons)
  * @input customIcon - Custom icon resource (svg/url/data-url) to render instead of variant icon
  *     When provided, takes precedence over the variant icon. Supports:
  *     - type: 'svg' - Inline SVG string
@@ -148,7 +149,7 @@ export class AppIconComponent implements OnInit {
     public hoverVariant: InputSignal<AppIconVariantsType | undefined> = input<AppIconVariantsType | undefined>(undefined);
     public isDisabled: InputSignal<boolean> = input<boolean>(false);
     public isWrapped: InputSignal<boolean> = input<boolean>(true);
-    public title: InputSignal<string> = input<string>("");
+    public title: InputSignal<string | undefined> = input<string | undefined>(undefined);
     // eslint-disable-next-line @angular-eslint/no-input-rename -- alias is the kebab-case DOM attribute name, not a style choice
     public dataTestId: InputSignal<string> = input<string>("", { alias: "data-testid" });
 
@@ -162,7 +163,7 @@ export class AppIconComponent implements OnInit {
 
     // For host element
     public backgroundColor: InputSignal<string> = input<string>("");
-    public hoverBackgroundShape: InputSignal<AppIconBackgroundShapeType> = input<AppIconBackgroundShapeType>(APP_ICON_BACKGROUND_SHAPES.CIRCLE);
+    public hoverBackgroundShape: InputSignal<AppIconBackgroundShapeType> = input<AppIconBackgroundShapeType>(APP_ICON_BACKGROUND_SHAPES.ROUNDED_RECTANGLE);
     public hoverBackgroundColor: InputSignal<string> = input<string>("");
     public onClick: OutputEmitterRef<Event> = output<Event>();
     public isHoveredExternal: InputSignal<boolean | null> = input<boolean | null>(null);
@@ -182,7 +183,7 @@ export class AppIconComponent implements OnInit {
     });
 
     protected isActiveState: Signal<boolean> = computed<boolean>(() => {
-        return this.isHovered() || this.isFocused();
+        return this.isHovered();
     });
 
     protected hasCustomIcon: Signal<boolean> = computed(() => {
@@ -250,9 +251,11 @@ export class AppIconComponent implements OnInit {
         return icon.data;
     });
 
-    public getTitle: Signal<string> = computed<string>(() => {
-        if (this.title()) {
-            return this.title();
+    public getTitle: Signal<string | null> = computed<string | null>(() => {
+        const title: string | undefined = this.title();
+
+        if (title !== undefined) {
+            return title || null;
         }
 
         const match: AppIcon | undefined = this._iconList.find((icon: AppIcon) => icon.name === this.variant());
@@ -268,9 +271,9 @@ export class AppIconComponent implements OnInit {
         const shape: string = this.hoverBackgroundShape() as string;
 
         const shapeClassMap: Record<string, string> = {
-            [APP_ICON_BACKGROUND_SHAPES.CIRCLE]: 'rounded-full',
-            [APP_ICON_BACKGROUND_SHAPES.ROUNDED_RECTANGLE]: 'rounded-[8px]',
-            [APP_ICON_BACKGROUND_SHAPES.RECTANGLE]: '',
+            [APP_ICON_BACKGROUND_SHAPES.CIRCLE]: "rounded-full",
+            [APP_ICON_BACKGROUND_SHAPES.ROUNDED_RECTANGLE]: "rounded-[25%]",
+            [APP_ICON_BACKGROUND_SHAPES.RECTANGLE]: "",
         };
 
         const classListArray: string[] = [
@@ -366,7 +369,7 @@ export class AppIconComponent implements OnInit {
 
         // Strip any fill attribute from the root <svg> tag unconditionally (it's only ever
         // used as a default/reset, e.g. fill="none", and must not affect inheritance below)
-        let processed = svgString.replace(/^(\s*<svg\b[^>]*?)\s+fill="[^"]*"/, '$1');
+        let processed = svgString.replace(/^(\s*<svg\b[^>]*?)\s+fill="[^"]*"/, "$1");
 
         // Replace remaining fill attributes (on child elements) with an invalid value so
         // SVG elements inherit the fill color cascaded via CSS from the parent container
