@@ -4,6 +4,7 @@ import type { IoAssistStoreInstance } from "../stores";
 import { UI_MESSAGE_ROLES, MESSAGES_LOADING_STATE, TOOL_RESULT_TYPES, RESPONSE_STREAM_STATUS } from "../types";
 import type { UIMessage, UIToolMessage } from "../types";
 import { logger } from "../utils/logger";
+import { clearPermissionRequest } from "../utils/permissionRequest";
 import { safeStringify } from "../utils/safeStringify";
 import { ensureAssistantMessage, withAllTraceLabelsFinalized, withExecutedToolUpdated, withToolAppendedToTrace } from "../utils/streamUtils";
 
@@ -47,6 +48,18 @@ export async function processResponseStream(runHandle: IoAiWeb.Agents.StreamResp
     // for a tool call that fired before any TEXT_MESSAGE_START.
     let hasSyntheticPlaceholder = false;
 
+    const localIds = new Map<string, string>();
+    const toLocalId = (incomingId: string | undefined): string | undefined => {
+        if (!incomingId) return undefined;
+        const mapped = localIds.get(incomingId);
+        if (mapped) return mapped;
+        const isTaken = store.getState().messages.some((m: UIMessage) => m.id === incomingId);
+        const localId = isTaken ? crypto.randomUUID() : incomingId;
+        localIds.set(incomingId, localId);
+        return localId;
+    };
+    const lookupLocalId = (incomingId: string | undefined): string => (incomingId ? (localIds.get(incomingId) ?? incomingId) : "");
+
     return new Promise<void>((resolve, reject) => {
         // eslint-disable-next-line prefer-const
         let subscription: { unsubscribe?: () => void } | undefined;
@@ -63,7 +76,7 @@ export async function processResponseStream(runHandle: IoAiWeb.Agents.StreamResp
 
                 switch (event.type) {
                     case "TEXT_MESSAGE_START": {
-                        const incomingId: string | undefined = event.messageId;
+                        const incomingId = toLocalId(event.messageId);
 
                         // Reuse the synthetic placeholder only when this TEXT_MESSAGE_START
                         // belongs to the SAME turn that created it. A new turn (after a
@@ -106,7 +119,7 @@ export async function processResponseStream(runHandle: IoAiWeb.Agents.StreamResp
                         // preceding TEXT_MESSAGE_START (e.g. on turn-2 continuation
                         // after a sampling result). Create an assistant message on the
                         // fly so the streamed text actually renders.
-                        const ensuredId = ensureAssistantMessage(state, currentMessageId, event.messageId);
+                        const ensuredId = ensureAssistantMessage(state, currentMessageId, toLocalId(event.messageId));
                         if (ensuredId !== currentMessageId) {
                             currentMessageId = ensuredId;
                         }
@@ -124,7 +137,7 @@ export async function processResponseStream(runHandle: IoAiWeb.Agents.StreamResp
 
                     case "TEXT_MESSAGE_CHUNK": {
                         // Combined start+content+end shorthand some backends emit.
-                        const chunkId: string | undefined = event.messageId;
+                        const chunkId = toLocalId(event.messageId);
                         if (chunkId && chunkId !== currentMessageId) {
                             currentMessageId = chunkId;
                             streamedContent = "";
@@ -167,7 +180,7 @@ export async function processResponseStream(runHandle: IoAiWeb.Agents.StreamResp
                             if (m?.role !== "assistant") continue;
                             const text = typeof m.content === "string" ? m.content : (m.content?.text ?? "");
                             if (!text) continue;
-                            const messageId = m.id ?? crypto.randomUUID();
+                            const messageId = m.id ? lookupLocalId(m.id) : crypto.randomUUID();
                             const existing = state.messages.find((x: UIMessage) => x.id === messageId);
                             if (existing) {
                                 if (!existing.content || existing.content.length < text.length) {
@@ -206,6 +219,7 @@ export async function processResponseStream(runHandle: IoAiWeb.Agents.StreamResp
                             toolName: event.toolCallName || "unknown",
                             args: {},
                             role: UI_MESSAGE_ROLES.TOOL,
+                            startedAt: Date.now(),
                         };
 
                         toolCallArgsMap.set(toolMessage.id, {
@@ -275,6 +289,15 @@ export async function processResponseStream(runHandle: IoAiWeb.Agents.StreamResp
                         const resultToolCallId = event.toolCallId || "";
                         if (!resultToolCallId) return;
 
+                        // A tool call can only resolve via this card's own response or the server
+                        // timing it out and completing the call anyway — either way, any pending
+                        // permission request is now stale. Mirrors ng's
+                        // clearPermissionRequestOnToolResult$ effect. Only the ACTIVE thread can
+                        // ever have a pending permission card (sampling/elicitation handlers
+                        // reject requests from background threads before showing one), so a
+                        // background thread's tool result must not dismiss it.
+                        if (!isBackground) clearPermissionRequest();
+
                         // AG-UI carries the tool result on `event.content` (string or object),
                         // NOT `event.result`. When it's a string, try to JSON.parse it; on
                         // parse failure, wrap as a TEXT ToolResult to match ng's behaviour.
@@ -290,16 +313,18 @@ export async function processResponseStream(runHandle: IoAiWeb.Agents.StreamResp
                         if (isBackground) {
                             const currentStream = state.streamsByThreadId[threadId];
                             state.setStreamState(threadId, {
-                                toolMessages: (currentStream?.toolMessages ?? []).map((tm) => (tm.id === resultToolCallId ? { ...tm, result: result as UIToolMessage["result"] } : tm)),
+                                toolMessages: (currentStream?.toolMessages ?? []).map((tm) => (tm.id === resultToolCallId ? { ...tm, result: result as UIToolMessage["result"], completedAt: Date.now() } : tm)),
                             });
                         } else {
                             state.updateMessage(resultToolCallId, {
                                 result,
+                                completedAt: Date.now(),
                             } as Partial<UIToolMessage>);
 
                             state.setToolTraceState(
                                 withExecutedToolUpdated(state.toolTraceState, resultToolCallId, {
                                     result,
+                                    completedAt: Date.now(),
                                 } as Partial<UIToolMessage>)
                             );
                         }

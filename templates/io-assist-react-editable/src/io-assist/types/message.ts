@@ -51,6 +51,8 @@ export type UIToolMessage = UIMessageBase & {
     args?: Record<string, unknown>;
     result?: ToolResult | [ToolResult];
     isExpanded?: boolean;
+    startedAt?: number;
+    completedAt?: number;
 };
 
 export type UIMessage = UIUserMessage | UIAssistantMessage | UIToolMessage;

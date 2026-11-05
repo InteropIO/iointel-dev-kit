@@ -4,13 +4,13 @@
 /* Inter Variable — latin subset only (weights 100–900, normal style).
    We declare a single @font-face by hand (instead of importing the full
    @fontsource-variable/inter stylesheet) so the compiled CSS references only
-   the one woff2 we need. Vite resolves the bare specifier from node_modules. */
+   the one woff2 we ship into dist/files. */
 @font-face {
     font-family: "Inter Variable";
     font-style: normal;
     font-display: swap;
     font-weight: 100 900;
-    src: url("@fontsource-variable/inter/files/inter-latin-wght-normal.woff2") format("woff2-variations");
+    src: url("./files/inter-latin-wght-normal.woff2") format("woff2-variations");
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
@@ -27,6 +27,7 @@
     --color-app-accent-color-1: var(--app-accent-color-1);
     --color-app-accent-color-2: var(--app-accent-color-2);
     --color-app-accent-color-3: var(--app-accent-color-3);
+    --color-status-error: var(--app-status-error);
 
     /* General [Spacings] */
     --spacing-spacing-1: var(--app-spacing-1);
@@ -53,6 +54,17 @@
     /* Thread History [Colors] */
     --color-thread-list-item-hover-background: var(--app-thread-list-item-hover-background);
 
+    /* Icon Button */
+    /* Icon Button [Colors] */
+    --color-icon-button-hover: var(--app-icon-button-hover);
+    --color-icon-button-selected: var(--app-icon-button-selected);
+
+    /* TraceStepComponent / TraceStatusIconComponent */
+    --color-trace-row-expanded-background: var(--app-trace-row-expanded-background);
+    --color-trace-body-background: var(--app-trace-body-background);
+    --color-trace-label: var(--app-trace-label);
+    --color-trace-skeleton: var(--app-trace-skeleton);
+
     /* Font [Weights] */
     --font-weight-weight-250: var(--app-font-weight-250);
     --font-weight-weight-350: var(--app-font-weight-350);
@@ -65,12 +77,14 @@
 
     /* AppTooltipComponent [Colors] */
     --color-tooltip-background: var(--app-tooltip-background);
-    --color-tooltip-border: var(--app-tooltip-border);
+    --color-tooltip-border: var(--app-floating-border);
     --color-tooltip-text: var(--app-tooltip-text);
+    --shadow-tooltip-shadow: var(--app-floating-shadow);
 
     /* AppPanelComponent */
     /* AppPanelComponent [Colors] */
     --color-panel-background: var(--app-panel-background);
+    --color-dialog-background: var(--app-dialog-background);
     --color-panel-border: var(--app-panel-border);
     --shadow-panel-box-shadow: var(--app-default-box-shadow);
 
@@ -200,7 +214,7 @@
    ─────────────────────────────────────────────────────────────────────────── */
 .io-assist-md ul,
 .io-assist-md ol {
-    margin: 16px 0 8px 0;
+    margin: 16px 0 16px 0;
     padding: 0;
     list-style: none;
 }
@@ -231,19 +245,19 @@
 
 .io-assist-md ul > li {
     position: relative;
-    padding: 6px 0 6px 14px;
+    padding: 2px 0 2px 12px;
 }
 
 /* Bullet: vertically centred with the first text line. */
 .io-assist-md ul > li::before {
     content: "";
     position: absolute;
-    left: 1px;
-    top: 13px;
-    width: 6px;
-    height: 6px;
+    left: 0px;
+    top: 10px;
+    width: 3px;
+    height: 3px;
     border-radius: 50%;
-    background-color: var(--color-text-default);
+    background-color: var(--app-accent-color-1);
 }
 
 /* L3 bullet: hollow circle */
@@ -283,10 +297,20 @@
     left: 0;
     top: 6px;
     font-family: "Inter Variable", sans-serif;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
-    line-height: 20px;
+    line-height: 21px;
     color: var(--color-text-states-active);
+}
+
+/* ─── Markdown — light-theme overrides ───────────────────────────────────────
+   Ports ng's md-formatter.component.css light-theme blockquote/hr tweaks. */
+.light .io-assist-md-blockquote {
+    background: var(--app-user-message-background);
+}
+
+.light .io-assist-md-hr {
+    border-color: var(--app-neutrals-100);
 }
 
 /* ─── Tooltip arrow ──────────────────────────────────────────────────────────
@@ -474,6 +498,128 @@
 
 @media (prefers-reduced-motion: reduce) {
     .loading-dot {
+        animation: none;
+    }
+}
+
+/* ─── Tool-trace header (Working/Done/N-failed) ─────────────────────────────
+   Mirrors ng's tool-trace-message.component.css: a shimmering title while a
+   trace is still running (collapsed), breathing dots next to it, and a small
+   separator dot between the header's text segments.
+   ─────────────────────────────────────────────────────────────────────────── */
+.tool-trace-message__header {
+    padding-bottom: 4px;
+}
+
+.tool-trace-message__title {
+    font-size: 12px;
+    line-height: 19px;
+    letter-spacing: -0.196px;
+    font-weight: 300;
+}
+
+/* Both collapsed and expanded states render the same CHEVRON_DOWN_LIGHT asset, rotated
+   instead of swapped, so it stays pixel-identical between states (ports ng's comment). */
+.tool-trace-message__expand-icon {
+    transform: rotate(-90deg);
+    transition: transform 150ms ease-out;
+}
+
+.tool-trace-message__expand-icon--rotated {
+    transform: rotate(0deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tool-trace-message__expand-icon {
+        transition: none;
+    }
+}
+
+.tool-trace-message__title-separator {
+    display: inline-block;
+    width: 2px;
+    height: 2px;
+    margin: 0 5px;
+    border-radius: 50%;
+    background-color: var(--app-text-secondary);
+    vertical-align: middle;
+}
+
+@keyframes tool-trace-shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.tool-trace-message__title--shimmer {
+    background: linear-gradient(90deg, var(--app-text-default) 40%, var(--app-text-states-active) 50%, var(--app-text-default) 60%);
+    background-size: 250% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: tool-trace-shimmer 2s linear infinite;
+}
+
+@keyframes tool-trace-breathe {
+    0%,
+    100% {
+        opacity: 0.35;
+        scale: 0.75;
+    }
+    25% {
+        opacity: 1;
+        scale: 1;
+    }
+    50% {
+        opacity: 0.35;
+        scale: 0.75;
+    }
+}
+
+.tool-trace-message__breathing-dots {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-right: 4px;
+}
+
+.tool-trace-message__dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--app-accent-color-1);
+    animation: tool-trace-breathe 2s ease-in-out infinite;
+}
+
+.tool-trace-message__dot:nth-child(2) {
+    animation-delay: -0.4s;
+}
+
+.tool-trace-message__dot:nth-child(3) {
+    animation-delay: -0.8s;
+}
+
+.tool-trace-message__card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-top: 4px;
+    border: 1px solid var(--app-border-default);
+    border-radius: 12px;
+    background: var(--app-raised-background);
+    overflow: hidden;
+}
+
+.tool-trace-message__card > div + div {
+    border-top: 1px solid var(--app-border-default);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tool-trace-message__title--shimmer,
+    .tool-trace-message__dot {
         animation: none;
     }
 }

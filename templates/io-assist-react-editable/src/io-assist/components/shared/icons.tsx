@@ -50,6 +50,29 @@ export const ChevronDownIcon = () => (
     </svg>
 );
 
+// Font Awesome "light" chevron-down (matches ng app-icon CHEVRON_DOWN_LIGHT variant) — a
+// tighter glyph than the 24x24 outline chevrons above, used in the tool-trace components so
+// rotating it between collapsed/expanded states stays pixel-identical (no icon swap).
+export const ChevronDownLightIcon = () => (
+    <svg width="100%" height="100%" viewBox="0 0 448 512" aria-hidden>
+        <path
+            fill="currentColor"
+            d="M443.5 162.6l-7.1-7.1c-4.7-4.7-12.3-4.7-17 0L224 351 28.5 155.5c-4.7-4.7-12.3-4.7-17 0l-7.1 7.1c-4.7 4.7-4.7 12.3 0 17l211 211.1c4.7 4.7 12.3 4.7 17 0l211-211.1c4.8-4.7 4.8-12.3.1-17z"
+        />
+    </svg>
+);
+
+// Font Awesome "light" code glyph (matches ng app-icon CODE_LIGHT variant) — used instead of
+// ToolPanelIcon for executeCode steps in the tool trace.
+export const CodeLightIcon = () => (
+    <svg width="100%" height="100%" viewBox="0 0 576 512" aria-hidden>
+        <path
+            fill="currentColor"
+            d="M228.5 511.8l-25-7.1c-3.2-.9-5-4.2-4.1-7.4L340.1 4.4c.9-3.2 4.2-5 7.4-4.1l25 7.1c3.2.9 5 4.2 4.1 7.4L235.9 507.6c-.9 3.2-4.3 5.1-7.4 4.2zm-75.6-125.3l18.5-20.9c1.9-2.1 1.6-5.3-.5-7.1L49.9 256l121-102.5c2.1-1.8 2.4-5 .5-7.1l-18.5-20.9c-1.8-2.1-5-2.3-7.1-.4L1.7 252.3c-2.3 2-2.3 5.5 0 7.5L145.8 387c2.1 1.8 5.3 1.6 7.1-.5zm277.3.4l144.1-127.2c2.3-2 2.3-5.5 0-7.5L430.2 125.1c-2.1-1.8-5.2-1.6-7.1.4l-18.5 20.9c-1.9 2.1-1.6 5.3.5 7.1l121 102.5-121 102.5c-2.1 1.8-2.4 5-.5 7.1l18.5 20.9c1.8 2.1 5 2.3 7.1.4z"
+        />
+    </svg>
+);
+
 export const CircleFilledIcon = () => (
     <svg width="100%" height="100%" viewBox="0 0 8 8" aria-hidden>
         <circle cx="4" cy="4" r="3.5" fill="currentColor" />
@@ -182,6 +205,18 @@ export const HandEditIcon = () => (
     </svg>
 );
 
+export const MaximizeIcon = () => (
+    <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+    </svg>
+);
+
+export const MinimizeIcon = () => (
+    <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M9 3H5a2 2 0 0 0-2 2v4M15 3h4a2 2 0 0 1 2 2v4M9 21H5a2 2 0 0 1-2-2v-4M15 21h4a2 2 0 0 0 2-2v-4" />
+    </svg>
+);
+
 // ─── Input Area ───────────────────────────────────────────────────────────────
 
 export const ArrowUpIcon = () => (
@@ -289,13 +324,8 @@ export const StarIcon: React.FC<{ filled: boolean }> = ({ filled }) => (
 
 // ─── Spinners & Loading ───────────────────────────────────────────────────────
 
-export const Spinner: React.FC<{ className?: string }> = ({ className }) => {
-    return (
-        <svg className={["animate-spin text-text-default", className ?? ""].join(" ")} viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-        </svg>
-    );
+export const Spinner: React.FC<{ className?: string; testId?: string }> = ({ className = "size-12", testId }) => {
+    return <span data-testid={testId} className={["inline-block rounded-full animate-spin border-2 border-[var(--app-spinner-ring)] border-t-[var(--app-spinner-gap)]", className].join(" ")} />;
 };
 
 export const SpinnerIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (

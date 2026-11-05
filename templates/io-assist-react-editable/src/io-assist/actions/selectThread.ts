@@ -3,14 +3,23 @@ import { MESSAGES_LOADING_STATE, RESPONSE_STREAM_STATUS, UI_MESSAGE_ROLES } from
 import type { UIMessage, UIToolMessage } from "../types";
 import { logger } from "../utils/logger";
 import { convertThreadMessages } from "../utils/messageConverter";
+import { clearPermissionRequest } from "../utils/permissionRequest";
 import { buildToolTraceFromMessages } from "../utils/threadUtils";
 
 const LOGGER_NAME = "SelectThread";
 const log = logger.get(LOGGER_NAME);
 
-export async function selectThread(store: IoAssistStoreInstance, threadId: string): Promise<void> {
+export async function selectThread(store: IoAssistStoreInstance, threadId: string, isMobile: boolean): Promise<void> {
     const state = store.getState();
     const thread = state.threads.find((t) => t.id === threadId);
+
+    // A permission request belongs to the thread it was raised for — navigating away from that
+    // thread auto-dismisses it with its fallback cancelId (mirrors ng's clearPermissionRequestCard$
+    // effect on changeActiveThread). Re-selecting the already-active thread is not a thread
+    // change, so a pending request must survive it.
+    if (state.activeThreadId !== threadId) {
+        clearPermissionRequest();
+    }
 
     state.clearCompletionNotification(threadId);
 
@@ -21,7 +30,13 @@ export async function selectThread(store: IoAssistStoreInstance, threadId: strin
     state.setActiveThreadId(threadId);
     state.clearMessages();
     state.resetMcpApps();
-    state.setIsThreadHistoryVisible(false);
+
+    // On desktop the panel is a static side panel and stays open across
+    // thread switches; on mobile it's a full-screen overlay that must close
+    // (mirrors ng's ResponsiveUIService behaviour).
+    if (isMobile) {
+        state.setIsThreadHistoryVisible(false);
+    }
 
     if (!thread) return;
 

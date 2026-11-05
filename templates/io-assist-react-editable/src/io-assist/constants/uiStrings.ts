@@ -6,6 +6,15 @@ export const UI_STRINGS = {
         CANNOT_CONNECT_TO_IO: "Cannot connect to IO.",
         IO_INTEL_INIT_ERROR: "Error initializing IO Intel Web API. Please check your configuration and refresh the page to try again.",
         DOCUMENTATION_LINK: (url?: string) => `For more information, please refer to the documentation: ${url && url.length > 0 ? url : "https://docs-ai.interop.io/"}`,
+        MISMATCHED_CUSTOM_HANDLERS_ERROR: (providedHandler: "sampling" | "elicitation") => {
+            const missingHandler = providedHandler === "sampling" ? "elicitation" : "sampling";
+
+            return (
+                `IO Assist configuration error: a custom ${providedHandler} handler was provided without a matching custom ${missingHandler} handler. ` +
+                `Custom permission handlers must be provided for BOTH sampling and elicitation together, or for neither (to use the built-in io.Assist handlers). ` +
+                `Please add a custom ${missingHandler} handler, or remove the custom ${providedHandler} handler.`
+            );
+        },
         REFRESH: "Refresh",
         EDIT: "Edit",
         DELETE: "Delete",
@@ -16,9 +25,10 @@ export const UI_STRINGS = {
         SEARCH: "Search",
         LOADING: "Loading",
         COPY: "Copy",
-        COPIED: "Copied!",
+        COPIED: "Copied",
         RELOAD: "Reload",
         NO_SEARCH_RESULTS: "No results found",
+        SCROLL_TO_BOTTOM: "Scroll to bottom",
     },
     MESSAGE_FOOTER_COMPONENT: {
         RELOAD_DISABLED_TOOLTIP: "Response is pending...",
@@ -40,6 +50,7 @@ export const UI_STRINGS = {
         TITLE: "Working Context",
         VIEW_WORKING_CONTEXT_BUTTON: "View Context",
         LOADING_CONTEXT: "Loading working context...",
+        SUBTITLE: "Context the assistant can use from io.Connect",
         CALLOUT_TEXT: "The working context provides additional information to assist the agent in generating accurate responses.",
     },
     CHAT_COMPONENT: {
@@ -85,17 +96,38 @@ export const UI_STRINGS = {
         NO_TOOLS_SEE_MORE: "See more",
         LOADING_TOOLS: "Loading tools...",
         INPUT_TOOLTIP: "Search tools...",
+        SYSTEM_TOOLS_GROUP: "System",
         ENABLE_BUTTON: "Enable",
         DISABLE_BUTTON: "Disable",
     },
+    TOOL_LIST_ITEM_COMPONENT: {
+        SHOW_DETAILS: (toolName: string) => `Show details for ${toolName}`,
+    },
+    TOOL_DETAILS: {
+        DEFAULT_TOOL_DESCRIPTION: "No description available.",
+        SHOW_MORE: "Show more",
+        SHOW_LESS: "Show less",
+    },
     TOOL_MESSAGE: {
-        TOOL_EXECUTION_SUCCESS: "Tool executed successfully.",
-        TOOL_EXECUTION_PENDING: "Tool execution in progress...",
+        RUNNING: "Running...",
+        STATUS_LABELS: {
+            running: "Running",
+            error: "Failed",
+        },
+        TABS_LABEL: "Step details",
+        TAB_INPUT: "Input",
+        TAB_OUTPUT: "Output",
+        TAB_CODE: "Code",
+        EXPLANATION_LABEL: "Explanation",
+        NO_OUTPUT: "Returned nothing",
+        NO_CODE: "No code available.",
+        LANGUAGE_JSON: "JSON",
+        LANGUAGE_JAVASCRIPT: "JavaScript",
+        LANGUAGE_PLAIN_TEXT: "Plain text",
     },
     TOOL_TRACE_MESSAGE: {
         EXPAND_BUTTON_TEXT: "Show Tool Trace Details",
         COLLAPSE_BUTTON_TEXT: "Hide Tool Trace Details",
-        CLOSE_BUTTON_TEXT: "Close",
     },
 
     // ── Aliases used by panel + layout components ──────────────────────────
@@ -132,15 +164,14 @@ export const UI_STRINGS = {
         ERROR: "Error initializing IO Intel Web API. Please check your configuration and refresh the page to try again.",
         RETRY: "Refresh",
     },
-    SAMPLING_MODAL: {
-        TITLE: "io.Assist",
-        HEADING: "Permission to Proceed",
+    PERMISSION_REQUEST_CARD_COMPONENT: {
+        PROCEED_QUESTION: "Do you want to proceed?",
+    },
+    SAMPLING_PERMISSION_CARD: {
         TEXT: `I can dive deeper to give a clearer answer, but I'll need your permission first. Continue?`,
     },
-    ELICITATION_MODAL: {
-        TITLE: "io.Assist",
-        HEADING: "Permission to Proceed",
-        FALLBACK_TEXT: `I can dive deeper to give a clearer answer, but I'll need your permission first. Continue?`,
+    ELICITATION_PERMISSION_CARD: {
+        FALLBACK_TEXT: "I can dive deeper to give a clearer answer, but I’ll need your permission first. Continue?",
     },
     MCP_APP_REPLACE_MODAL: {
         TITLE: "MCP App Already Open",

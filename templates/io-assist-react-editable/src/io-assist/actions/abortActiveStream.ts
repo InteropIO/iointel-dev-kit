@@ -1,6 +1,7 @@
 import type { IoAssistStoreInstance } from "../stores";
 import { MESSAGES_LOADING_STATE } from "../types";
 import { logger } from "../utils/logger";
+import { clearPermissionRequest } from "../utils/permissionRequest";
 import { withAllTraceLabelsAborted } from "../utils/streamUtils";
 
 const LOGGER_NAME = "AbortActiveStream";
@@ -24,4 +25,8 @@ export function abortActiveStream(store: IoAssistStoreInstance): void {
     after.setToolTraceState(withAllTraceLabelsAborted(after.toolTraceState));
     after.setIsGeneratingResponse(false);
     after.setMessageLoadingState({ type: MESSAGES_LOADING_STATE.NOT_STARTED });
+
+    // The only way a pending sampling/elicitation permission request can resolve is via its own
+    // card or the server timing it out — if the user stops generation mid-flight, dismiss it too.
+    clearPermissionRequest();
 }

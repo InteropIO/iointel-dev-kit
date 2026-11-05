@@ -1,9 +1,12 @@
 import type { IoAiWeb } from "@interopio/ai-web";
 import { useMemo } from "react";
 
+import { useIsMobileViewport } from "./useIsMobileViewport";
 import { abortActiveStream } from "../actions/abortActiveStream";
 import { deleteThread } from "../actions/deleteThread";
 import { newConversation } from "../actions/newConversation";
+import { refreshThreadsList } from "../actions/refreshThreadsList";
+import { refreshTools } from "../actions/refreshTools";
 import { renameThread } from "../actions/renameThread";
 import { selectThread } from "../actions/selectThread";
 import { sendUserMessage } from "../actions/sendUserMessage";
@@ -21,6 +24,8 @@ export type UseIoAiWebApi = {
     renameThread: (threadId: string, title: string) => Promise<void>;
     deleteThread: (threadId: string) => Promise<void>;
     toggleTool: (name: string, enabled: boolean) => Promise<void>;
+    refreshThreadsList: () => Promise<void>;
+    refreshTools: () => Promise<void>;
 };
 
 /**
@@ -32,6 +37,7 @@ export type UseIoAiWebApi = {
 export function useIoAiWebApi(): UseIoAiWebApi {
     const api = useIoAssistStore((s) => s.ioAiWebApi);
     const dynamicConfig = useIoAssistDynamicConfig();
+    const isMobile = useIsMobileViewport();
 
     return useMemo<UseIoAiWebApi>(
         () => ({
@@ -40,11 +46,13 @@ export function useIoAiWebApi(): UseIoAiWebApi {
             sendMessage: (text) => sendUserMessage(ioAssistStore, text, dynamicConfig),
             abortMessage: () => abortActiveStream(ioAssistStore),
             newConversation: () => newConversation(ioAssistStore),
-            selectThread: (id) => selectThread(ioAssistStore, id),
+            selectThread: (id) => selectThread(ioAssistStore, id, isMobile),
             renameThread: (id, title) => renameThread(ioAssistStore, id, title),
             deleteThread: (id) => deleteThread(ioAssistStore, id),
             toggleTool: (name, enabled) => toggleTool(ioAssistStore, name, enabled),
+            refreshThreadsList: () => refreshThreadsList(ioAssistStore, dynamicConfig),
+            refreshTools: () => refreshTools(ioAssistStore),
         }),
-        [api, dynamicConfig]
+        [api, dynamicConfig, isMobile]
     );
 }

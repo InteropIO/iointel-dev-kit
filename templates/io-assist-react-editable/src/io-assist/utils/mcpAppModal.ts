@@ -9,12 +9,26 @@ const log = logger.get(LOGGER_NAME);
 type ReplaceChoice = "recreate" | "newInstance";
 
 export async function showMcpAppReplaceModal(toolName: string): Promise<ReplaceChoice> {
+    const modalsApiChoice = await tryModalsApiResponse(toolName);
+    if (modalsApiChoice !== null) return modalsApiChoice;
+
     try {
-        const modalsAvailable = await isModalsAvailable();
-        return modalsAvailable ? await getModalsApiResponse(toolName) : await getBuiltInPanelResponse(toolName);
+        return await getBuiltInPanelResponse(toolName);
     } catch (error) {
         log.warn(`MCP app replace modal failed, defaulting to recreate: ${error instanceof Error ? error.message : String(error)}`);
         return "recreate";
+    }
+}
+
+async function tryModalsApiResponse(toolName: string): Promise<ReplaceChoice | null> {
+    const modalsAvailable = await isModalsAvailable().catch(() => false);
+    if (!modalsAvailable) return null;
+
+    try {
+        return await getModalsApiResponse(toolName);
+    } catch (error) {
+        log.warn(`Modals API replace dialog failed, falling back to built-in panel: ${error instanceof Error ? error.message : String(error)}`);
+        return null;
     }
 }
 

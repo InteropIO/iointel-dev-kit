@@ -112,10 +112,11 @@ export const Tooltip: React.FC<Props> = ({ content, position = "top", offset = 1
             {visible && (
                 <div
                     ref={bubbleRef}
+                    data-testid="app-tooltip"
                     className={["fixed z-[999999] pointer-events-none transition-opacity duration-[120ms] max-w-[320px]", isPositioned ? "opacity-100" : "opacity-0"].join(" ")}
                     style={{ left: `${coords.x}px`, top: `${coords.y}px` }}
                 >
-                    <div className="relative flex flex-col items-start gap-1 px-[4px] py-[3px] rounded-[4px] border border-tooltip-border bg-tooltip-background text-tooltip-text text-[9px] font-weight-350 tracking-[0.09px] leading-[11px]">
+                    <div className="relative flex flex-col items-start gap-1 rounded-lg border border-tooltip-border bg-tooltip-background px-2.5 py-1.5 text-xs font-weight-350 text-tooltip-text shadow-tooltip-shadow">
                         {content}
                         <div className={`app-tooltip__arrow app-tooltip__arrow--${position}`} style={arrowStyle} />
                     </div>

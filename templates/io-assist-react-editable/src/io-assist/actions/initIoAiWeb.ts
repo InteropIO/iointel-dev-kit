@@ -7,11 +7,15 @@ import type { IoAiWeb } from "@interopio/ai-web";
 import type { IoIntelWorkingContext } from "@interopio/working-context";
 
 import type { IoAssistStoreInstance } from "../stores";
-import { LOADING_STATES, TOOL_STATES } from "../types";
-import type { IoAssistDynamicConfig, IoAssistPrompt, IoAssistPromptCategory, IoAssistStaticConfig, Prompt, UIAgent, UIThread, UITool } from "../types";
+import { LOADING_STATES } from "../types";
+import type { IoAssistDynamicConfig, IoAssistPrompt, IoAssistPromptCategory, IoAssistStaticConfig, Prompt, UIAgent } from "../types";
 import { selectElicitation } from "./elicitation";
 import { wireMcpAppEvents } from "./mcpAppEvents";
+import { refreshThreads } from "./refreshThreads";
+import { refreshTools } from "./refreshTools";
 import { selectSampling } from "./sampling";
+import { UI_STRINGS } from "../constants/uiStrings";
+import { getCustomMcpCapabilityHandlerPresence } from "../utils/customMcpCapabilityHandlers";
 import { logger } from "../utils/logger";
 
 const LOGGER_NAME = "InitIoAiWeb";
@@ -19,6 +23,8 @@ const log = logger.get(LOGGER_NAME);
 
 export async function initIoAiWeb(staticConfig: IoAssistStaticConfig, dynamicConfig: IoAssistDynamicConfig, store: IoAssistStoreInstance): Promise<void> {
     try {
+        validateCustomMcpCapabilityHandlerConfig(staticConfig.aiWebConfig.mcp);
+
         const { IoAiWebFactory } = await import("@interopio/ai-web");
 
         const ioApi = store.getState().ioConnectApi;
@@ -48,24 +54,28 @@ export async function initIoAiWeb(staticConfig: IoAssistStaticConfig, dynamicCon
         await Promise.all([
             listAgents(ioIntelWeb, staticConfig.defaultAgentName, userId, store),
             loadPrompts(staticConfig.defaultPrompts ?? [], store),
-            loadTools(ioIntelWeb, store),
+            refreshTools(store),
             checkWorkingContext(ioIntelWeb, store),
         ]);
-
-        const toolsApi = ioIntelWeb.tools as IoAiWeb.Tools.API & {
-            onChanged?: (cb: () => void) => void;
-        };
-        if (typeof toolsApi.onChanged === "function") {
-            toolsApi.onChanged(() => {
-                loadTools(ioIntelWeb, store);
-            });
-        }
     } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to initialise IO Intel Web API";
 
         store.getState().setAppLoadingState({ type: LOADING_STATES.ERROR, message });
         log.error("IoAiWeb initialisation failed.", error instanceof Error ? error : new Error(String(error)));
     }
+}
+
+function validateCustomMcpCapabilityHandlerConfig(mcp: IoAiWeb.MCPConfig | undefined): void {
+    const { hasCustomSamplingHandler, hasCustomElicitationHandler } = getCustomMcpCapabilityHandlerPresence(mcp);
+
+    if (hasCustomSamplingHandler === hasCustomElicitationHandler) return;
+
+    const providedHandler: "sampling" | "elicitation" = hasCustomSamplingHandler ? "sampling" : "elicitation";
+    const message = UI_STRINGS.GENERAL.MISMATCHED_CUSTOM_HANDLERS_ERROR(providedHandler);
+
+    log.error(message);
+
+    throw new Error(message);
 }
 
 function buildWebConfig(staticConfig: IoAssistStaticConfig, dynamicConfig: IoAssistDynamicConfig): IoAiWeb.WebConfig {
@@ -139,44 +149,12 @@ async function listAgents(ioIntelWeb: IoAiWeb.API, defaultAgentName: string | un
             state.setSelectedAgent(selected);
 
             // Fetch threads for this agent
-            await fetchThreads(ioIntelWeb, selected.rawAgent.id, userId, store);
+            await refreshThreads(ioIntelWeb, selected.rawAgent.id, userId, store, true);
         }
     } catch (error) {
         store.getState().setAgentsLoadingState({
             type: LOADING_STATES.ERROR,
             message: error instanceof Error ? error.message : "Failed to load agents",
-        });
-    }
-}
-
-async function fetchThreads(ioIntelWeb: IoAiWeb.API, agentId: string, userId: string, store: IoAssistStoreInstance): Promise<void> {
-    const state = store.getState();
-
-    state.setThreadLoadingState({ type: LOADING_STATES.LOADING });
-
-    try {
-        const rawThreads = await ioIntelWeb.threads.list({
-            agentId,
-            resourceId: userId,
-        });
-
-        const threads: UIThread[] = rawThreads.map((t) => ({
-            id: t.id,
-            title: t.title || t.id.substring(0, 8),
-            createdAt: t.createdAt ? new Date(t.createdAt) : new Date(),
-            updatedAt: t.updatedAt ? new Date(t.updatedAt) : undefined,
-            rawThread: t,
-            update: (params: { title: string }) => t.update(params),
-            delete: () => t.delete(),
-            getMessages: (params: { limit: number }) => t.getMessages(params),
-        }));
-
-        state.setThreads(threads);
-        state.setThreadLoadingState({ type: LOADING_STATES.SUCCESS });
-    } catch (error) {
-        store.getState().setThreadLoadingState({
-            type: LOADING_STATES.ERROR,
-            message: error instanceof Error ? error.message : "Failed to load threads",
         });
     }
 }
@@ -193,29 +171,6 @@ function loadPrompts(defaultPrompts: IoAssistPromptCategory[], store: IoAssistSt
     );
 
     store.getState().setAllPrompts(allPrompts);
-}
-
-async function loadTools(ioIntelWeb: IoAiWeb.API, store: IoAssistStoreInstance): Promise<void> {
-    const state = store.getState();
-    state.setToolLoadingState({ type: LOADING_STATES.LOADING });
-
-    try {
-        const rawTools = await ioIntelWeb.tools.list();
-
-        const tools: UITool[] = rawTools.map((t) => ({
-            name: t.name,
-            description: t.description ?? "",
-            enabled: t.enabled ?? true,
-            mcpServerName: t.source?.mcpName ?? undefined,
-            state: TOOL_STATES.IDLE,
-            rawTool: t,
-        }));
-
-        state.setTools(tools);
-        state.setToolLoadingState({ type: LOADING_STATES.SUCCESS });
-    } catch {
-        state.setToolLoadingState({ type: LOADING_STATES.ERROR, message: "Failed to load tools" });
-    }
 }
 
 async function checkWorkingContext(ioIntelWeb: IoAiWeb.API, store: IoAssistStoreInstance): Promise<void> {

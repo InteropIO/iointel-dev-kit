@@ -21,9 +21,15 @@ export const ThreadHistoryPanel: React.FC<ThreadHistoryPanelProps> = ({ userName
     const hasUsername = !!userName;
 
     return (
-        <aside data-testid="thread-history-panel" className={["flex flex-col h-full w-full md:w-[368px] md:min-w-[368px] md:max-w-[368px] bg-app-background-secondary", className ?? ""].join(" ")}>
+        <aside
+            data-testid="thread-history-panel"
+            className={[
+                "flex flex-col h-full w-full md:w-[368px] md:min-w-[368px] md:max-w-[368px] bg-app-background-secondary md:border-r md:border-[var(--app-thread-history-border)]",
+                className ?? "",
+            ].join(" ")}
+        >
             <div className="flex items-center gap-4 px-4 py-2">
-                <IconButton size={12} containerSize={24} onClick={hideThreadHistory} title="Thread history">
+                <IconButton size={12} containerSize={24} shape="rounded-square" hoverFill testId="thread-history-close-button" onClick={hideThreadHistory} title="Thread History">
                     <ThreadHistoryIcon />
                 </IconButton>
                 {isDarkMode ? <IoAssistLogoDark /> : <IoAssistLogoLight />}
@@ -33,7 +39,7 @@ export const ThreadHistoryPanel: React.FC<ThreadHistoryPanelProps> = ({ userName
 
             {hasUsername && (
                 <div data-testid="thread-user-profile" className="flex items-center gap-3 px-4 py-3 mt-auto border-t border-border-default">
-                    <div data-testid="thread-user-avatar" className="flex items-center justify-center size-6 rounded-full bg-app-accent-color-1 text-white font-weight-550 text-[12px] flex-shrink-0">
+                    <div data-testid="thread-user-avatar" className="flex items-center justify-center size-6 rounded-full bg-app-accent-color-1 text-white font-weight-550 text-[11px] flex-shrink-0">
                         {userInitial}
                     </div>
                     <div className="flex flex-col flex-1 min-w-0">

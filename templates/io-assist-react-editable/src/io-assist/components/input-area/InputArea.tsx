@@ -1,13 +1,14 @@
 import React, { useState, useRef, useCallback, useEffect, type KeyboardEvent, type ChangeEvent } from "react";
 
 import { UI_STRINGS } from "../../constants/uiStrings";
-import { useIoAssistStore } from "../../context/IoAssistContext";
+import { useIoAssistConfig, useIoAssistStore } from "../../context/IoAssistContext";
 import { useIoConnectApi } from "../../hooks/useIoConnectApi";
 import { PERMISSION_MODE, type PermissionMode } from "../../stores/permission-mode";
 import { UI_MESSAGE_ROLES } from "../../types/message";
 import { PANEL_CONTENT } from "../../types/panel";
 import type { SelectOption } from "../../types/select";
 import { RESPONSE_STREAM_STATUS } from "../../types/stream";
+import { hasBothCustomMcpCapabilityHandlers } from "../../utils/customMcpCapabilityHandlers";
 import { Icon } from "../shared/Icon";
 import { IconButton } from "../shared/IconButton";
 import { ArrowUpIcon, PaperPlaneIcon, StopIcon, PromptPanelIcon, PromptPanelFilledIcon, ToolPanelIcon, ToolPanelFilledIcon } from "../shared/icons";
@@ -178,10 +179,10 @@ export const InputArea: React.FC<Props> = ({ onSend, onAbort, className }) => {
                                     .join(" ")}
                                 onClick={handleSendOrStop}
                                 disabled={buttonState === "disabled"}
-                                title={buttonState === "stop" ? "Stop generation" : "Send message"}
+                                title={buttonState === "stop" ? "Stop Generation" : buttonState === "send" ? "Send Message" : "Send Message Disabled"}
                             >
                                 <Icon
-                                    className={["icon-wrapper", buttonState === "disabled" && "cursor-not-allowed"].filter(Boolean).join(" ")}
+                                    className={["icon-wrapper", buttonState === "disabled" ? "cursor-not-allowed" : "cursor-pointer"].filter(Boolean).join(" ")}
                                     size={buttonState === "stop" ? 14 : buttonState === "send" ? 18 : 16}
                                 >
                                     {buttonState === "stop" ? <StopIcon /> : buttonState === "send" ? <ArrowUpIcon /> : <PaperPlaneIcon />}
@@ -200,6 +201,8 @@ const ActionBar: React.FC = () => {
     const setActivePanelContent = useIoAssistStore((s) => s.setActivePanelContent);
     const permissionMode = useIoAssistStore((s) => s.permissionMode);
     const { setPermissionMode } = useIoConnectApi();
+    const staticConfig = useIoAssistConfig();
+    const isPermissionSelectDisplayed = !hasBothCustomMcpCapabilityHandlers(staticConfig.aiWebConfig.mcp);
 
     const [hovered, setHovered] = useState<"prompt" | "tool" | null>(null);
 
@@ -209,18 +212,20 @@ const ActionBar: React.FC = () => {
     const toolFilled = toolDisplayed || hovered === "tool";
 
     return (
-        <div className="flex flex-1 gap-1 items-center">
+        <div className="flex flex-1 gap-1 items-center" data-testid="input-area-action-bar">
             <IconButton
                 size={12}
                 containerSize={24}
                 testId="prompt-panel-button"
                 shape="rounded-rectangle"
+                hoverFill
+                selected={promptDisplayed}
                 aria-pressed={promptDisplayed}
                 onClick={() => setActivePanelContent(PANEL_CONTENT.PROMPTS)}
                 onMouseEnter={() => setHovered("prompt")}
                 onMouseLeave={() => setHovered(null)}
-                title="Browse prompts"
-                aria-label="Browse prompts"
+                title="Prompt Panel"
+                aria-label="Prompt Panel"
             >
                 {promptFilled ? <PromptPanelFilledIcon /> : <PromptPanelIcon />}
             </IconButton>
@@ -229,18 +234,22 @@ const ActionBar: React.FC = () => {
                 containerSize={24}
                 testId="tool-panel-button"
                 shape="rounded-rectangle"
+                hoverFill
+                selected={toolDisplayed}
                 aria-pressed={toolDisplayed}
                 onClick={() => setActivePanelContent(PANEL_CONTENT.TOOLS)}
                 onMouseEnter={() => setHovered("tool")}
                 onMouseLeave={() => setHovered(null)}
-                title="Manage tools"
-                aria-label="Manage tools"
+                title="Tool Panel"
+                aria-label="Tool Panel"
             >
                 {toolFilled ? <ToolPanelFilledIcon /> : <ToolPanelIcon />}
             </IconButton>
 
             <div className="min-w-[63px]">
-                <Select selectId="permission" options={PERMISSION_OPTIONS} value={permissionMode} onChange={(option) => void setPermissionMode(option.value)} preferredPlacement="above" />
+                {isPermissionSelectDisplayed && (
+                    <Select selectId="permission" options={PERMISSION_OPTIONS} value={permissionMode} onChange={(option) => void setPermissionMode(option.value)} preferredPlacement="above" />
+                )}
             </div>
         </div>
     );

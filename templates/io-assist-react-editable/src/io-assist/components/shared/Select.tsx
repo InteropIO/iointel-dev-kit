@@ -164,11 +164,12 @@ export function Select<TValue>({ selectId, options, value, onChange, label, outl
                 aria-haspopup="listbox"
                 aria-expanded={isOpen}
                 aria-controls={`${selectId}-listbox`}
+                data-testid={`${selectId}-select-trigger`}
                 className={[
                     "flex items-center gap-spacing-2 py-spacing-4 px-spacing-4 rounded-[8px] text-input-text text-[12px] leading-none cursor-pointer w-full transition-colors outline-none hover:text-text-states-active",
                     triggerActive ? "text-text-states-active" : "",
-                    !outline && triggerActive ? "bg-thread-list-item-hover-background" : "",
-                    !outline && !triggerActive ? "bg-transparent hover:bg-thread-list-item-hover-background" : "",
+                    !outline && triggerActive ? "bg-icon-button-selected" : "",
+                    !outline && !triggerActive ? "bg-transparent hover:bg-icon-button-hover" : "",
                     outline ? "border border-border-default" : "",
                 ]
                     .filter(Boolean)
@@ -202,6 +203,7 @@ export function Select<TValue>({ selectId, options, value, onChange, label, outl
                             aria-selected={isSelected(option)}
                             tabIndex={0}
                             id={`${selectId}-opt-${i}`}
+                            data-testid={`${selectId}-select-option-${String(option.value)}`}
                             className="flex items-center w-full px-1 py-px cursor-pointer"
                             onClick={() => select(option)}
                             onKeyUp={(e) => e.key === "Enter" && select(option)}

@@ -1,6 +1,7 @@
 import React from "react";
 
 import type { UIUserMessage } from "../../types";
+import { CopyButton } from "../shared/CopyButton";
 import { Spinner } from "../shared/icons";
 import { ReloadButton } from "../shared/ReloadButton";
 
@@ -20,7 +21,7 @@ export const UserMessage: React.FC<Props> = ({ message, isLast = false, isGenera
     const showReloadButton = !!error && !!onReload;
 
     return (
-        <div data-testid="user-message" className="flex flex-col justify-end">
+        <div data-testid="user-message" className="group flex flex-col justify-end">
             <div className="flex items-end justify-end">
                 <div className="flex items-end px-2">
                     {showSpinner && (
@@ -32,11 +33,15 @@ export const UserMessage: React.FC<Props> = ({ message, isLast = false, isGenera
                     {showReloadButton && <ReloadButton testId="user-message-regenerate-button" onClick={onReload} size={16} className="size-8" />}
                 </div>
 
-                <div className="flex min-w-0">
-                    <div className="p-4 list-none text-[14px] leading-[18px] font-weight-350 text-user-message-text bg-user-message-background rounded-2xl max-w-[620px] min-w-0 whitespace-pre-wrap break-words">
+                <div className="flex flex-col items-end min-w-0 pt-4">
+                    <div className="list-none text-[13px] leading-[18px] font-weight-350 text-user-message-text bg-user-message-background max-w-[620px] min-w-0 whitespace-pre-wrap break-words rounded-lg py-3 px-4">
                         {message.content ?? ""}
                     </div>
                 </div>
+            </div>
+
+            <div className="flex justify-end mt-0.5 opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+                <CopyButton textToCopy={message.content ?? ""} testId="user-message-copy-button" />
             </div>
 
             {showError && <div className="flex justify-end py-1 text-text-default text-[13px] font-weight-350 leading-[100%]">{error}</div>}

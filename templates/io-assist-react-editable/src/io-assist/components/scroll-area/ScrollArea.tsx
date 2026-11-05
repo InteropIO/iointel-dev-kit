@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useCallback, useState } from "react";
 
 import { Icon } from "../shared/Icon";
-import { ChevronDownIcon } from "../shared/icons";
+import { ArrowDownIcon } from "../shared/icons";
 
 type Props = {
     children: React.ReactNode;
@@ -10,6 +10,7 @@ type Props = {
     isForceScrollToBottomEnabled?: boolean;
     snapToTopTrigger?: number;
     observeRef?: React.RefObject<HTMLElement | null>;
+    hasFadeEdges?: boolean;
 };
 
 const SCROLL_THRESHOLD = 20;
@@ -19,7 +20,15 @@ const SCROLL_THRESHOLD = 20;
 const EXPANDED_SPACER_OFFSET = 118;
 const SCROLL_BUTTON_SHOW_DELAY = 250;
 
-export const ScrollArea: React.FC<Props> = ({ children, className = "", shouldExpandSpacer = false, isForceScrollToBottomEnabled = false, snapToTopTrigger, observeRef }) => {
+export const ScrollArea: React.FC<Props> = ({
+    children,
+    className = "",
+    shouldExpandSpacer = false,
+    isForceScrollToBottomEnabled = false,
+    snapToTopTrigger,
+    observeRef,
+    hasFadeEdges = false,
+}) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const spacerRef = useRef<HTMLDivElement>(null);
     const showTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -53,10 +62,15 @@ export const ScrollArea: React.FC<Props> = ({ children, className = "", shouldEx
             return;
         }
 
-        const overflow = container.scrollHeight - container.scrollTop - container.clientHeight;
-        if (overflow <= SCROLL_THRESHOLD) return;
-        const newHeight = Math.max(spacer.offsetHeight - overflow, 0);
-        spacer.style.minHeight = `${newHeight}px`;
+        // Not pinned to a just-sent message: the spacer's only job is to fill whatever room is
+        // left in the viewport so the layout doesn't show a scrollbar/empty gap it doesn't need.
+        // Recomputed from scratch (not accumulated) every time so it can't drift - it shrinks as
+        // content grows past the viewport, and grows back immediately when content shrinks (e.g. a
+        // tool-trace gets collapsed), with no stale reservation left over from an earlier state.
+        const contentHeight = container.scrollHeight - spacer.offsetHeight;
+        const idealHeight = Math.max(0, container.clientHeight - contentHeight);
+        if (Math.abs(idealHeight - spacer.offsetHeight) <= SCROLL_THRESHOLD) return;
+        spacer.style.minHeight = `${idealHeight}px`;
     }, [scrollToBottom]);
 
     const snapToTop = useCallback(() => {
@@ -96,8 +110,7 @@ export const ScrollArea: React.FC<Props> = ({ children, className = "", shouldEx
             handleScroll();
         });
         const observeTarget = observeRef?.current ?? container;
-        const observeOptions: MutationObserverInit = observeRef?.current ? { childList: true } : { childList: true, subtree: true };
-        mo.observe(observeTarget, observeOptions);
+        mo.observe(observeTarget, { childList: true, subtree: true });
 
         const ro = new ResizeObserver(() => handleSpacerBehavior());
         ro.observe(container);
@@ -129,7 +142,7 @@ export const ScrollArea: React.FC<Props> = ({ children, className = "", shouldEx
             <div
                 ref={containerRef}
                 data-testid="scroll-area"
-                className="flex flex-col flex-1 min-h-0 min-w-0 overflow-x-hidden overflow-y-auto custom-scrollbar custom-scrollbar-no-gutter"
+                className={["flex flex-col flex-1 min-h-0 min-w-0 overflow-x-hidden overflow-y-auto custom-scrollbar custom-scrollbar-no-gutter", hasFadeEdges ? "scroll-fade-edges" : ""].join(" ")}
                 onScroll={handleScroll}
             >
                 {children}
@@ -143,11 +156,11 @@ export const ScrollArea: React.FC<Props> = ({ children, className = "", shouldEx
                     data-testid="scroll-to-bottom"
                     aria-label="Scroll to bottom"
                     title="Scroll to bottom"
-                    className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 size-8 rounded-full bg-app-background-secondary border border-border-default shadow flex items-center justify-center text-text-secondary hover:text-text-states-hover hover:border-border-hover transition-colors"
+                    className="absolute bottom-5 self-center left-1/2 -translate-x-1/2 z-[999] flex items-center justify-center box-border w-10 h-10 p-0 rounded-full border border-[var(--app-floating-border)] bg-[var(--app-scroll-button-background)] shadow-[var(--app-floating-shadow)] cursor-pointer [transition:opacity_500ms_ease-in-out,background-color_150ms_ease-out] hover:bg-[var(--app-scroll-button-background-hover)] focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--app-focus-ring),var(--app-floating-shadow)]"
                     onClick={() => scrollToBottom()}
                 >
-                    <Icon size={14}>
-                        <ChevronDownIcon />
+                    <Icon size={12} className="text-text-states-active">
+                        <ArrowDownIcon />
                     </Icon>
                 </button>
             )}

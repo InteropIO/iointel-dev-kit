@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { IconButton } from "./IconButton";
-import { CheckIcon, CopyHoverIcon, CopyIcon } from "./icons";
+import { CheckIcon, CopyIcon } from "./icons";
 import { Tooltip } from "./Tooltip";
 import { UI_STRINGS } from "../../constants/uiStrings";
 import { copyToClipboard } from "../../utils/clipboard";
@@ -17,12 +17,10 @@ type Props = {
 
 /**
  * Copy-to-clipboard button. Mirrors ng AppCopyToClipboardButtonComponent:
- * - default: outline copy icon
- * - hover: filled copy icon
+ * - default: outline copy icon that brightens (icon-default → icon-hover) on hover
  * - copied: tick icon + a "Copied!" tooltip shown for 2s
  */
 export const CopyButton: React.FC<Props> = ({ textToCopy, testId, size = 12, className }) => {
-    const [isHovered, setIsHovered] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
     const timerRef = useRef<number | null>(null);
 
@@ -44,8 +42,15 @@ export const CopyButton: React.FC<Props> = ({ textToCopy, testId, size = 12, cla
 
     return (
         <Tooltip position="top" displayMode="event" forceVisible={isCopied} content={UI_STRINGS.GENERAL.COPIED}>
-            <IconButton testId={testId} size={size} onClick={handleCopy} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} className={className}>
-                {isCopied ? <CheckIcon /> : isHovered ? <CopyHoverIcon /> : <CopyIcon />}
+            <IconButton
+                testId={testId}
+                size={size}
+                containerSize={size * 2}
+                hoverFill
+                onClick={handleCopy}
+                className={["!rounded-[6px]", className ?? ""].join(" ")}
+            >
+                {isCopied ? <CheckIcon /> : <CopyIcon />}
             </IconButton>
         </Tooltip>
     );

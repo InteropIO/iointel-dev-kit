@@ -5,6 +5,7 @@ import { UI_MESSAGE_ROLES, MESSAGES_LOADING_STATE } from "../types";
 import type { IoAssistDynamicConfig, UIThread, UIUserMessage } from "../types";
 import { processResponseStream } from "./processResponseStream";
 import { logger } from "../utils/logger";
+import { clearPermissionRequest } from "../utils/permissionRequest";
 import { safeStringify } from "../utils/safeStringify";
 
 const LOGGER_NAME = "SendUserMessage";
@@ -23,6 +24,7 @@ export async function sendUserMessage(store: IoAssistStoreInstance, text: string
     let threadId = state.activeThreadId;
     if (!threadId) {
         threadId = crypto.randomUUID();
+        clearPermissionRequest();
         state.setActiveThreadId(threadId);
     }
 
