@@ -89,7 +89,7 @@ Each case runs several times, because results vary between runs. The engine prin
 - A self-contained eval package in this repo (outside the skill folder), with its own dependencies. TypeScript, with Vitest as the test runner for the engine's own tests.
 - Runs locally, on demand. No CI in v1.
 - Agent runtimes: the Claude Agent SDK for the Claude Code target, and the Codex SDK/CLI for the Codex target. No third-party eval framework (promptfoo and DeepEval were considered and rejected for v1; DeepEval stays an option for judge metrics later).
-- Credentials (Anthropic and OpenAI API keys) come from a gitignored env file in the eval package. Subscription logins are not used.
+- Credentials come from a gitignored env file in the eval package. Claude (the Claude Code target and the judge, which both run through the Claude Code CLI via the Agent SDK) uses `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN` when set, and otherwise the local Claude Code login, including a subscription, for personal local runs. Codex uses `OPENAI_API_KEY`.
 
 **Modules**
 - **Case loader:** discovers case YAML files, validates them against the case schema (Zod), applies defaults, and expands each case × target × repeat into run units. Fails the whole run immediately on any invalid case.

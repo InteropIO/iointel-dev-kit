@@ -1,5 +1,6 @@
 import { query, type SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import { extractClaudeFlow } from "../flow/claude-flow.js";
+import { claudeAuthProblem, claudeEnv } from "./claude-auth.js";
 import { createWorkdirGuard } from "./claude-guard.js";
 import type { Evals } from "../shared/contracts.js";
 
@@ -21,9 +22,7 @@ export class ClaudeCodeAdapter implements Evals.Agent.Adapter {
   }
 
   public checkReady(): string | undefined {
-    return process.env.ANTHROPIC_API_KEY
-      ? undefined
-      : "ANTHROPIC_API_KEY is not set (add it to evals/.env)";
+    return claudeAuthProblem();
   }
 
   public async run(
@@ -60,10 +59,7 @@ export class ClaudeCodeAdapter implements Evals.Agent.Adapter {
           disallowedTools: input.network ? [] : ["WebFetch", "WebSearch"],
           canUseTool: async (toolName, toolInput) => guard(toolName, toolInput),
           abortController: abort,
-          env: {
-            ...process.env,
-            CLAUDE_AGENT_SDK_CLIENT_APP: "io-intelligence-evals/0.1.0",
-          },
+          env: claudeEnv(),
         },
       });
       for await (const message of stream) {

@@ -1,22 +1,20 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import os from "node:os";
+import { query, type SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
+import { claudeAuthProblem, claudeEnv } from "../adapters/claude-auth.js";
 import type { Evals } from "../shared/contracts.js";
 
 /**
  * Grades rubric lines with a fixed Opus 5.5 model, so scores stay comparable across runs and targets.
- * Holds one API client for the process: use AnthropicJudge.getInstance().
+ * Runs through Claude Code (the Agent SDK) with no tools, so it uses the same credentials as the
+ * Claude Code adapter: an API key when set, otherwise the local Claude Code login.
+ * Stateless, so the process shares one instance: use AnthropicJudge.getInstance().
  */
 export class AnthropicJudge implements Evals.Judge.Grader {
   private static instance: AnthropicJudge | undefined;
   private static readonly MODEL = "claude-opus-5-5";
-  // USD per million tokens for claude-opus-5-5.
-  private static readonly PRICE = {
-    input: 4,
-    output: 20,
-    cacheRead: 0.2,
-    cacheWrite: 5,
-  } as const;
+  // Structured output is returned through a tool call, which can take a retry.
+  private static readonly MAX_TURNS = 3;
   // Keeps a pathological transcript from exceeding the context window; the judge is told when it happens.
   private static readonly MAX_TRANSCRIPT_CHARS = 1_500_000;
   private static readonly VERDICT_SCHEMA = z.object({
@@ -33,8 +31,6 @@ Grade each rubric line independently as pass or fail, using the agent's final me
 A line passes only if the evidence clearly satisfies it. Do not give credit for intent, for claims the transcript or diff contradicts, or for things the rubric does not ask for.
 Give a one-line reason for every verdict, citing the evidence.`;
 
-  private client: Anthropic | undefined;
-
   private constructor() {}
 
   public static getInstance(): AnthropicJudge {
@@ -42,34 +38,52 @@ Give a one-line reason for every verdict, citing the evidence.`;
   }
 
   public checkReady(): string | undefined {
-    return process.env.ANTHROPIC_API_KEY
-      ? undefined
-      : "ANTHROPIC_API_KEY is not set (the judge uses Claude Opus 5.5)";
+    const problem = claudeAuthProblem();
+    return problem && `${problem} (the judge uses Claude Opus 5.5)`;
   }
 
   public async grade(input: Evals.Judge.Input): Promise<Evals.Judge.Result> {
-    // Created on first use, after the CLI has loaded .env.
-    this.client ??= new Anthropic();
-    const response = await this.client.messages.parse({
-      model: AnthropicJudge.MODEL,
-      max_tokens: 16000,
-      output_config: {
+    const stream = query({
+      prompt: AnthropicJudge.buildPrompt(input),
+      options: {
+        model: AnthropicJudge.MODEL,
         effort: "medium",
-        format: zodOutputFormat(AnthropicJudge.VERDICT_SCHEMA),
+        systemPrompt: AnthropicJudge.SYSTEM,
+        outputFormat: {
+          type: "json_schema",
+          schema: z.toJSONSchema(AnthropicJudge.VERDICT_SCHEMA),
+        },
+        maxTurns: AnthropicJudge.MAX_TURNS,
+        // A pure grading call: no tools, settings, MCP servers or saved session.
+        tools: [],
+        settingSources: [],
+        mcpServers: {},
+        strictMcpConfig: true,
+        persistSession: false,
+        cwd: os.tmpdir(),
+        env: claudeEnv(),
       },
-      system: AnthropicJudge.SYSTEM,
-      messages: [{ role: "user", content: AnthropicJudge.buildPrompt(input) }],
     });
+    let result: SDKResultMessage | undefined;
+    for await (const message of stream)
+      if (message.type === "result") result = message;
 
-    if (response.stop_reason === "refusal")
-      throw new Error("judge refused to grade this output");
-    const verdict = response.parsed_output;
-    if (!verdict)
+    if (!result) throw new Error("judge ended without a result");
+    if (result.subtype !== "success" || result.is_error)
       throw new Error(
-        `judge returned no parseable verdict (stop_reason: ${response.stop_reason})`,
+        `judge failed (${result.subtype}, stop_reason: ${result.stop_reason})`,
+      );
+    if (result.stop_reason === "refusal")
+      throw new Error("judge refused to grade this output");
+    const parsed = AnthropicJudge.VERDICT_SCHEMA.safeParse(
+      result.structured_output,
+    );
+    if (!parsed.success)
+      throw new Error(
+        `judge returned no parseable verdict (stop_reason: ${result.stop_reason})`,
       );
 
-    const byIndex = new Map(verdict.lines.map((l) => [l.index, l]));
+    const byIndex = new Map(parsed.data.lines.map((l) => [l.index, l]));
     const lines: Evals.Judge.Line[] = input.rubric.map((text, i) => {
       const v = byIndex.get(i);
       return v
@@ -80,7 +94,7 @@ Give a one-line reason for every verdict, citing the evidence.`;
             reason: "judge returned no verdict for this line",
           };
     });
-    return { lines, costUsd: AnthropicJudge.cost(response.usage) };
+    return { lines, costUsd: result.total_cost_usd };
   }
 
   private static buildPrompt(input: Evals.Judge.Input): string {
@@ -99,16 +113,5 @@ Give a one-line reason for every verdict, citing the evidence.`;
       `<transcript${truncated ? ' truncated="true"' : ""}>\n${transcript}\n</transcript>`,
       `Return one verdict per rubric line, using the line numbers above as "index".`,
     ].join("\n\n");
-  }
-
-  private static cost(usage: Anthropic.Usage): number {
-    const p = AnthropicJudge.PRICE;
-    return (
-      (usage.input_tokens * p.input +
-        usage.output_tokens * p.output +
-        (usage.cache_read_input_tokens ?? 0) * p.cacheRead +
-        (usage.cache_creation_input_tokens ?? 0) * p.cacheWrite) /
-      1_000_000
-    );
   }
 }

@@ -1,4 +1,4 @@
-// Opt-in contract test for the real judge: `npm run test:contract` (needs ANTHROPIC_API_KEY in .env).
+// Opt-in contract test for the real judge: `npm run test:contract` (needs Claude credentials: a key in .env or a local Claude Code login).
 import { describe, expect, it } from "vitest";
 import { AnthropicJudge } from "../../src/judge/anthropic-judge.js";
 

@@ -17,7 +17,7 @@ Design background: [docs/specs/io-intelligence-eval-engine.md](../docs/specs/io-
 ```bash
 cd evals
 npm install
-cp .env.example .env          # add ANTHROPIC_API_KEY and/or OPENAI_API_KEY
+cp .env.example .env          # optional for Claude (see below); add OPENAI_API_KEY for Codex
 # write cases in evals/cases/<kind>/<id>.yaml (see "Writing cases")
 npm run eval -- --kind trigger --repeat 1   # a quick first run
 npm run eval                                # the full suite
@@ -26,11 +26,16 @@ npm run eval:approve                        # make the latest run the baseline, 
 
 | Key | Needed for |
 |---|---|
-| `ANTHROPIC_API_KEY` | `claude-code/*` targets, and the judge (any case with a rubric) |
+| `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN` | optional: `claude-code/*` targets and the judge. Without either, they use your local Claude Code login |
 | `OPENAI_API_KEY` | `codex/*` targets |
 | `CODEX_PRICE_*` | optional: lets Codex runs count towards cost totals and `--max-cost` |
 
-If a key that the selected cases need is missing, the run stops before anything starts.
+**Claude without an API key.** The Claude Code targets and the judge both run through the Claude Code CLI (via the Agent SDK). When neither variable is set, the CLI uses whatever Claude Code is logged into on your machine, including a Pro/Max subscription: run `claude` once and log in. `claude setup-token` prints a long-lived `CLAUDE_CODE_OAUTH_TOKEN` for the same login. A key or token in the environment always takes priority over the login. With a subscription:
+- reported costs are API-price estimates, not what you pay, so `--max-cost` limits an estimate, not real spend;
+- runs count against your subscription's usage limits, so lower `--concurrency` for big suites;
+- it's for your own local runs only. Shared or CI setups should use an API key.
+
+If credentials that the selected cases need are missing, the run stops before anything starts. On macOS the login lives in the Keychain and isn't checked up front; a missing login shows up as a failed run instead.
 
 ---
 
@@ -52,7 +57,7 @@ flowchart LR
     skill --> ws
     engine --> cc["Claude Code adapter<br/>(Agent SDK)"]
     engine --> cx["Codex adapter<br/>(Codex SDK)"]
-    engine --> judge["Judge<br/>(Claude Opus 5.5)"]
+    engine --> judge["Judge<br/>(Claude Opus 5.5 via Agent SDK)"]
     baseline --> engine
     engine --> results["evals/results/&lt;run-id&gt;/<br/>summary.json · transcripts/ · flows/"]
     engine --> console["Console summary"]
@@ -98,7 +103,7 @@ Checks stop at the first failure, so a run that didn't trigger the skill, or who
 flowchart TD
     load["Load and validate all case files<br/>(any invalid file stops the run)"] --> filter["Apply --kind / --case / --target"]
     filter --> expand["Expand: case × target × repeat<br/>(+ skill-removed runs with --baseline)"]
-    expand --> preflight["Preflight: adapters exist, API keys set,<br/>judge available if any case has a rubric"]
+    expand --> preflight["Preflight: adapters exist, credentials available,<br/>judge available if any case has a rubric"]
     preflight --> pool["Run units in a pool of --concurrency (default 4)<br/>stop starting new ones at --max-cost"]
     pool --> agg["Aggregate per case × target:<br/>pass rate, trigger rate, cost, odd flows"]
     agg --> ref["Load reference: committed baseline.json,<br/>else the previous local run"]
@@ -237,7 +242,8 @@ classDiagram
 | Trigger detected by | A `Skill` tool call naming `io-intelligence` | Any command that reads `<skill>/SKILL.md` (Codex has no explicit skill event) |
 | `network: false` | Removes `WebFetch`/`WebSearch` and blocks `curl`, `wget`, `iwr`, `git clone/fetch/pull` | Disables network access and web search |
 | Turn limit | Enforced | Not available in Codex; only the timeout applies |
-| Cost | Reported by the SDK | Calculated from token usage × `CODEX_PRICE_*`; otherwise "unknown" |
+| Credentials | `ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`, or the local Claude Code login (`claude-auth.ts`) | `OPENAI_API_KEY` |
+| Cost | Reported by the SDK (an API-price estimate) | Calculated from token usage × `CODEX_PRICE_*`; otherwise "unknown" |
 | Default model | `claude-sonnet-5-5` | Codex's own default |
 
 Each run records how triggering was detected, so a Codex trigger rate isn't mistaken for the same kind of signal as Claude's.
@@ -319,8 +325,8 @@ flowchart LR
 | `task` | Agent finished, skill triggered, files, deps, commands and flow checks pass, every review line passes | **every** run passes |
 
 - If every run of a case was skipped by the cost cap, the case shows as `SKIPPED`, not failed.
-- A judge error (refusal or API failure) fails that run but keeps the agent's transcript and cost.
-- The process exits **0** whenever the run completed, whatever the results; reporting is all it does for now. It exits **1** only when a run can't start: invalid cases, a missing key, or a bad flag.
+- A judge error (refusal, API failure or unparseable verdict) fails that run but keeps the agent's transcript and cost.
+- The process exits **0** whenever the run completed, whatever the results; reporting is all it does for now. It exits **1** only when a run can't start: invalid cases, missing credentials, or a bad flag.
 
 ---
 
@@ -339,7 +345,7 @@ npm run eval -- [options]
 
 npm run eval:approve -- [--run ID]   promote the latest (or given) run to baseline.json
 npm test                             engine tests (no network, no keys, no cost)
-npm run test:contract                real adapters and judge (needs keys; costs money)
+npm run test:contract                real adapters and judge (needs credentials; costs money or subscription usage)
 npm run typecheck                    tsc, plus a separate check of shared/contracts.d.ts
 npm run format                       prettier
 ```
@@ -401,10 +407,10 @@ evals/
 │   │   ├── defaults.ts       repeat, concurrency, thresholds, turn and time limits
 │   │   └── errors.ts         EvalSetupError
 │   ├── cases/                schema.ts (Zod, checked against Evals.Cases at compile time), loader.ts
-│   ├── adapters/             claude-code.ts, claude-guard.ts, codex.ts
+│   ├── adapters/             claude-code.ts, claude-auth.ts, claude-guard.ts, codex.ts
 │   ├── flow/                 normalize.ts, claude-flow.ts, codex-flow.ts, compare.ts
 │   ├── checks/               matcher.ts, checks.ts, command-runner.ts
-│   ├── judge/                anthropic-judge.ts
+│   ├── judge/                anthropic-judge.ts (Opus 5.5 through the Agent SDK, no tools)
 │   ├── workspace/            workspace.ts (temp folder + git start state + diff)
 │   └── report/               baseline.ts, console.ts, flow-markdown.ts
 └── test/
@@ -452,14 +458,14 @@ flowchart LR
         ext["Extractor tests<br/>(sample transcripts)"]
         guard["Guard tests"]
     end
-    subgraph contract["npm run test:contract (keys, costs money)"]
+    subgraph contract["npm run test:contract (credentials, costs money)"]
         real["Real Claude Code / Codex / judge"] --> rec["Records transcripts to<br/>test/fixtures/transcripts/"]
     end
 ```
 
 - Engine tests go **only through `EvalEngine.run`** (via the `runEval` helper in `test/helpers.ts`) and check the report and the files it writes. They never check internal functions.
 - The extractor tests use hand-built sample transcripts. The first `npm run test:contract` saves real ones to `test/fixtures/transcripts/`, which should then become the test data.
-- Contract tests skip themselves when their keys are missing.
+- Contract tests skip themselves when their credentials are missing.
 
 ---
 
