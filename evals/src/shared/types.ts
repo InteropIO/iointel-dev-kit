@@ -64,6 +64,8 @@ export interface CheckOutcome {
 /** The judge's verdict on one run. A judge that failed gives a failed check instead of lines. */
 export interface Grading {
   readonly lines?: readonly Evals.Judge.Line[];
+  /** Share of the non-report-only lines that passed; absent when there are none. */
+  readonly score?: number;
   readonly costUsd: number | null;
   readonly failedCheck?: Evals.Checks.Result;
 }

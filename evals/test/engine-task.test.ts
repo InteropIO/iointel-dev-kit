@@ -89,6 +89,31 @@ describe("task cases", () => {
     expect(judge.calls[0]!.diff).not.toContain(SKILL_INSTALL);
   });
 
+  it("applies reviewThreshold to the review rubric score", async () => {
+    const env = await makeEnv();
+    await env.writeFixture("react-app", { "package.json": PACKAGE_JSON });
+    await env.writeCase(
+      task("half-review", {
+        checks: {
+          files: ["src/tool.ts"],
+          reviewRubric: "- Registers the tool\n- Reuses the client",
+          reviewThreshold: 0.5,
+        },
+      }),
+    );
+
+    const report = await runEval(
+      env.options(),
+      env.deps({
+        adapters: { fake: implementTask },
+        judge: fakeJudge((line) => line === "Reuses the client"),
+      }),
+    );
+
+    expect(report.cases[0]!.runs[0]!.rubricScore).toBe(0.5);
+    expect(report.cases[0]!.pass).toBe(true);
+  });
+
   it("stops at the first failing stage: no commands or judge after a missing file", async () => {
     const env = await makeEnv();
     await env.writeFixture("react-app", { "package.json": PACKAGE_JSON });

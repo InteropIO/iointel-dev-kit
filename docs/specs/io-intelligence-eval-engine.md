@@ -136,7 +136,7 @@ Each case runs several times, because results vary between runs. The engine prin
 - **Flow comparer:** compares snapshots in two ways. **Within a run:** the repeats of each case × target are grouped by identical snapshots; runs outside the majority group are flagged as odd. **Against the baseline:** each case × target's snapshots are compared with the approved snapshots, and the differences are reported (steps added or removed, a different reference read, a command's exit code changed, a different order). Flow differences never fail a case.
 - **Flow checks (optional, per case):** `mustRead`, `mustNotRead` and `mustRun` match against the flow snapshot (string or regex). A failed flow check fails the run like any other deterministic check.
 - **Checkers (deterministic):** answer-case must/must-not include (string or regex) against the final message. Task-case stages, run in order and stopping at the first failure: expected files → `package.json` dependency expectations → command list (non-zero exit fails) → judge review.
-- **Judge:** `grade(rubric, output, transcript) → { lines: [{ text, pass, reason }] }`. Fixed to Opus 5.5. Each rubric line gets pass or fail with a one-line reason; there are no numeric scores. For task cases, the output is the final message plus the workspace diff.
+- **Judge:** `grade(rubric, output, transcript) → { lines: [{ text, pass, reason }] }`. Fixed to Opus 5.5. Each rubric line gets pass or fail with a one-line reason. The engine scores a run as the share of lines that passed (0..1), leaving out lines marked `[report-only]`, which are graded and reported but never count. For task cases, the output is the final message plus the workspace diff.
 - **Reporter:**
   - A console summary table, including a short flow-difference summary (odd runs, and cases whose flow changed from the baseline).
   - A timestamped results folder (gitignored) with a summary JSON, plus the full transcript and flow snapshot for each run unit.
@@ -162,7 +162,8 @@ flow:                           # optional, any kind
 # answer
 mustInclude: [string | /regex/]
 mustNotInclude: [string | /regex/]
-rubric: string                  # one expectation per line
+rubric: string                  # one expectation per line; "[report-only]" prefix = graded, never counted
+rubricThreshold: number         # share of counted lines a run must pass, (0, 1], default 1
 # task
 setup: { template: <template id> } | { fixture: <path> } | {}
 checks:
@@ -170,11 +171,13 @@ checks:
   packageJson: { dependencies: { <name>: <range or "*"> } }
   commands: [string]
   reviewRubric: string
+  reviewThreshold: number       # as rubricThreshold, for the review rubric
 ```
 
 **Pass rules**
 - Trigger cases pass when at least 2 of 3 runs behave as expected (default threshold, can be overridden per case).
-- Answer and task cases pass only if every run passes. A run passes when the trigger expectation holds, every deterministic check passes (including any flow checks), and every judge rubric line passes.
+- Answer and task cases pass only if every run passes. A run passes when the trigger expectation holds, every deterministic check passes (including any flow checks), and its rubric score reaches the case's rubric threshold (default 1: every counted line passes).
+- The case report shows the mean rubric score of the graded runs, and the comparison shows score changes against the reference. Score changes alone never mark a case regressed or improved.
 - Flow differences (odd runs, changes from the baseline flow) are reported only and never affect pass or fail.
 - `--baseline` runs are reported as a difference against the with-skill runs; they never affect whether a case passes.
 

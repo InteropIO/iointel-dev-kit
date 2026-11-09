@@ -106,6 +106,8 @@ export declare namespace Evals {
       readonly text: string;
       readonly pass: boolean;
       readonly reason: string;
+      /** Marked "[report-only]" in the rubric: graded and reported, but never affects pass/fail or the score. */
+      readonly reportOnly?: boolean;
     }
 
     interface Result {
@@ -200,6 +202,8 @@ export declare namespace Evals {
       readonly mustInclude: readonly Matcher[];
       readonly mustNotInclude: readonly Matcher[];
       readonly rubric?: string;
+      /** Share of (non-report-only) rubric lines a run must pass, 0..1. Default 1. */
+      readonly rubricThreshold?: number;
     }
 
     interface TaskChecks {
@@ -210,6 +214,8 @@ export declare namespace Evals {
       };
       readonly commands: readonly string[];
       readonly reviewRubric?: string;
+      /** Share of (non-report-only) review rubric lines a run must pass, 0..1. Default 1. */
+      readonly reviewThreshold?: number;
     }
 
     interface TaskCase extends Common {
@@ -282,6 +288,8 @@ export declare namespace Evals {
       readonly triggerDetection?: Flow.TriggerDetection;
       readonly checks: readonly Checks.Result[];
       readonly judge?: readonly Judge.Line[];
+      /** Share of the judged, non-report-only rubric lines that passed, 0..1. Absent when not judged. */
+      readonly rubricScore?: number;
       readonly stopReason?: Agent.StopReason;
       readonly error?: string;
       readonly costUsd: number | null;
@@ -302,6 +310,8 @@ export declare namespace Evals {
       readonly skipped: number;
       readonly passRate: number | null;
       readonly triggerRate: number | null;
+      /** Mean rubricScore over the runs the judge graded; null when none were graded. */
+      readonly rubricScore: number | null;
       readonly costUsd: number;
       readonly costUnknown: boolean;
       /** Repeat indices whose flow differs from the majority. */
@@ -330,6 +340,7 @@ export declare namespace Evals {
       readonly status: ComparisonStatus;
       readonly passRate: Rates;
       readonly triggerRate: Rates;
+      readonly rubricScore: Rates;
       /** Majority flow vs. the reference's majority flow; absent when either side has no flows. */
       readonly flowDiff?: Flow.Diff;
     }
@@ -373,6 +384,8 @@ export declare namespace Evals {
       readonly pass: boolean | null;
       readonly passRate: number | null;
       readonly triggerRate: number | null;
+      /** Absent in baselines approved before rubric scores existed. */
+      readonly rubricScore?: number | null;
       readonly costUsd: number;
       /** Approved flows, one per with-skill run. */
       readonly flows: readonly (readonly Flow.Step[])[];

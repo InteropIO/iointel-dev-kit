@@ -1,6 +1,7 @@
 // Builds the RunRecord for each way a run can end: completed, failed outside the agent, or skipped.
 import type { Evals } from "../shared/contracts.js";
 import type { CheckOutcome, Grading, RunUnit } from "../shared/types.js";
+import { meetsRubric } from "./grading.js";
 
 /** The agent ran (possibly with an error), and its checks and grading are in. */
 export function completedRecord(
@@ -16,7 +17,7 @@ export function completedRecord(
   const pass =
     meetsTriggerExpectation(unit, agent) &&
     checks.every((x) => x.pass) &&
-    (grading.lines?.every((l) => l.pass) ?? true);
+    meetsRubric(unit.case, grading);
 
   return {
     ...identity(unit),
@@ -26,6 +27,7 @@ export function completedRecord(
     triggerDetection: agent.triggerDetection,
     checks,
     ...(grading.lines ? { judge: grading.lines } : {}),
+    ...(grading.score !== undefined ? { rubricScore: grading.score } : {}),
     stopReason: agent.stopReason,
     ...(agent.error ? { error: agent.error } : {}),
     costUsd:

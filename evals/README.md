@@ -166,13 +166,15 @@ rubric: |
   - Recommends @interopio/mcp-web for a browser app
   - Explains that io.Assist discovers the registered tools
   - Does not invent APIs
+  - [report-only] Mentions the Angular variant # graded and reported, never fails the run
+rubricThreshold: 1 # share of the other lines a run must pass (default 1 = all)
 ```
 
 The checks run in this order, and the run fails at the first one that fails:
 1. **Agent finished:** no error, no turn limit, no timeout.
 2. **Skill triggered:** answer and task cases also expect the skill to load, so a right answer from the model's prior knowledge alone doesn't count.
 3. **`mustInclude` / `mustNotInclude`:** checked against the final message. Free, and reliable for package names.
-4. **`rubric`:** the judge marks each line pass or fail, with a one-line reason.
+4. **`rubric`:** the judge marks each line pass or fail, with a one-line reason. See [Rubric scores](#rubric-scores).
 
 **Every** run must pass for the case to pass.
 
@@ -192,6 +194,7 @@ checks:
   reviewRubric: |
     - Registers the tool when the app starts
     - Uses the existing io.Connect client instead of creating a new one
+  reviewThreshold: 1 # share of review lines a run must pass (default 1 = all)
 ```
 
 `setup` picks the starting point:
@@ -314,6 +317,15 @@ flowchart LR
 - `npm run eval:approve` promotes the latest run (or `-- --run <id>`) to the baseline. Commit `baseline.json` to share it with the team. Moving the baseline is a deliberate step that shows up for review.
 - **Filtered runs** (`--case`, `--kind`, `--target`) only cover part of the suite. They don't report the cases they skipped as "removed", and approving one **merges** into the baseline instead of replacing it.
 
+### Rubric scores
+
+The judge grades every rubric line pass or fail. Each graded run also gets a **rubric score**: the share of its lines that passed, from 0 to 1. A run that passed 3 of 4 lines scores 75%.
+
+- **Threshold:** a run passes the judge step when its score reaches `rubricThreshold` (answer cases) or `checks.reviewThreshold` (task cases). Both default to `1`, meaning every line must pass. Use a lower value, e.g. `0.75`, when one miss shouldn't fail the run. Small rounding is allowed, so `0.6667` accepts 2 of 3.
+- **Report-only lines:** start a line with `[report-only]` to have it graded and reported without counting towards the score or pass/fail. Use it for lines you're still tuning. The judge sees the line without the marker. A case with a failed report-only line gets a "report-only lines failed" note.
+- **Per case:** the console's `rubric` column shows the mean score over the graded runs and how many were graded, e.g. `83% (3)`. Runs that failed a deterministic check never reach the judge, so they don't count. `-` means no run was graded.
+- **Compared with the baseline:** score changes are listed with the other comparison changes ("rubric 50% → 100%"), but on their own they never mark a case regressed or improved.
+
 ---
 
 ## Pass rules
@@ -321,8 +333,8 @@ flowchart LR
 | | Run passes when | Case passes when |
 |---|---|---|
 | `trigger` | Agent finished, and the skill triggered exactly as `expectSkill` says, plus any flow checks | ≥ ⅔ of runs pass (`passThreshold` overrides) |
-| `answer` | Agent finished, skill triggered, text checks pass, flow checks pass, every rubric line passes | **every** run passes |
-| `task` | Agent finished, skill triggered, files, deps, commands and flow checks pass, every review line passes | **every** run passes |
+| `answer` | Agent finished, skill triggered, text checks pass, flow checks pass, rubric score ≥ `rubricThreshold` (default: every line) | **every** run passes |
+| `task` | Agent finished, skill triggered, files, deps, commands and flow checks pass, review score ≥ `reviewThreshold` (default: every line) | **every** run passes |
 
 - If every run of a case was skipped by the cost cap, the case shows as `SKIPPED`, not failed.
 - A judge error (refusal, API failure or unparseable verdict) fails that run but keeps the agent's transcript and cost.
@@ -366,11 +378,12 @@ evals/results/<run-id>/            (gitignored)
 The console summary:
 
 ```
-case                      target                         kind     result  pass      trigger  cost   notes
-mcp-web-tool-trigger      claude-code/claude-sonnet-5-5  trigger  PASS    100% (3)  100%     $0.21
-mcp-web-tool-trigger      codex/gpt-5.5                  trigger  FAIL    33% (3)   33%      $0.15  odd flow, regressed
+case                      target                         kind     result  pass      trigger  rubric    cost   notes
+mcp-web-tool-trigger      claude-code/claude-sonnet-5-5  trigger  PASS    100% (3)  100%     -         $0.21
+mcp-web-tool-trigger      codex/gpt-5.5                  trigger  FAIL    33% (3)   33%      -         $0.15  odd flow, regressed
+mcp-web-for-browser-apps  claude-code/claude-sonnet-5-5  answer   FAIL    67% (3)   100%     89% (3)   $0.62
 
-Cases: 1 passed, 1 failed · runs: 6, skipped: 0 · cost: $0.36
+Cases: 1 passed, 2 failed · runs: 9, skipped: 0 · cost: $0.98
 Comparison against committed baseline (2026-11-02T10-00-00-000Z):
   REGRESSED mcp-web-tool-trigger [codex/gpt-5.5] pass 100% → 33%, trigger 100% → 33%
 Odd flows among repeats (see flows/<case>.md):

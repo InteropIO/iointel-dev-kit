@@ -52,6 +52,7 @@ function caseReport(
     skipped: withSkill.length - ran.length,
     passRate,
     triggerRate: rate(ran, (r) => r.triggered),
+    rubricScore: meanRubricScore(ran),
     costUsd: records.reduce((sum, r) => sum + (r.costUsd ?? 0), 0),
     costUnknown: records.some((r) => !r.skipped && r.costUsd === null),
     oddRuns: odd.map((i) => ran[i]!.index),
@@ -72,6 +73,16 @@ function withoutSkillSummary(records: RunRecord[]) {
     triggerRate: rate(ran, (r) => r.triggered),
     runs: without,
   };
+}
+
+/** Mean rubric score of the runs the judge graded, or null when it graded none. */
+function meanRubricScore(records: RunRecord[]): number | null {
+  const scores = records.flatMap((r) =>
+    r.rubricScore === undefined ? [] : [r.rubricScore],
+  );
+  return scores.length
+    ? scores.reduce((sum, s) => sum + s, 0) / scores.length
+    : null;
 }
 
 /** Share of records matching the predicate, or null when there are none. */

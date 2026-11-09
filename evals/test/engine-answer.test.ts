@@ -152,6 +152,113 @@ describe("judge", () => {
     expect(report.cases[0]!.pass).toBe(false);
   });
 
+  it("scores each run as the share of rubric lines passed, and averages it per case", async () => {
+    const env = await makeEnv();
+    await env.writeCase(
+      answer("scored", { rubric: "- one\n- two\n- three\n- four" }),
+    );
+    // Run 1 misses "four", run 2 misses "three" and "four".
+    const judge = fakeJudge((line) =>
+      judge.calls.length === 1
+        ? line === "four"
+        : line === "three" || line === "four",
+    );
+
+    const report = await runEval(
+      env.options({ repeat: 2, concurrency: 1 }),
+      env.deps({ adapters: { fake: fakeAdapter() }, judge }),
+    );
+
+    const c = report.cases[0]!;
+    expect(c.runs.map((r) => r.rubricScore)).toEqual([0.75, 0.5]);
+    expect(c.rubricScore).toBeCloseTo(0.625);
+    expect(c.pass).toBe(false);
+  });
+
+  it("passes a run whose score meets rubricThreshold", async () => {
+    const env = await makeEnv();
+    await env.writeCase(
+      answer("lenient", {
+        rubric: "- one\n- two\n- three",
+        rubricThreshold: 0.6667,
+      }),
+    );
+    const judge = fakeJudge((line) => line === "three");
+
+    const report = await runEval(
+      env.options(),
+      env.deps({ adapters: { fake: fakeAdapter() }, judge }),
+    );
+
+    expect(report.cases[0]!.runs[0]!.rubricScore).toBeCloseTo(2 / 3);
+    expect(report.cases[0]!.pass).toBe(true);
+  });
+
+  it("grades report-only lines without counting them", async () => {
+    const env = await makeEnv();
+    await env.writeCase(
+      answer("tuning", {
+        rubric: "- Recommends mcp-web\n- [report-only] Mentions Angular",
+      }),
+    );
+    const judge = fakeJudge((line) => line === "Mentions Angular");
+
+    const report = await runEval(
+      env.options(),
+      env.deps({ adapters: { fake: fakeAdapter() }, judge }),
+    );
+
+    expect(judge.calls[0]!.rubric).toEqual([
+      "Recommends mcp-web",
+      "Mentions Angular",
+    ]);
+    const run = report.cases[0]!.runs[0]!;
+    expect(run.judge).toEqual([
+      { text: "Recommends mcp-web", pass: true, reason: "ok" },
+      {
+        text: "Mentions Angular",
+        pass: false,
+        reason: "missed",
+        reportOnly: true,
+      },
+    ]);
+    expect(run.rubricScore).toBe(1);
+    expect(report.cases[0]!.pass).toBe(true);
+  });
+
+  it("has no score when every line is report-only", async () => {
+    const env = await makeEnv();
+    await env.writeCase(
+      answer("all-info", { rubric: "- [report-only] anything" }),
+    );
+
+    const report = await runEval(
+      env.options(),
+      env.deps({
+        adapters: { fake: fakeAdapter() },
+        judge: fakeJudge(() => true),
+      }),
+    );
+
+    expect(report.cases[0]!.runs[0]!.rubricScore).toBeUndefined();
+    expect(report.cases[0]!.rubricScore).toBeNull();
+    expect(report.cases[0]!.pass).toBe(true);
+  });
+
+  it("rejects a rubricThreshold outside (0, 1]", async () => {
+    const env = await makeEnv();
+    await env.writeCase(
+      answer("bad-threshold", { rubric: "- x", rubricThreshold: 1.5 }),
+    );
+
+    await expect(
+      runEval(
+        env.options(),
+        env.deps({ adapters: { fake: fakeAdapter() }, judge: fakeJudge() }),
+      ),
+    ).rejects.toThrow(/rubricThreshold/);
+  });
+
   it("must be configured when a case has a rubric", async () => {
     const env = await makeEnv();
     await env.writeCase(answer("needs-judge", { rubric: "- x" }));

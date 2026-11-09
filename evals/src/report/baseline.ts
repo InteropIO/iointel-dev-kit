@@ -15,6 +15,7 @@ function toBaselineEntries(
     pass: c.pass,
     passRate: c.passRate,
     triggerRate: c.triggerRate,
+    rubricScore: c.rubricScore,
     costUsd: c.costUsd,
     flows: c.runs.flatMap((r) => (r.flow ? [r.flow.steps] : [])),
   }));
@@ -78,6 +79,7 @@ export function compareWithReference(
         status: "new",
         passRate: { before: null, after: c.passRate },
         triggerRate: { before: null, after: c.triggerRate },
+        rubricScore: { before: null, after: c.rubricScore },
       });
       continue;
     }
@@ -97,6 +99,7 @@ export function compareWithReference(
       status,
       passRate: { before: ref.passRate, after: c.passRate },
       triggerRate: { before: ref.triggerRate, after: c.triggerRate },
+      rubricScore: { before: ref.rubricScore ?? null, after: c.rubricScore },
       ...(flowDiff ? { flowDiff } : {}),
     });
   }
@@ -107,6 +110,7 @@ export function compareWithReference(
       status: "removed",
       passRate: { before: ref.passRate, after: null },
       triggerRate: { before: ref.triggerRate, after: null },
+      rubricScore: { before: ref.rubricScore ?? null, after: null },
     });
   }
   return comparisons;

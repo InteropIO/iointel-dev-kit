@@ -1,8 +1,8 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { approveRun } from "../src/report/baseline.js";
-import { fakeAdapter, makeEnv, runEval } from "./helpers.js";
+import { fakeAdapter, fakeJudge, makeEnv, runEval } from "./helpers.js";
 import type { Evals } from "../src/shared/contracts.js";
 
 const loaded: Evals.Flow.Step = {
@@ -173,6 +173,50 @@ describe("comparison and approve", () => {
     );
     expect(md).toContain("**Flow changed from the reference:**");
     expect(md).toContain("`- read <skill>/references/core.md`");
+  });
+
+  it("compares rubric scores with the approved baseline, and reads older baselines without one", async () => {
+    const env = await makeEnv();
+    await env.writeCase({
+      id: "graded",
+      kind: "answer",
+      targets: ["fake/m"],
+      prompt: "p",
+      rubric: "- one\n- two",
+      rubricThreshold: 0.5,
+    });
+    let failing = new Set(["two"]);
+    const deps = env.deps({
+      adapters: { fake: fakeAdapter() },
+      judge: fakeJudge((line) => failing.has(line)),
+    });
+
+    await runEval(env.options(), deps);
+    await approveRun({
+      resultsDir: env.resultsDir,
+      baselineFile: env.baselineFile,
+    });
+    expect(
+      JSON.parse(await readFile(env.baselineFile, "utf8")).entries[0]
+        .rubricScore,
+    ).toBe(0.5);
+
+    failing = new Set();
+    const second = await runEval(env.options(), deps);
+    expect(second.comparison[0]).toMatchObject({
+      status: "unchanged",
+      rubricScore: { before: 0.5, after: 1 },
+    });
+
+    // A baseline approved before rubric scores existed has no rubricScore field.
+    const old = JSON.parse(await readFile(env.baselineFile, "utf8"));
+    delete old.entries[0].rubricScore;
+    await writeFile(env.baselineFile, JSON.stringify(old));
+    const third = await runEval(env.options(), deps);
+    expect(third.comparison[0]!.rubricScore).toEqual({
+      before: null,
+      after: 1,
+    });
   });
 
   it("approves a specific run by id", async () => {

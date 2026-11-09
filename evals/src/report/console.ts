@@ -15,6 +15,7 @@ export function renderConsoleSummary(report: Evals.Report.RunReport): string {
     "result",
     "pass",
     "trigger",
+    "rubric",
     "cost",
     "notes",
   ];
@@ -25,6 +26,7 @@ export function renderConsoleSummary(report: Evals.Report.RunReport): string {
     c.pass === null ? "SKIPPED" : c.pass ? "PASS" : "FAIL",
     `${pct(c.passRate)} (${c.ran})`,
     pct(c.triggerRate),
+    rubricCell(c),
     usd(c.costUsd, c.costUnknown),
     notes(c, report),
   ]);
@@ -68,12 +70,16 @@ export function renderConsoleSummary(report: Evals.Report.RunReport): string {
       (c) =>
         c.status !== "unchanged" ||
         changedRate(c.passRate) ||
-        changedRate(c.triggerRate),
+        changedRate(c.triggerRate) ||
+        changedRate(c.rubricScore),
     );
     if (!changed.length) out.push("  no result changes");
     for (const c of changed)
       out.push(
-        `  ${c.status.toUpperCase().padEnd(9)} ${c.caseId} [${c.target}] pass ${pct(c.passRate.before)} → ${pct(c.passRate.after)}, trigger ${pct(c.triggerRate.before)} → ${pct(c.triggerRate.after)}`,
+        `  ${c.status.toUpperCase().padEnd(9)} ${c.caseId} [${c.target}] pass ${pct(c.passRate.before)} → ${pct(c.passRate.after)}, trigger ${pct(c.triggerRate.before)} → ${pct(c.triggerRate.after)}` +
+          (c.rubricScore.before !== null || c.rubricScore.after !== null
+            ? `, rubric ${pct(c.rubricScore.before)} → ${pct(c.rubricScore.after)}`
+            : ""),
       );
     const flowChanged = report.comparison.filter(
       (c) =>
@@ -99,6 +105,12 @@ export function renderConsoleSummary(report: Evals.Report.RunReport): string {
   return out.join("\n");
 }
 
+/** Mean rubric score and how many runs were graded, e.g. "83% (2)"; "-" when none were. */
+function rubricCell(c: Evals.Report.CaseReport): string {
+  const graded = c.runs.filter((r) => r.rubricScore !== undefined).length;
+  return c.rubricScore === null ? "-" : `${pct(c.rubricScore)} (${graded})`;
+}
+
 function notes(
   c: Evals.Report.CaseReport,
   report: Evals.Report.RunReport,
@@ -116,6 +128,10 @@ function notes(
     (cmp.flowDiff.added.length || cmp.flowDiff.removed.length)
   )
     parts.push("flow changed");
+  const reportOnlyFailed = c.runs.some((r) =>
+    r.judge?.some((l) => l.reportOnly && !l.pass),
+  );
+  if (reportOnlyFailed) parts.push("report-only lines failed");
   if (c.withoutSkill)
     parts.push(`without skill: pass ${pct(c.withoutSkill.passRate)}`);
   const stops = new Set(

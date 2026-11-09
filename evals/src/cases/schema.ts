@@ -12,6 +12,9 @@ const matcher = z
     if (error) ctx.addIssue({ code: "custom", message: error });
   });
 
+// A fraction in (0, 1], for thresholds.
+const share = z.number().gt(0).lte(1);
+
 const targetId = z
   .string()
   .regex(
@@ -29,7 +32,7 @@ const common = {
   expectSkill: z.boolean().default(true),
   repeat: z.number().int().positive().optional(),
   /** Fraction of runs that must pass, 0..1. */
-  passThreshold: z.number().gt(0).lte(1).optional(),
+  passThreshold: share.optional(),
   maxTurns: z.number().int().positive().optional(),
   timeoutMs: z.number().int().positive().optional(),
   flow: z
@@ -53,6 +56,7 @@ const answerCase = z
     mustInclude: z.array(matcher).default([]),
     mustNotInclude: z.array(matcher).default([]),
     rubric: z.string().optional(),
+    rubricThreshold: share.optional(),
   })
   .strict();
 
@@ -81,6 +85,7 @@ const taskCase = z
           .optional(),
         commands: z.array(z.string()).default([]),
         reviewRubric: z.string().optional(),
+        reviewThreshold: share.optional(),
       })
       .strict()
       .default({ files: [], commands: [] }),
