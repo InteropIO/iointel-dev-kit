@@ -104,6 +104,9 @@ export class EvalEngine {
   ): string {
     const verdict = record.pass ? "pass" : "FAIL";
     const skill = unit.withSkill ? "" : " (without skill)";
-    return `${verdict}  ${unit.case.id} [${unit.target}] run ${unit.index + 1}${skill}`;
+    const kept = record.workdir
+      ? `\n      workspace kept: ${record.workdir}`
+      : "";
+    return `${verdict}  ${unit.case.id} [${unit.target}] run ${unit.index + 1}${skill}${kept}`;
   }
 }

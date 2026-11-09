@@ -12,7 +12,7 @@ const exec = promisify(execFile);
  * Creates a fresh temp folder per run, seeds it, installs the skill where the tool discovers it,
  * and commits the starting state to a throwaway git repo so the final diff is exact.
  *
- * Not a singleton: each instance is bound to a skill folder and fixtures folder, and tests
+ * Not a singleton: each instance is bound to a skill folder and local templates folder, and tests
  * create one per isolated environment.
  */
 export class GitWorkspaceManager implements Evals.Workspace.Manager {
@@ -31,22 +31,24 @@ export class GitWorkspaceManager implements Evals.Workspace.Manager {
   public constructor(private readonly options: GitWorkspaceOptions) {}
 
   public async prepare({
-    setup,
+    template,
     skillInstallPath,
     withSkill,
   }: Evals.Workspace.PrepareOptions): Promise<Evals.Workspace.Prepared> {
     const root = await mkdtemp(path.join(os.tmpdir(), "iointel-eval-"));
     const workdir = path.join(root, "work");
 
-    if ("template" in setup) {
+    if (template && "official" in template) {
       await (this.options.materialize ?? this.materializeWithSkillScript)(
-        setup.template,
+        template.official,
         workdir,
       );
-    } else if ("fixture" in setup) {
-      await cp(path.resolve(this.options.fixturesDir, setup.fixture), workdir, {
-        recursive: true,
-      });
+    } else if (template) {
+      await cp(
+        path.resolve(this.options.localTemplatesDir, template.local),
+        workdir,
+        { recursive: true },
+      );
     } else {
       await mkdir(workdir);
     }
@@ -71,6 +73,7 @@ export class GitWorkspaceManager implements Evals.Workspace.Manager {
 
     return {
       workdir,
+      kept: !!this.options.keep,
       diff: () => GitWorkspaceManager.diff(workdir, skillRel),
       cleanup: async () => {
         if (!this.options.keep)

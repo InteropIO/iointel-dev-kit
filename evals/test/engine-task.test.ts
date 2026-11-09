@@ -1,4 +1,4 @@
-import { access, mkdir, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { GitWorkspaceManager } from "../src/workspace/workspace.js";
@@ -20,13 +20,21 @@ const PACKAGE_JSON = JSON.stringify({
   dependencies: { react: "^19.0.0" },
 });
 
-const task = (id: string, extra: Record<string, unknown> = {}) => ({
+// `input` is merged over the default input (`template: undefined` starts from an empty folder);
+// other overrides (including `output`) replace top-level fields.
+const task = (
+  id: string,
+  { input, ...extra }: { input?: object } & Record<string, unknown> = {},
+) => ({
   id,
   kind: "task",
   targets: ["fake/m"],
-  prompt: "Add an MCP tool",
-  setup: { fixture: "react-app" },
   ...extra,
+  input: {
+    prompt: "Add an MCP tool",
+    template: { local: "react-app" },
+    ...input,
+  },
 });
 
 /** The fake agent "implements" the task by writing a file and adding a dependency. */
@@ -46,18 +54,20 @@ const implementTask = fakeAdapter(async (input) => {
 });
 
 describe("task cases", () => {
-  it("seeds from a fixture, runs structural checks and commands, and gives the judge the diff", async () => {
+  it("seeds from a local template, runs structural checks and commands, and gives the judge the diff", async () => {
     const env = await makeEnv();
-    await env.writeFixture("react-app", { "package.json": PACKAGE_JSON });
+    await env.writeLocalTemplate("react-app", { "package.json": PACKAGE_JSON });
     await env.writeCase(
       task("add-tool", {
-        checks: {
-          files: ["src/tool.ts"],
-          packageJson: {
-            dependencies: { "@interopio/mcp-web": "*", react: "^19.0.0" },
+        output: {
+          deterministic: {
+            files: ["src/tool.ts"],
+            packageJson: {
+              dependencies: { "@interopio/mcp-web": "*", react: "^19.0.0" },
+            },
+            commands: ["npm run build"],
           },
-          commands: ["npm run build"],
-          reviewRubric: "- Registers the tool",
+          judge: { rubric: ["Registers the tool"] },
         },
       }),
     );
@@ -89,15 +99,56 @@ describe("task cases", () => {
     expect(judge.calls[0]!.diff).not.toContain(SKILL_INSTALL);
   });
 
-  it("applies reviewThreshold to the review rubric score", async () => {
+  it("writes a per-case report with checks, judge verdicts, flow, final message and diff", async () => {
     const env = await makeEnv();
-    await env.writeFixture("react-app", { "package.json": PACKAGE_JSON });
+    await env.writeLocalTemplate("react-app", { "package.json": PACKAGE_JSON });
+    await env.writeCase(
+      task("reported", {
+        output: {
+          deterministic: { files: ["src/tool.ts"] },
+          judge: {
+            rubric: ["Registers the tool", "[report-only] Reuses the client"],
+          },
+        },
+      }),
+    );
+
+    const report = await runEval(
+      env.options(),
+      env.deps({
+        adapters: { fake: implementTask },
+        judge: fakeJudge((line) => line === "Reuses the client"),
+      }),
+    );
+
+    const md = await readFile(
+      path.join(report.resultsPath, "reports", "reported.md"),
+      "utf8",
+    );
+    expect(md).toContain("> Add an MCP tool");
+    expect(md).toContain('**Template:** `{"local":"react-app"}`');
+    expect(md).toContain("## fake/m: PASS");
+    expect(md).toContain("- ✅ file src/tool.ts");
+    expect(md).toContain("**Judge** (rubric score 100%)");
+    expect(md).toContain("- ❌ _[report-only]_ Reuses the client");
+    expect(md).toContain("  - missed");
+    expect(md).toContain("1. skill-loaded io-intelligence");
+    expect(md).toContain("> Added the tool.");
+    expect(md).toContain("+export const tool = 1;");
+    expect(md).toContain("(../transcripts/reported__fake_m__1.json)");
+  });
+
+  it("applies the judge threshold to the rubric score", async () => {
+    const env = await makeEnv();
+    await env.writeLocalTemplate("react-app", { "package.json": PACKAGE_JSON });
     await env.writeCase(
       task("half-review", {
-        checks: {
-          files: ["src/tool.ts"],
-          reviewRubric: "- Registers the tool\n- Reuses the client",
-          reviewThreshold: 0.5,
+        output: {
+          deterministic: { files: ["src/tool.ts"] },
+          judge: {
+            rubric: ["Registers the tool", "Reuses the client"],
+            threshold: 0.5,
+          },
         },
       }),
     );
@@ -116,13 +167,15 @@ describe("task cases", () => {
 
   it("stops at the first failing stage: no commands or judge after a missing file", async () => {
     const env = await makeEnv();
-    await env.writeFixture("react-app", { "package.json": PACKAGE_JSON });
+    await env.writeLocalTemplate("react-app", { "package.json": PACKAGE_JSON });
     await env.writeCase(
       task("missing-file", {
-        checks: {
-          files: ["src/missing.ts"],
-          commands: ["npm run build"],
-          reviewRubric: "- x",
+        output: {
+          deterministic: {
+            files: ["src/missing.ts"],
+            commands: ["npm run build"],
+          },
+          judge: { rubric: ["x"] },
         },
       }),
     );
@@ -145,10 +198,12 @@ describe("task cases", () => {
 
   it("fails on a non-zero command exit, keeps the output tail and skips the remaining commands", async () => {
     const env = await makeEnv();
-    await env.writeFixture("react-app", { "package.json": PACKAGE_JSON });
+    await env.writeLocalTemplate("react-app", { "package.json": PACKAGE_JSON });
     await env.writeCase(
       task("broken-build", {
-        checks: { commands: ["npm run build", "echo never"] },
+        output: {
+          deterministic: { commands: ["npm run build", "echo never"] },
+        },
       }),
     );
 
@@ -168,10 +223,14 @@ describe("task cases", () => {
 
   it("reports a package.json dependency with the wrong range", async () => {
     const env = await makeEnv();
-    await env.writeFixture("react-app", { "package.json": PACKAGE_JSON });
+    await env.writeLocalTemplate("react-app", { "package.json": PACKAGE_JSON });
     await env.writeCase(
       task("wrong-range", {
-        checks: { packageJson: { dependencies: { react: "^18.0.0" } } },
+        output: {
+          deterministic: {
+            packageJson: { dependencies: { react: "^18.0.0" } },
+          },
+        },
       }),
     );
 
@@ -190,14 +249,14 @@ describe("task cases", () => {
     const env = await makeEnv();
     await env.writeCase(
       task("from-template", {
-        setup: { template: "io-assist-react-packaged" },
-        checks: { files: ["README.md"] },
+        input: { template: { official: "io-assist-react-packaged" } },
+        output: { deterministic: { files: ["README.md"] } },
       }),
     );
     const materialized: string[] = [];
     const workspace = new GitWorkspaceManager({
       skillDir: env.skillDir,
-      fixturesDir: env.fixturesDir,
+      localTemplatesDir: env.localTemplatesDir,
       materialize: async (templateId, target) => {
         materialized.push(templateId);
         await mkdir(target, { recursive: true });
@@ -214,10 +273,13 @@ describe("task cases", () => {
     expect(report.cases[0]!.pass).toBe(true);
   });
 
-  it("starts from an empty folder when there is no setup", async () => {
+  it("starts from an empty folder when there is no template", async () => {
     const env = await makeEnv();
     await env.writeCase(
-      task("empty", { setup: {}, checks: { files: ["package.json"] } }),
+      task("empty", {
+        input: { template: undefined },
+        output: { deterministic: { files: ["package.json"] } },
+      }),
     );
 
     const report = await runEval(
@@ -234,7 +296,9 @@ describe("task cases", () => {
   it("records a workspace setup failure as a failed run", async () => {
     const env = await makeEnv();
     await env.writeCase(
-      task("no-fixture", { setup: { fixture: "does-not-exist" } }),
+      task("no-template", {
+        input: { template: { local: "does-not-exist" } },
+      }),
     );
 
     const report = await runEval(
@@ -248,7 +312,7 @@ describe("task cases", () => {
 
   it("removes the temp workdir after the run", async () => {
     const env = await makeEnv();
-    await env.writeCase(task("cleanup", { setup: {} }));
+    await env.writeCase(task("cleanup", { input: { template: undefined } }));
     let workdir = "";
     const adapter = fakeAdapter((input) => {
       workdir = input.workdir;
@@ -258,5 +322,33 @@ describe("task cases", () => {
     await runEval(env.options(), env.deps({ adapters: { fake: adapter } }));
 
     await expect(access(workdir)).rejects.toThrow();
+  });
+
+  it("keeps the workdir with --keep-workdirs and reports where it is", async () => {
+    const env = await makeEnv();
+    await env.writeCase(task("kept", { input: { template: undefined } }));
+    let workdir = "";
+    const adapter = fakeAdapter((input) => {
+      workdir = input.workdir;
+      return {};
+    });
+    const workspace = new GitWorkspaceManager({
+      skillDir: env.skillDir,
+      localTemplatesDir: env.localTemplatesDir,
+      keep: true,
+    });
+
+    const report = await runEval(
+      env.options(),
+      env.deps({ adapters: { fake: adapter }, workspace }),
+    );
+
+    await access(workdir);
+    expect(report.cases[0]!.runs[0]!.workdir).toBe(workdir);
+    const md = await readFile(
+      path.join(report.resultsPath, "reports", "kept.md"),
+      "utf8",
+    );
+    expect(md).toContain(`Workspace kept at: \`${workdir}\``);
   });
 });

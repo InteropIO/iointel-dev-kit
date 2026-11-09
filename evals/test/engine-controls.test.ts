@@ -16,8 +16,8 @@ describe("--baseline (skill removed)", () => {
       id: "uplift",
       kind: "answer",
       targets: ["fake/m"],
-      prompt: "p",
-      mustInclude: ["mcp-web"],
+      input: { prompt: "p" },
+      output: { deterministic: { mustInclude: ["mcp-web"] } },
     });
     const adapter = fakeAdapter(async (input) => {
       const installed = await access(
@@ -55,8 +55,8 @@ describe("--baseline (skill removed)", () => {
       id: "facts",
       kind: "answer",
       targets: ["fake/m"],
-      prompt: "p",
-      mustInclude: ["mcp-web"],
+      input: { prompt: "p" },
+      output: { deterministic: { mustInclude: ["mcp-web"] } },
     });
     const adapter = fakeAdapter(() => ({
       skillTriggered: false,
@@ -80,7 +80,7 @@ describe("cost cap, concurrency and cost reporting", () => {
       id: "a",
       kind: "trigger",
       targets: ["fake/m"],
-      prompt: "p",
+      input: { prompt: "p" },
     });
     const adapter = fakeAdapter(() => ({ costUsd: 0.4 }));
 
@@ -104,13 +104,13 @@ describe("cost cap, concurrency and cost reporting", () => {
       id: "a",
       kind: "trigger",
       targets: ["fake/m"],
-      prompt: "a",
+      input: { prompt: "a" },
     });
     await env.writeCase({
       id: "b",
       kind: "trigger",
       targets: ["fake/m"],
-      prompt: "b",
+      input: { prompt: "b" },
     });
     const adapter = fakeAdapter(() => ({ costUsd: 5 }));
 
@@ -128,7 +128,7 @@ describe("cost cap, concurrency and cost reporting", () => {
       id: "a",
       kind: "trigger",
       targets: ["fake/m"],
-      prompt: "p",
+      input: { prompt: "p" },
     });
     let active = 0;
     let peak = 0;
@@ -153,8 +153,8 @@ describe("cost cap, concurrency and cost reporting", () => {
       id: "a",
       kind: "answer",
       targets: ["fake/m", "nocost/m"],
-      prompt: "p",
-      rubric: "- line",
+      input: { prompt: "p" },
+      output: { judge: { rubric: ["line"] } },
     });
     const fake = fakeAdapter(() => ({ costUsd: 0.25 }));
     const nocost = fakeAdapter(() => ({ costUsd: null }), "nocost");

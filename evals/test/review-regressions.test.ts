@@ -17,8 +17,8 @@ describe("run outcome", () => {
       id: "graded",
       kind: "answer",
       targets: ["fake/m"],
-      prompt: "p",
-      rubric: "- x",
+      input: { prompt: "p" },
+      output: { judge: { rubric: ["x"] } },
     });
     const judge: Evals.Judge.Grader = {
       checkReady: () => undefined,
@@ -51,14 +51,14 @@ describe("run outcome", () => {
       id: "limited",
       kind: "answer",
       targets: ["fake/m"],
-      prompt: "p",
-      rubric: "- x",
+      input: { prompt: "p" },
+      output: { judge: { rubric: ["x"] } },
     });
     await env.writeCase({
       id: "slow",
       kind: "trigger",
       targets: ["fake/m"],
-      prompt: "slow",
+      input: { prompt: "slow" },
     });
     const judge = fakeJudge();
     const adapter = fakeAdapter((input) => ({
@@ -97,13 +97,15 @@ describe("matchers", () => {
       id: "bad-regex",
       kind: "answer",
       targets: ["fake/m"],
-      prompt: "p",
-      mustInclude: ["/foo(/"],
+      input: { prompt: "p" },
+      output: { deterministic: { mustInclude: ["/foo(/"] } },
     });
 
     await expect(
       runEval(env.options(), env.deps({ adapters: { fake: fakeAdapter() } })),
-    ).rejects.toThrow(/bad-regex\.yaml: mustInclude\.0: invalid regex/);
+    ).rejects.toThrow(
+      /bad-regex\.json: output\.deterministic\.mustInclude\.0: invalid regex/,
+    );
     await expect(
       runEval(env.options(), env.deps({ adapters: { fake: fakeAdapter() } })),
     ).rejects.toBeInstanceOf(CaseValidationError);
@@ -117,13 +119,13 @@ describe("filtered runs and the baseline", () => {
       id: "a",
       kind: "trigger",
       targets: ["fake/m"],
-      prompt: "a",
+      input: { prompt: "a" },
     });
     await env.writeCase({
       id: "b",
       kind: "trigger",
       targets: ["fake/m"],
-      prompt: "b",
+      input: { prompt: "b" },
     });
     const deps = env.deps({ adapters: { fake: fakeAdapter() } });
     await runEval(env.options(), deps);

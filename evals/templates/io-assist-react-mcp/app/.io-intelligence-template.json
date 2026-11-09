@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "template": "io-assist-react-packaged",
+  "displayName": "Packaged React io.Assist",
+  "framework": "react",
+  "mode": "packaged",
+  "ioConnectClient": true,
+  "source": {
+    "repository": "https://github.com/InteropIO/iointel-dev-kit.git",
+    "tag": "V1.0.1",
+    "path": "templates/io-assist-react-packaged"
+  },
+  "materializedAt": "2026-09-30T08:49:16.875Z"
+}

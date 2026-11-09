@@ -2,6 +2,7 @@ import { query, type SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import { extractClaudeFlow } from "../flow/claude-flow.js";
 import { claudeAuthProblem, claudeEnv } from "./claude-auth.js";
 import { createWorkdirGuard } from "./claude-guard.js";
+import { answerQuestions } from "./claude-questions.js";
 import type { Evals } from "../shared/contracts.js";
 
 /**
@@ -57,7 +58,13 @@ export class ClaudeCodeAdapter implements Evals.Agent.Adapter {
           strictMcpConfig: true,
           permissionMode: "default",
           disallowedTools: input.network ? [] : ["WebFetch", "WebSearch"],
-          canUseTool: async (toolName, toolInput) => guard(toolName, toolInput),
+          canUseTool: async (toolName, toolInput) =>
+            toolName === "AskUserQuestion" && input.reply
+              ? {
+                  behavior: "allow",
+                  updatedInput: answerQuestions(toolInput, input.reply),
+                }
+              : guard(toolName, toolInput),
           abortController: abort,
           env: claudeEnv(),
         },

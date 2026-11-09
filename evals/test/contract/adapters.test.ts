@@ -13,7 +13,7 @@ import type { Evals } from "../../src/shared/contracts.js";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const workspace = new GitWorkspaceManager({
   skillDir: path.resolve(here, "../../../skills/io-intelligence"),
-  fixturesDir: path.resolve(here, "../../fixtures"),
+  localTemplatesDir: path.resolve(here, "../../templates"),
 });
 const recordings = path.resolve(here, "../fixtures/transcripts");
 
@@ -28,7 +28,6 @@ async function run(
   record?: string,
 ): Promise<{ result: Evals.Agent.RunResult; workdir: string }> {
   const ws = await workspace.prepare({
-    setup: {},
     skillInstallPath: adapter.skillInstallPath,
     withSkill: true,
   });

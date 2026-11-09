@@ -59,6 +59,8 @@ export declare namespace Evals {
 
     interface RunInput {
       readonly prompt: string;
+      /** The case's scripted answer to the agent's questions, if it has one. */
+      readonly reply?: string;
       /** Model from the target; undefined means the adapter's default. */
       readonly model: string | undefined;
       readonly workdir: string;
@@ -98,7 +100,7 @@ export declare namespace Evals {
       readonly rubric: readonly string[];
       readonly finalMessage: string;
       readonly transcript: readonly unknown[];
-      /** Workspace diff, for task cases. */
+      /** Workspace diff, for answer and task cases. */
       readonly diff?: string;
     }
 
@@ -123,19 +125,20 @@ export declare namespace Evals {
 
   /** The temp folder each run works in. */
   namespace Workspace {
-    type Setup =
-      | { readonly template: string }
-      | { readonly fixture: string }
-      | Record<string, never>;
+    /** An official template fetched by the skill's script, or a project copied from evals/templates/<name>. */
+    type Template = { readonly official: string } | { readonly local: string };
 
     interface PrepareOptions {
-      readonly setup: Setup;
+      /** Omitted: the run starts in an empty folder. */
+      readonly template?: Template;
       readonly skillInstallPath: string;
       readonly withSkill: boolean;
     }
 
     interface Prepared {
       readonly workdir: string;
+      /** true when cleanup() leaves the folder in place (--keep-workdirs). */
+      readonly kept?: boolean;
       /** Changes since the workspace was prepared (lockfiles and the skill folder excluded). */
       diff(): Promise<string>;
       cleanup(): Promise<void>;
@@ -177,51 +180,83 @@ export declare namespace Evals {
       readonly mustRead: readonly Matcher[];
       readonly mustNotRead: readonly Matcher[];
       readonly mustRun: readonly Matcher[];
+      /** Matched against fetched URLs and web searches, and against download commands (curl, wget, iwr…). */
+      readonly mustFetch: readonly Matcher[];
     }
 
-    interface Common {
-      readonly id: string;
-      readonly targets: readonly string[];
-      readonly network: boolean;
+    /** What the agent gets: the prompt, and the project it starts in (an empty folder when omitted). */
+    interface Input {
       readonly prompt: string;
+      readonly template?: Workspace.Template;
+      /**
+       * What the user answers when the agent asks a question (AskUserQuestion). Every question gets
+       * this reply. Without it, questions come back unanswered.
+       */
+      readonly reply?: string;
+    }
+
+    /** Pass/fail checks computed from the run, with no model involved. */
+    interface DeterministicChecks {
+      /** Whether the skill should load. false makes a negative case. */
       readonly expectSkill: boolean;
-      readonly repeat?: number;
-      /** Fraction of runs that must pass, 0..1. */
-      readonly passThreshold?: number;
-      readonly maxTurns?: number;
-      readonly timeoutMs?: number;
       readonly flow?: FlowChecks;
     }
 
-    interface TriggerCase extends Common {
-      readonly kind: "trigger";
-    }
-
-    interface AnswerCase extends Common {
-      readonly kind: "answer";
+    interface AnswerDeterministicChecks extends DeterministicChecks {
       readonly mustInclude: readonly Matcher[];
       readonly mustNotInclude: readonly Matcher[];
-      readonly rubric?: string;
-      /** Share of (non-report-only) rubric lines a run must pass, 0..1. Default 1. */
-      readonly rubricThreshold?: number;
     }
 
-    interface TaskChecks {
+    interface TaskDeterministicChecks extends DeterministicChecks {
       readonly files: readonly string[];
       readonly packageJson?: {
         readonly dependencies?: Readonly<Record<string, string>>;
         readonly devDependencies?: Readonly<Record<string, string>>;
       };
       readonly commands: readonly string[];
-      readonly reviewRubric?: string;
-      /** Share of (non-report-only) review rubric lines a run must pass, 0..1. Default 1. */
-      readonly reviewThreshold?: number;
+    }
+
+    /** Checks graded by the judge model: the final message for answer cases, plus the diff for task cases. */
+    interface JudgeChecks {
+      /** One expectation per item. A "[report-only]" prefix means graded and reported, never counted. */
+      readonly rubric: readonly string[];
+      /** Share of counted rubric items a run must pass, 0..1. Default 1. */
+      readonly threshold?: number;
+    }
+
+    interface Common {
+      readonly id: string;
+      /** Free-text note for humans (where the case came from, what it expects). Ignored by the engine. */
+      readonly note?: string;
+      readonly targets: readonly string[];
+      readonly network: boolean;
+      readonly repeat?: number;
+      /** Fraction of runs that must pass, 0..1. */
+      readonly passThreshold?: number;
+      readonly maxTurns?: number;
+      readonly timeoutMs?: number;
+      readonly input: Input;
+    }
+
+    interface TriggerCase extends Common {
+      readonly kind: "trigger";
+      readonly output: { readonly deterministic: DeterministicChecks };
+    }
+
+    interface AnswerCase extends Common {
+      readonly kind: "answer";
+      readonly output: {
+        readonly deterministic: AnswerDeterministicChecks;
+        readonly judge?: JudgeChecks;
+      };
     }
 
     interface TaskCase extends Common {
       readonly kind: "task";
-      readonly setup: Workspace.Setup;
-      readonly checks: TaskChecks;
+      readonly output: {
+        readonly deterministic: TaskDeterministicChecks;
+        readonly judge?: JudgeChecks;
+      };
     }
 
     type Case = TriggerCase | AnswerCase | TaskCase;
@@ -296,6 +331,8 @@ export declare namespace Evals {
       readonly flow?: Flow.Snapshot;
       /** Relative to the run's results folder. */
       readonly transcriptFile?: string;
+      /** Absolute path of the run's workspace, set only when it was kept (--keep-workdirs). */
+      readonly workdir?: string;
     }
 
     interface CaseReport {

@@ -1,6 +1,6 @@
 # io-intelligence skill evals
 
-A local eval engine for the [`io-intelligence`](../skills/io-intelligence/SKILL.md) skill. It runs YAML test cases against the **working copy** of the skill, through the agent tools developers actually use, and reports whether the skill:
+A local eval engine for the [`io-intelligence`](../skills/io-intelligence/SKILL.md) skill. It runs JSON test cases against the **working copy** of the skill, through the agent tools developers actually use, and reports whether the skill:
 
 - **triggers**: loads for prompts that need it, and stays out of prompts that don't;
 - **answers correctly**: right packages and APIs, no invented ones;
@@ -18,7 +18,7 @@ Design background: [docs/specs/io-intelligence-eval-engine.md](../docs/specs/io-
 cd evals
 npm install
 cp .env.example .env          # optional for Claude (see below); add OPENAI_API_KEY for Codex
-# write cases in evals/cases/<kind>/<id>.yaml (see "Writing cases")
+# write cases in evals/cases/<kind>/<id>.json (see "Writing cases")
 npm run eval -- --kind trigger --repeat 1   # a quick first run
 npm run eval                                # the full suite
 npm run eval:approve                        # make the latest run the baseline, then commit baseline.json
@@ -47,7 +47,7 @@ If credentials that the selected cases need are missing, the run stops before an
 flowchart LR
     subgraph repo["iointel-dev-kit"]
         skill["skills/io-intelligence<br/>(working copy)"]
-        cases["evals/cases/*.yaml"]
+        cases["evals/cases/*.json"]
         baseline["evals/baseline.json<br/>(committed)"]
     end
 
@@ -78,18 +78,18 @@ sequenceDiagram
     participant C as Checks
     participant J as Judge (Opus 5.5)
 
-    E->>W: prepare(setup, skill install path, withSkill)
+    E->>W: prepare(input.template, skill install path, withSkill)
     W-->>E: temp workdir (seeded, skill copied in, git commit of start state)
-    E->>A: run(prompt, model, workdir, network, limits)
+    E->>A: run(input.prompt, model, workdir, network, limits)
     A-->>E: final message, transcript, flow, skillTriggered, cost, stop reason
     E->>C: agent finished? skill triggered? text / flow checks
     alt task case and checks pass so far
         E->>C: files exist → package.json deps → commands (install, build…)
-        E->>W: diff since start
     end
-    alt rubric present and all checks passed
-        E->>J: grade(rubric lines, final message, transcript, diff)
-        J-->>E: pass/fail + reason per line
+    E->>W: diff since start (answer and task cases)
+    alt output.judge present and all checks passed
+        E->>J: grade(rubric items, final message, transcript, diff)
+        J-->>E: pass/fail + reason per item
     end
     E->>W: cleanup (unless --keep-workdirs)
     E->>E: write transcript file, record result
@@ -103,7 +103,7 @@ Checks stop at the first failure, so a run that didn't trigger the skill, or who
 flowchart TD
     load["Load and validate all case files<br/>(any invalid file stops the run)"] --> filter["Apply --kind / --case / --target"]
     filter --> expand["Expand: case × target × repeat<br/>(+ skill-removed runs with --baseline)"]
-    expand --> preflight["Preflight: adapters exist, credentials available,<br/>judge available if any case has a rubric"]
+    expand --> preflight["Preflight: adapters exist, credentials available,<br/>judge available if any case has output.judge"]
     preflight --> pool["Run units in a pool of --concurrency (default 4)<br/>stop starting new ones at --max-cost"]
     pool --> agg["Aggregate per case × target:<br/>pass rate, trigger rate, cost, odd flows"]
     agg --> ref["Load reference: committed baseline.json,<br/>else the previous local run"]
@@ -115,94 +115,175 @@ flowchart TD
 
 ## Case kinds
 
-All cases are YAML files under `evals/cases/` (subfolders are up to you; `cases/<kind>/<id>.yaml` is the convention). They're validated with Zod when a run starts. A misspelled field, a missing `targets` or an invalid regex stops the run with a message naming the file and field.
+All cases are JSON files under `evals/cases/` (subfolders are up to you; `cases/<kind>/<id>.json` is the convention). They're validated with Zod when a run starts. A misspelled field, a missing `targets` or an invalid regex stops the run with a message naming the file and field.
 
-### Fields every case has
+### Case shape
+
+Every case has the same three parts: settings at the top level, `input` (what the agent gets) and `output` (what is checked afterwards).
+
+```json
+{
+  "id": "code-mode-approve-payment",
+  "note": "HUMAN_PROMPTS.md row 17 (question: should not change files)",
+  "kind": "task",
+  "targets": ["claude-code/claude-sonnet-5-5"],
+  "input": {
+    "prompt": "Can I make Code Mode ask me before it submits a payment?",
+    "template": { "local": "io-assist-react-mcp" }
+  },
+  "output": {
+    "deterministic": {
+      "flow": {
+        "mustRead": ["references/code-mode.md"],
+        "mustFetch": ["docs-ai.interop.io"]
+      }
+    },
+    "judge": {
+      "rubric": [
+        "Uses an asynchronous interceptors.onToolCall to pause submit_payment until it is approved",
+        "Keeps server-side authorization and validation of submit_payment, beyond the approval prompt",
+        "Makes no file changes: the workspace diff is empty"
+      ],
+      "threshold": 1
+    }
+  }
+}
+```
+
+**Settings**
 
 | Field | Required | Default | Meaning |
 |---|---|---|---|
 | `id` | ✅ | | Unique, kebab-case |
+| `note` | | | Free text for humans (where the case came from, what it expects). JSON has no comments, so use this instead. Ignored by the engine |
 | `kind` | ✅ | | `trigger`, `answer` or `task` |
 | `targets` | ✅ | | Where the case runs: `claude-code/<model>`, `codex/<model>` |
-| `prompt` | ✅ | | The single message sent to the agent |
-| `expectSkill` | | `true` | Whether the skill should load. `false` makes a negative case |
 | `network` | | `true` | `false` blocks web access, to test the bundled references alone |
 | `repeat` | | 3 (or `--repeat`) | Runs per target |
 | `passThreshold` | | ⅔ for trigger, 1 otherwise | Fraction of runs that must pass |
 | `maxTurns` / `timeoutMs` | | 15 / 3 min (task: 40 / 10 min) | Per-run limits |
-| `flow` | | | Optional flow checks (see [Flow snapshots](#flow-snapshots)) |
+
+**`input`**
+
+| Field | Required | Meaning |
+|---|---|---|
+| `prompt` | ✅ | The single message sent to the agent |
+| `template` | | The project the agent starts in. `{ "official": "<id>" }` fetches an official template with the skill's own `materialize-template.mjs` (needs network access and Git). `{ "local": "<name>" }` copies `evals/templates/<name>`. Omitted: an empty folder |
+| `reply` | | What the simulated user answers when the agent asks a question (Claude Code's `AskUserQuestion`). Every question gets this reply as free text, so it can name an option's label or say anything else, e.g. `"Use your recommended defaults."` Omitted: questions come back unanswered, and the agent usually stops to wait. Codex has no question tool, so it ignores this field |
+
+Every run gets a fresh temp folder, seeded from the template, with the skill copied to where the tool discovers it and the starting state committed to a throwaway git repo, so the diff of what the agent changed is exact.
+
+**`output.deterministic`**: checks with no model involved, all optional.
+
+| Field | Kinds | Default | Meaning |
+|---|---|---|---|
+| `expectSkill` | all | `true` | Whether the skill should load. `false` makes a negative case |
+| `flow` | all | | `mustRead` / `mustNotRead` / `mustRun` / `mustFetch` (see [Flow snapshots](#flow-snapshots)). Order doesn't matter: each checks whether the run did it at any point |
+| `mustInclude` / `mustNotInclude` | answer | `[]` | Matchers checked against the final message |
+| `files` | task | `[]` | Paths that must exist afterwards |
+| `packageJson` | task | | `dependencies` / `devDependencies` that must be declared. `"*"` means any version; otherwise the range must match exactly |
+| `commands` | task | `[]` | Run in order; the first non-zero exit fails the run |
+
+**`output.judge`**: checks graded by the judge model (answer and task cases only).
+
+| Field | Default | Meaning |
+|---|---|---|
+| `rubric` | | One expectation per item. A `[report-only]` prefix means graded and reported, but never counted |
+| `threshold` | `1` | Share of counted items a run must pass |
+
+The judge sees the final message, the transcript and the **git diff** of everything the agent changed (lockfiles and the skill folder left out).
 
 **Matchers.** Anywhere a check takes text, a plain string is a case-sensitive substring, and `/pattern/flags` is a regex. The `g` and `y` flags are ignored.
 
 ### `trigger`: does the skill load?
 
-```yaml
-id: mcp-web-tool-trigger
-kind: trigger
-targets: [claude-code/claude-sonnet-5-5, codex/gpt-5.5]
-prompt: I want io.Assist to call a function in my io.Connect browser app. How?
+```json
+{
+  "id": "mcp-web-tool-trigger",
+  "kind": "trigger",
+  "targets": ["claude-code/claude-sonnet-5-5", "codex/gpt-5.5"],
+  "input": { "prompt": "I want io.Assist to call a function in my io.Connect browser app. How?" }
+}
 ```
 
-```yaml
-id: unrelated-python
-kind: trigger
-targets: [claude-code/claude-sonnet-5-5]
-prompt: Write a Python function that reverses a string.
-expectSkill: false # negative case: must NOT load the skill
+```json
+{
+  "id": "unrelated-python",
+  "note": "Negative case: must NOT load the skill",
+  "kind": "trigger",
+  "targets": ["claude-code/claude-sonnet-5-5"],
+  "input": { "prompt": "Write a Python function that reverses a string." },
+  "output": { "deterministic": { "expectSkill": false } }
+}
 ```
 
 A run passes when the skill triggered (or didn't) as expected. The case passes at **≥ 2 of 3** runs by default, because triggering naturally varies from run to run.
 
 ### `answer`: is the answer right?
 
-```yaml
-id: mcp-web-for-browser-apps
-kind: answer
-targets: [claude-code/claude-sonnet-5-5]
-prompt: Which package exposes MCP tools from an io.Connect browser app to io.Assist?
-mustInclude: ["@interopio/mcp-web"]
-mustNotInclude: ["/@interopio\\/mcp-(server|browser)/"] # invented package names
-rubric: |
-  - Recommends @interopio/mcp-web for a browser app
-  - Explains that io.Assist discovers the registered tools
-  - Does not invent APIs
-  - [report-only] Mentions the Angular variant # graded and reported, never fails the run
-rubricThreshold: 1 # share of the other lines a run must pass (default 1 = all)
+```json
+{
+  "id": "mcp-web-for-browser-apps",
+  "kind": "answer",
+  "targets": ["claude-code/claude-sonnet-5-5"],
+  "input": {
+    "prompt": "Which package exposes MCP tools from an io.Connect browser app to io.Assist?"
+  },
+  "output": {
+    "deterministic": {
+      "mustInclude": ["@interopio/mcp-web"],
+      "mustNotInclude": ["/@interopio\\/mcp-(server|browser)/"]
+    },
+    "judge": {
+      "rubric": [
+        "Recommends @interopio/mcp-web for a browser app",
+        "Explains that io.Assist discovers the registered tools",
+        "Does not invent APIs",
+        "[report-only] Mentions the Angular variant"
+      ]
+    }
+  }
+}
 ```
+
+`mustNotInclude` here catches invented package names.
 
 The checks run in this order, and the run fails at the first one that fails:
 1. **Agent finished:** no error, no turn limit, no timeout.
 2. **Skill triggered:** answer and task cases also expect the skill to load, so a right answer from the model's prior knowledge alone doesn't count.
-3. **`mustInclude` / `mustNotInclude`:** checked against the final message. Free, and reliable for package names.
-4. **`rubric`:** the judge marks each line pass or fail, with a one-line reason. See [Rubric scores](#rubric-scores).
+3. **`mustInclude` / `mustNotInclude` and `flow`:** checked against the final message and the run's flow. Free, and reliable for package names.
+4. **`judge`:** the judge marks each rubric item pass or fail, with a one-line reason. See [Rubric scores](#rubric-scores).
 
 **Every** run must pass for the case to pass.
 
 ### `task`: does the result build?
 
-```yaml
-id: add-mcp-tool-react
-kind: task
-targets: [claude-code/claude-sonnet-5-5]
-prompt: Add an MCP tool "getPortfolio" to this app so io.Assist can call it.
-setup: { template: io-assist-react-packaged } # or { fixture: my-app } or {} for an empty folder
-checks:
-  files: [src/mcp/tools.ts]
-  packageJson:
-    dependencies: { "@interopio/mcp-web": "*" } # "*" = any version; otherwise the exact declared range
-  commands: [npm install, npx tsc --noEmit, npm run build]
-  reviewRubric: |
-    - Registers the tool when the app starts
-    - Uses the existing io.Connect client instead of creating a new one
-  reviewThreshold: 1 # share of review lines a run must pass (default 1 = all)
+```json
+{
+  "id": "add-mcp-tool-react",
+  "kind": "task",
+  "targets": ["claude-code/claude-sonnet-5-5"],
+  "input": {
+    "prompt": "Add an MCP tool \"getPortfolio\" to this app so io.Assist can call it.",
+    "template": { "official": "io-assist-react-packaged" }
+  },
+  "output": {
+    "deterministic": {
+      "files": ["src/mcp/tools.ts"],
+      "packageJson": { "dependencies": { "@interopio/mcp-web": "*" } },
+      "commands": ["npm install", "npx tsc --noEmit", "npm run build"]
+    },
+    "judge": {
+      "rubric": [
+        "Registers the tool when the app starts",
+        "Uses the existing io.Connect client instead of creating a new one"
+      ]
+    }
+  }
+}
 ```
 
-`setup` picks the starting point:
-- **`template`:** fetches an official template with the skill's own `materialize-template.mjs`. This needs network access and Git.
-- **`fixture`:** copies `evals/fixtures/<name>`.
-- **`{}`:** starts from an empty folder.
-
-The checks run in this order: files → `package.json` → commands (stopping at the first non-zero exit, and keeping the end of its output) → the judge reviews the **git diff** of everything the agent changed, with lockfiles and the skill folder left out. Every run must pass.
+The checks run in this order: agent finished → skill triggered → flow → files → `package.json` → commands (stopping at the first non-zero exit, and keeping the end of its output) → judge. Every run must pass.
 
 Template build commands differ: React uses `tsc -b && vite build`, Angular packaged uses `ng build`, Angular editable has its own script, and the vanilla template has no build step. List the right `commands` for each starting point.
 
@@ -266,7 +347,7 @@ flowchart LR
     norm --> snap["Flow snapshot"]
     snap --> odd["Among repeats:<br/>flag odd runs"]
     snap --> diff["Against the baseline:<br/>steps added / removed"]
-    snap --> checks["Optional flow checks:<br/>mustRead / mustNotRead / mustRun"]
+    snap --> checks["Optional flow checks:<br/>mustRead / mustNotRead / mustRun / mustFetch"]
 ```
 
 A snapshot looks like this:
@@ -289,12 +370,16 @@ Two runs that took the same route produce **identical** snapshots, whatever temp
 - **Baseline flow changes:** the case's usual flow is compared with the approved one, e.g. "no longer reads `core.md`" or "a build retry appeared".
 - **Flow checks:** once you've found a corner case, lock it in. A violated check fails the run:
 
-  ```yaml
-  flow:
-    mustRead: [<skill>/references/core.md, "/mcp-integration\\.md$/"]
-    mustNotRead: [custom-ai-web.md]
-    mustRun: ["/^npm (i|install)\\b/", materialize-template --template io-assist-react-packaged]
+  ```json
+  "flow": {
+    "mustRead": ["<skill>/references/core.md", "/mcp-integration\\.md$/"],
+    "mustNotRead": ["custom-ai-web.md"],
+    "mustRun": ["/^npm (i|install)\\b/", "materialize-template --template io-assist-react-packaged"],
+    "mustFetch": ["docs-ai.interop.io"]
+  }
   ```
+
+  `mustFetch` matches a fetched URL or web search, or a download command (curl, wget, iwr…).
 
 Odd runs and flow changes are **reported only** and never fail a case. Flows vary between runs for legitimate reasons, so only explicit flow checks fail runs.
 
@@ -321,7 +406,7 @@ flowchart LR
 
 The judge grades every rubric line pass or fail. Each graded run also gets a **rubric score**: the share of its lines that passed, from 0 to 1. A run that passed 3 of 4 lines scores 75%.
 
-- **Threshold:** a run passes the judge step when its score reaches `rubricThreshold` (answer cases) or `checks.reviewThreshold` (task cases). Both default to `1`, meaning every line must pass. Use a lower value, e.g. `0.75`, when one miss shouldn't fail the run. Small rounding is allowed, so `0.6667` accepts 2 of 3.
+- **Threshold:** a run passes the judge step when its score reaches `output.judge.threshold`. It defaults to `1`, meaning every rubric item must pass. Use a lower value, e.g. `0.75`, when one miss shouldn't fail the run. Small rounding is allowed, so `0.6667` accepts 2 of 3.
 - **Report-only lines:** start a line with `[report-only]` to have it graded and reported without counting towards the score or pass/fail. Use it for lines you're still tuning. The judge sees the line without the marker. A case with a failed report-only line gets a "report-only lines failed" note.
 - **Per case:** the console's `rubric` column shows the mean score over the graded runs and how many were graded, e.g. `83% (3)`. Runs that failed a deterministic check never reach the judge, so they don't count. `-` means no run was graded.
 - **Compared with the baseline:** score changes are listed with the other comparison changes ("rubric 50% → 100%"), but on their own they never mark a case regressed or improved.
@@ -333,8 +418,8 @@ The judge grades every rubric line pass or fail. Each graded run also gets a **r
 | | Run passes when | Case passes when |
 |---|---|---|
 | `trigger` | Agent finished, and the skill triggered exactly as `expectSkill` says, plus any flow checks | ≥ ⅔ of runs pass (`passThreshold` overrides) |
-| `answer` | Agent finished, skill triggered, text checks pass, flow checks pass, rubric score ≥ `rubricThreshold` (default: every line) | **every** run passes |
-| `task` | Agent finished, skill triggered, files, deps, commands and flow checks pass, review score ≥ `reviewThreshold` (default: every line) | **every** run passes |
+| `answer` | Agent finished, skill triggered, text checks pass, flow checks pass, rubric score ≥ `output.judge.threshold` (default: every item) | **every** run passes |
+| `task` | Agent finished, skill triggered, files, deps, commands and flow checks pass, rubric score ≥ `output.judge.threshold` (default: every item) | **every** run passes |
 
 - If every run of a case was skipped by the cost cap, the case shows as `SKIPPED`, not failed.
 - A judge error (refusal, API failure or unparseable verdict) fails that run but keeps the agent's transcript and cost.
@@ -371,9 +456,14 @@ evals/results/<run-id>/            (gitignored)
 ├── summary.json                   the full Evals.Report.RunReport
 ├── transcripts/
 │   └── <case>__<target>__<n>.json final message, flow, diff and raw transcript per run
-└── flows/
-    └── <case>.md                  every run and target side by side, odd runs and changes highlighted
+├── flows/
+│   └── <case>.md                  every run and target side by side, odd runs and changes highlighted
+└── reports/
+    └── <case>.md                  everything per case: prompt, then per run the result, checks,
+                                   judge verdicts and reasons, flow, final message and diff
 ```
+
+**Start with `reports/<case>.md`** to see what happened in a case. It links each run to its transcript file for the raw events. Diffs over 20,000 characters are cut in the report; the transcript has the full diff.
 
 The console summary:
 
@@ -396,8 +486,8 @@ Odd flows among repeats (see flows/<case>.md):
 
 ```
 evals/
-├── cases/                    your YAML cases
-├── fixtures/                 starting projects for task cases (setup.fixture)
+├── cases/                    your JSON cases
+├── templates/                local starting projects (input.template.local)
 ├── baseline.json             approved reference (committed, once you approve a run)
 ├── src/
 │   ├── cli.ts                argument parsing, wires real adapters/judge/workspace into an EvalEngine
@@ -415,7 +505,7 @@ evals/
 │   │   ├── records.ts        the RunRecord for a completed, failed or skipped run
 │   │   ├── aggregate.ts      run records → one CaseReport per case and target
 │   │   ├── run-report.ts     assembles the RunReport (options echo, totals)
-│   │   ├── results-writer.ts ResultsWriter: transcripts/, summary.json, flows/
+│   │   ├── results-writer.ts ResultsWriter: transcripts/, summary.json, flows/, reports/
 │   │   ├── pool.ts           bounded-concurrency pool
 │   │   ├── defaults.ts       repeat, concurrency, thresholds, turn and time limits
 │   │   └── errors.ts         EvalSetupError
@@ -425,7 +515,7 @@ evals/
 │   ├── checks/               matcher.ts, checks.ts, command-runner.ts
 │   ├── judge/                anthropic-judge.ts (Opus 5.5 through the Agent SDK, no tools)
 │   ├── workspace/            workspace.ts (temp folder + git start state + diff)
-│   └── report/               baseline.ts, console.ts, flow-markdown.ts
+│   └── report/               baseline.ts, console.ts, flow-markdown.ts, case-markdown.ts
 └── test/
     ├── engine-*.test.ts      engine behaviour through EvalEngine.run with fake adapters and judge
     ├── *-flow.test.ts        transcript → flow extraction per tool
@@ -455,7 +545,7 @@ flowchart TB
 
 ### Design conventions
 
-- **Singletons:** `ClaudeCodeAdapter`, `CodexAdapter` and `AnthropicJudge` hold no per-run state, so they have a private constructor and `getInstance()`. `GitWorkspaceManager` isn't a singleton: each instance is bound to a skill folder and a fixtures folder.
+- **Singletons:** `ClaudeCodeAdapter`, `CodexAdapter` and `AnthropicJudge` hold no per-run state, so they have a private constructor and `getInstance()`. `GitWorkspaceManager` isn't a singleton: each instance is bound to a skill folder and a local templates folder.
 - **Explicit visibility:** every class member is `public`, `private` or `readonly`. Stateless helpers inside classes are `private static`. In plain modules, "private" means not exported.
 - **Immutable data:** contracts are `readonly` throughout, including the arrays.
 

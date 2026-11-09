@@ -2,7 +2,7 @@ import { runShellCommand } from "../checks/command-runner.js";
 import type { Evals } from "../shared/contracts.js";
 import type { Grading, RunUnit } from "../shared/types.js";
 import { AGENT_LIMITS } from "./defaults.js";
-import { gradeRun, rubricOf } from "./grading.js";
+import { gradeRun, judgeOf } from "./grading.js";
 import { completedRecord, failedRecord } from "./records.js";
 import type { ResultsWriter } from "./results-writer.js";
 import { runChecks } from "./run-checks.js";
@@ -33,7 +33,9 @@ export class UnitRunner {
   private async attempt(unit: RunUnit): Promise<Evals.Report.RunRecord> {
     const adapter = this.deps.adapters[unit.tool]!;
     const workspace = await this.deps.workspace.prepare({
-      setup: unit.case.kind === "task" ? unit.case.setup : {},
+      ...(unit.case.input.template
+        ? { template: unit.case.input.template }
+        : {}),
       skillInstallPath: adapter.skillInstallPath,
       withSkill: unit.withSkill,
     });
@@ -49,7 +51,16 @@ export class UnitRunner {
         agent,
         outcome.diff,
       );
-      return completedRecord(unit, agent, outcome, grading, transcriptFile);
+      const record = completedRecord(
+        unit,
+        agent,
+        outcome,
+        grading,
+        transcriptFile,
+      );
+      return workspace.kept
+        ? { ...record, workdir: workspace.workdir }
+        : record;
     } finally {
       await workspace.cleanup();
     }
@@ -61,9 +72,9 @@ export class UnitRunner {
     agent: Evals.Agent.RunResult,
     diff: string | undefined,
   ): Promise<Grading> {
-    const rubric = rubricOf(unit.case);
-    if (!rubric || !this.deps.judge) return UnitRunner.NOT_GRADED;
-    return gradeRun(this.deps.judge, rubric, agent, diff);
+    const judge = judgeOf(unit.case);
+    if (!judge || !this.deps.judge) return UnitRunner.NOT_GRADED;
+    return gradeRun(this.deps.judge, judge.rubric, agent, diff);
   }
 
   /** An adapter that throws is turned into an errored result, so the run is still recorded. */
@@ -76,7 +87,8 @@ export class UnitRunner {
     const limits = c.kind === "task" ? AGENT_LIMITS.task : AGENT_LIMITS.other;
     try {
       return await adapter.run({
-        prompt: c.prompt,
+        prompt: c.input.prompt,
+        ...(c.input.reply ? { reply: c.input.reply } : {}),
         model: unit.model,
         workdir,
         network: c.network,

@@ -1,0 +1,41 @@
+{
+  "id": "code-mode-add-code-mode",
+  "note": "HUMAN_PROMPTS.md row 1 (setup request: should change files)",
+  "kind": "task",
+  "targets": [
+    "claude-code/claude-sonnet-5-5"
+  ],
+  "input": {
+    "prompt": "Can you add Code Mode here?",
+    "reply": "Use your recommended defaults and go ahead.",
+    "template": {
+      "local": "io-assist-react-mcp"
+    }
+  },
+  "output": {
+    "deterministic": {
+      "flow": {
+        "mustRead": [
+          "references/code-mode.md"
+        ],
+        "mustFetch": [
+          "docs-ai.interop.io"
+        ]
+      },
+      "commands": [
+        "npm install",
+        "npm run build -w app"
+      ]
+    },
+    "judge": {
+      "rubric": [
+        "Enables Code Mode in the AI Web configuration that io.Assist uses (aiWebConfig in app/src/App.tsx), not in the acme MCP server",
+        "Enables Code Mode in exactly one layer for this assistant",
+        "Uses the browser entry point and points the WASM location at a URL the app serves, not a filesystem path",
+        "Delivers the WASM file from the installed @interopio/code-mode package through a repeatable step or an exact-version URL",
+        "Does not add toolFilter or onToolCall policies that the user did not ask for",
+        "[report-only] Chooses the @interopio/code-mode version from the npm registry and the installed host's range, not from a docs example"
+      ]
+    }
+  }
+}

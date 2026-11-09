@@ -26,6 +26,11 @@ export class AnthropicJudge implements Evals.Judge.Grader {
       }),
     ),
   });
+  // The CLI validates --json-schema with a validator that doesn't know zod's default draft 2020-12
+  // meta-schema, so emit draft-07 and leave out the "$schema" reference.
+  private static readonly VERDICT_JSON_SCHEMA = AnthropicJudge.toCliSchema(
+    AnthropicJudge.VERDICT_SCHEMA,
+  );
   private static readonly SYSTEM = `You grade the output of an AI coding agent against a rubric.
 Grade each rubric line independently as pass or fail, using the agent's final message, the workspace diff when given, and the transcript as evidence of what it actually did.
 A line passes only if the evidence clearly satisfies it. Do not give credit for intent, for claims the transcript or diff contradicts, or for things the rubric does not ask for.
@@ -51,7 +56,7 @@ Give a one-line reason for every verdict, citing the evidence.`;
         systemPrompt: AnthropicJudge.SYSTEM,
         outputFormat: {
           type: "json_schema",
-          schema: z.toJSONSchema(AnthropicJudge.VERDICT_SCHEMA),
+          schema: AnthropicJudge.VERDICT_JSON_SCHEMA,
         },
         maxTurns: AnthropicJudge.MAX_TURNS,
         // A pure grading call: no tools, settings, MCP servers or saved session.
@@ -95,6 +100,13 @@ Give a one-line reason for every verdict, citing the evidence.`;
           };
     });
     return { lines, costUsd: result.total_cost_usd };
+  }
+
+  private static toCliSchema(schema: z.ZodType): Record<string, unknown> {
+    const { $schema: _metaSchema, ...rest } = z.toJSONSchema(schema, {
+      target: "draft-7",
+    });
+    return rest;
   }
 
   private static buildPrompt(input: Evals.Judge.Input): string {

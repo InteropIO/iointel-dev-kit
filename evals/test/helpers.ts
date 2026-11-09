@@ -1,7 +1,6 @@
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { stringify } from "yaml";
 import { EvalEngine } from "../src/engine/index.js";
 import { GitWorkspaceManager } from "../src/workspace/workspace.js";
 import type { Evals } from "../src/shared/contracts.js";
@@ -14,9 +13,12 @@ export interface TestEnv {
   resultsDir: string;
   baselineFile: string;
   skillDir: string;
-  fixturesDir: string;
+  localTemplatesDir: string;
   writeCase(c: Record<string, unknown>): Promise<void>;
-  writeFixture(name: string, files: Record<string, string>): Promise<void>;
+  writeLocalTemplate(
+    name: string,
+    files: Record<string, string>,
+  ): Promise<void>;
   options(extra?: Partial<Evals.Engine.Options>): Evals.Engine.Options;
   deps(
     extra: Partial<Evals.Engine.Deps> & Pick<Evals.Engine.Deps, "adapters">,
@@ -31,7 +33,7 @@ export async function makeEnv(): Promise<TestEnv> {
     resultsDir: path.join(root, "results"),
     baselineFile: path.join(root, "baseline.json"),
     skillDir: path.join(root, "skill"),
-    fixturesDir: path.join(root, "fixtures"),
+    localTemplatesDir: path.join(root, "templates"),
   };
   await mkdir(env.casesDir, { recursive: true });
   await mkdir(env.skillDir, { recursive: true });
@@ -45,13 +47,13 @@ export async function makeEnv(): Promise<TestEnv> {
     ...env,
     async writeCase(c) {
       await writeFile(
-        path.join(env.casesDir, `${String(c.id)}.yaml`),
-        stringify(c),
+        path.join(env.casesDir, `${String(c.id)}.json`),
+        JSON.stringify(c, null, 2),
       );
     },
-    async writeFixture(name, files) {
+    async writeLocalTemplate(name, files) {
       for (const [file, content] of Object.entries(files)) {
-        const full = path.join(env.fixturesDir, name, file);
+        const full = path.join(env.localTemplatesDir, name, file);
         await mkdir(path.dirname(full), { recursive: true });
         await writeFile(full, content);
       }
@@ -66,7 +68,7 @@ export async function makeEnv(): Promise<TestEnv> {
     deps: (extra) => ({
       workspace: new GitWorkspaceManager({
         skillDir: env.skillDir,
-        fixturesDir: env.fixturesDir,
+        localTemplatesDir: env.localTemplatesDir,
       }),
       // Each run gets a later timestamp, so run ids sort in call order.
       now: () => new Date((clock += 1000)),

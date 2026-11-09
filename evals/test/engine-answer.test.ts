@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { fakeAdapter, fakeJudge, makeEnv, runEval } from "./helpers.js";
 
-const answer = (id: string, extra: Record<string, unknown> = {}) => ({
+// `input` is merged over the default input; other overrides (including `output`) replace top-level fields.
+const answer = (
+  id: string,
+  { input, ...extra }: { input?: object } & Record<string, unknown> = {},
+) => ({
   id,
   kind: "answer",
   targets: ["fake/m"],
-  prompt: "How do I expose a tool to io.Assist?",
   ...extra,
+  input: { prompt: "How do I expose a tool to io.Assist?", ...input },
 });
 
 describe("answer cases", () => {
@@ -14,15 +18,23 @@ describe("answer cases", () => {
     const env = await makeEnv();
     await env.writeCase(
       answer("good", {
-        prompt: "good",
-        mustInclude: ["@interopio/mcp-web", "/register\\w*Tool/i"],
-        mustNotInclude: ["@interopio/mcp-server"],
+        input: { prompt: "good" },
+        output: {
+          deterministic: {
+            mustInclude: ["@interopio/mcp-web", "/register\\w*Tool/i"],
+            mustNotInclude: ["@interopio/mcp-server"],
+          },
+        },
       }),
     );
     await env.writeCase(
       answer("invented", {
-        prompt: "invented",
-        mustNotInclude: ["/@interopio\\/mcp-(server|browser)/"],
+        input: { prompt: "invented" },
+        output: {
+          deterministic: {
+            mustNotInclude: ["/@interopio\\/mcp-(server|browser)/"],
+          },
+        },
       }),
     );
     const adapter = fakeAdapter((input) => ({
@@ -49,7 +61,11 @@ describe("answer cases", () => {
 
   it("fails a run when the skill did not trigger, even if the text is right", async () => {
     const env = await makeEnv();
-    await env.writeCase(answer("ignored-skill", { mustInclude: ["mcp-web"] }));
+    await env.writeCase(
+      answer("ignored-skill", {
+        output: { deterministic: { mustInclude: ["mcp-web"] } },
+      }),
+    );
     const adapter = fakeAdapter(() => ({
       skillTriggered: false,
       finalMessage: "use mcp-web",
@@ -69,7 +85,11 @@ describe("answer cases", () => {
 
   it("requires every run to pass", async () => {
     const env = await makeEnv();
-    await env.writeCase(answer("mostly", { mustInclude: ["mcp-web"] }));
+    await env.writeCase(
+      answer("mostly", {
+        output: { deterministic: { mustInclude: ["mcp-web"] } },
+      }),
+    );
     const adapter = fakeAdapter((_, call) => ({
       finalMessage: call === 2 ? "no idea" : "mcp-web",
     }));
@@ -109,7 +129,9 @@ describe("judge", () => {
     const env = await makeEnv();
     await env.writeCase(
       answer("graded", {
-        rubric: "- Recommends mcp-web\n- Explains discovery\n\n",
+        output: {
+          judge: { rubric: ["Recommends mcp-web", "Explains discovery"] },
+        },
       }),
     );
     const judge = fakeJudge((line) => line === "Explains discovery");
@@ -127,6 +149,8 @@ describe("judge", () => {
       rubric: ["Recommends mcp-web", "Explains discovery"],
       finalMessage: "the answer",
       transcript: [{ tool: "Read" }],
+      // Answer cases get the workspace diff too; this agent changed nothing.
+      diff: "",
     });
     expect(report.cases[0]!.pass).toBe(false);
     expect(report.cases[0]!.runs[0]!.judge).toEqual([
@@ -139,7 +163,12 @@ describe("judge", () => {
   it("is not called when deterministic checks already failed", async () => {
     const env = await makeEnv();
     await env.writeCase(
-      answer("cheap-fail", { mustInclude: ["mcp-web"], rubric: "- anything" }),
+      answer("cheap-fail", {
+        output: {
+          deterministic: { mustInclude: ["mcp-web"] },
+          judge: { rubric: ["anything"] },
+        },
+      }),
     );
     const judge = fakeJudge();
 
@@ -155,7 +184,9 @@ describe("judge", () => {
   it("scores each run as the share of rubric lines passed, and averages it per case", async () => {
     const env = await makeEnv();
     await env.writeCase(
-      answer("scored", { rubric: "- one\n- two\n- three\n- four" }),
+      answer("scored", {
+        output: { judge: { rubric: ["one", "two", "three", "four"] } },
+      }),
     );
     // Run 1 misses "four", run 2 misses "three" and "four".
     const judge = fakeJudge((line) =>
@@ -175,12 +206,13 @@ describe("judge", () => {
     expect(c.pass).toBe(false);
   });
 
-  it("passes a run whose score meets rubricThreshold", async () => {
+  it("passes a run whose score meets the judge threshold", async () => {
     const env = await makeEnv();
     await env.writeCase(
       answer("lenient", {
-        rubric: "- one\n- two\n- three",
-        rubricThreshold: 0.6667,
+        output: {
+          judge: { rubric: ["one", "two", "three"], threshold: 0.6667 },
+        },
       }),
     );
     const judge = fakeJudge((line) => line === "three");
@@ -198,7 +230,11 @@ describe("judge", () => {
     const env = await makeEnv();
     await env.writeCase(
       answer("tuning", {
-        rubric: "- Recommends mcp-web\n- [report-only] Mentions Angular",
+        output: {
+          judge: {
+            rubric: ["Recommends mcp-web", "[report-only] Mentions Angular"],
+          },
+        },
       }),
     );
     const judge = fakeJudge((line) => line === "Mentions Angular");
@@ -229,7 +265,9 @@ describe("judge", () => {
   it("has no score when every line is report-only", async () => {
     const env = await makeEnv();
     await env.writeCase(
-      answer("all-info", { rubric: "- [report-only] anything" }),
+      answer("all-info", {
+        output: { judge: { rubric: ["[report-only] anything"] } },
+      }),
     );
 
     const report = await runEval(
@@ -245,10 +283,12 @@ describe("judge", () => {
     expect(report.cases[0]!.pass).toBe(true);
   });
 
-  it("rejects a rubricThreshold outside (0, 1]", async () => {
+  it("rejects a judge threshold outside (0, 1]", async () => {
     const env = await makeEnv();
     await env.writeCase(
-      answer("bad-threshold", { rubric: "- x", rubricThreshold: 1.5 }),
+      answer("bad-threshold", {
+        output: { judge: { rubric: ["x"], threshold: 1.5 } },
+      }),
     );
 
     await expect(
@@ -256,12 +296,14 @@ describe("judge", () => {
         env.options(),
         env.deps({ adapters: { fake: fakeAdapter() }, judge: fakeJudge() }),
       ),
-    ).rejects.toThrow(/rubricThreshold/);
+    ).rejects.toThrow(/output\.judge\.threshold/);
   });
 
   it("must be configured when a case has a rubric", async () => {
     const env = await makeEnv();
-    await env.writeCase(answer("needs-judge", { rubric: "- x" }));
+    await env.writeCase(
+      answer("needs-judge", { output: { judge: { rubric: ["x"] } } }),
+    );
 
     await expect(
       runEval(env.options(), env.deps({ adapters: { fake: fakeAdapter() } })),

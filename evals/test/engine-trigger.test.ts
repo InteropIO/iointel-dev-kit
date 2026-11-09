@@ -9,7 +9,7 @@ const trigger = (id: string, extra: Record<string, unknown> = {}) => ({
   id,
   kind: "trigger",
   targets: ["fake/model-a"],
-  prompt: `prompt for ${id}`,
+  input: { prompt: `prompt for ${id}` },
   ...extra,
 });
 
@@ -67,8 +67,16 @@ describe("trigger cases", () => {
 
   it("negative cases pass only when the skill does not trigger", async () => {
     const env = await makeEnv();
-    await env.writeCase(trigger("unrelated", { expectSkill: false }));
-    await env.writeCase(trigger("unrelated-but-fires", { expectSkill: false }));
+    await env.writeCase(
+      trigger("unrelated", {
+        output: { deterministic: { expectSkill: false } },
+      }),
+    );
+    await env.writeCase(
+      trigger("unrelated-but-fires", {
+        output: { deterministic: { expectSkill: false } },
+      }),
+    );
     const adapter = fakeAdapter((input) => ({
       skillTriggered: input.prompt.includes("fires"),
     }));
@@ -128,7 +136,7 @@ describe("trigger cases", () => {
       id: "three",
       kind: "answer",
       targets: ["fake/a"],
-      prompt: "p",
+      input: { prompt: "p" },
     });
     const fake = fakeAdapter();
     const other = fakeAdapter(() => ({}), "other");
@@ -156,12 +164,16 @@ describe("trigger cases", () => {
   it("rejects invalid case files before running anything", async () => {
     const env = await makeEnv();
     await env.writeCase(trigger("fine"));
-    await env.writeCase({ id: "no-targets", kind: "trigger", prompt: "p" });
+    await env.writeCase({
+      id: "no-targets",
+      kind: "trigger",
+      input: { prompt: "p" },
+    });
     await env.writeCase({
       id: "typo",
       kind: "trigger",
       targets: ["fake/a"],
-      prompt: "p",
+      input: { prompt: "p" },
       mustInclud: ["x"],
     });
     const adapter = fakeAdapter();
@@ -172,8 +184,8 @@ describe("trigger cases", () => {
     );
 
     await expect(run).rejects.toBeInstanceOf(CaseValidationError);
-    await expect(run).rejects.toThrow(/no-targets\.yaml: targets/);
-    await expect(run).rejects.toThrow(/typo\.yaml/);
+    await expect(run).rejects.toThrow(/no-targets.json: targets/);
+    await expect(run).rejects.toThrow(/typo.json/);
     expect(adapter.calls).toHaveLength(0);
   });
 

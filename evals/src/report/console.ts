@@ -7,7 +7,7 @@ const usd = (v: number, unknown: boolean) =>
 
 export function renderConsoleSummary(report: Evals.Report.RunReport): string {
   if (!report.cases.length)
-    return `No cases matched (cases live in evals/cases/<kind>/<id>.yaml).\nResults: ${report.resultsPath}`;
+    return `No cases matched (cases live in evals/cases/<kind>/<id>.json).\nResults: ${report.resultsPath}`;
   const header = [
     "case",
     "target",

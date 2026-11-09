@@ -38,8 +38,8 @@ export interface ParsedTarget {
 export interface GitWorkspaceOptions {
   /** The working copy of the skill under test. */
   readonly skillDir: string;
-  /** Folder that `setup.fixture` paths are relative to. */
-  readonly fixturesDir: string;
+  /** Folder that `input.template.local` names are relative to. */
+  readonly localTemplatesDir: string;
   /** Keep temp folders after the run, for debugging. */
   readonly keep?: boolean;
   readonly materialize?: Evals.Workspace.TemplateMaterializer;
@@ -68,6 +68,12 @@ export interface Grading {
   readonly score?: number;
   readonly costUsd: number | null;
   readonly failedCheck?: Evals.Checks.Result;
+}
+
+/** What a run's transcript file adds to its RunRecord, for the per-case report. */
+export interface RunDetails {
+  readonly finalMessage: string;
+  readonly diff?: string;
 }
 
 /** Everything the engine has gathered by the end of a run, for building the RunReport. */

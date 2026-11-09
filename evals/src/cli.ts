@@ -20,7 +20,7 @@ const paths = {
   cases: path.join(evalsRoot, "cases"),
   results: path.join(evalsRoot, "results"),
   baseline: path.join(evalsRoot, "baseline.json"),
-  fixtures: path.join(evalsRoot, "fixtures"),
+  localTemplates: path.join(evalsRoot, "templates"),
   skill: path.resolve(evalsRoot, "..", "skills", "io-intelligence"),
 };
 
@@ -81,7 +81,7 @@ async function main(argv: string[]) {
     judge: AnthropicJudge.getInstance(),
     workspace: new GitWorkspaceManager({
       skillDir: paths.skill,
-      fixturesDir: paths.fixtures,
+      localTemplatesDir: paths.localTemplates,
       keep: !!values["keep-workdirs"],
     }),
     log: (line) => console.log(line),

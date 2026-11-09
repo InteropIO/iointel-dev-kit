@@ -85,7 +85,7 @@ function meetsTriggerExpectation(
   unit: RunUnit,
   agent: Evals.Agent.RunResult,
 ): boolean {
-  return !unit.withSkill || agent.skillTriggered === unit.case.expectSkill;
+  return !unit.withSkill || agent.skillTriggered === unit.case.output.deterministic.expectSkill;
 }
 
 function identity(unit: RunUnit) {

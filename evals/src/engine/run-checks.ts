@@ -23,7 +23,9 @@ export async function runChecks(
     ...(c.kind === "answer" ? checkAnswerText(c, agent.finalMessage) : []),
     ...checkFlow(c, agent.flow),
   ];
-  if (c.kind !== "task") return { checks, diff: undefined };
+  if (c.kind === "trigger") return { checks, diff: undefined };
+  // Answer cases get the diff too, so the judge can grade "changes no files".
+  if (c.kind === "answer") return { checks, diff: await workspace.diff() };
 
   const allPass = () => checks.every((x) => x.pass);
   if (allPass())
@@ -61,6 +63,11 @@ function skillTriggered(
   agent: Evals.Agent.RunResult,
 ): Evals.Checks.Result[] {
   const c = unit.case;
-  if (c.kind === "trigger" || !unit.withSkill || !c.expectSkill) return [];
+  if (
+    c.kind === "trigger" ||
+    !unit.withSkill ||
+    !c.output.deterministic.expectSkill
+  )
+    return [];
   return [{ name: "skill triggered", pass: agent.skillTriggered }];
 }

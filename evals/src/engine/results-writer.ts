@@ -1,9 +1,10 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { SUMMARY_FILE } from "../report/baseline.js";
+import { renderCaseMarkdown } from "../report/case-markdown.js";
 import { renderFlowMarkdown } from "../report/flow-markdown.js";
 import type { Evals } from "../shared/contracts.js";
-import type { RunUnit } from "../shared/types.js";
+import type { RunDetails, RunUnit } from "../shared/types.js";
 import { flowSnapshot } from "./records.js";
 
 /**
@@ -11,6 +12,7 @@ import { flowSnapshot } from "./records.js";
  *   transcripts/<case>__<target>__<n>.json   one per run, written as each run finishes
  *   summary.json                             the RunReport
  *   flows/<case>.md                          flow snapshots per case, for reading and diffing
+ *   reports/<case>.md                        everything per case: prompt, checks, judge, flow, final message, diff
  */
 export class ResultsWriter {
   public readonly runId: string;
@@ -55,6 +57,41 @@ export class ResultsWriter {
       JSON.stringify(report, null, 2),
     );
     await this.writeFlows(report, cases);
+    await this.writeCaseReports(report, cases);
+  }
+
+  private async writeCaseReports(
+    report: Evals.Report.RunReport,
+    cases: Evals.Cases.Case[],
+  ): Promise<void> {
+    await mkdir(path.join(this.runDir, "reports"), { recursive: true });
+    for (const c of cases) {
+      const reports = report.cases.filter((r) => r.caseId === c.id);
+      if (!reports.length) continue;
+      const details = new Map<string, RunDetails>();
+      for (const r of reports)
+        for (const run of [...r.runs, ...(r.withoutSkill?.runs ?? [])])
+          if (run.transcriptFile)
+            details.set(
+              run.transcriptFile,
+              await this.readDetails(run.transcriptFile),
+            );
+      const md = renderCaseMarkdown(c, reports, (run) =>
+        run.transcriptFile ? details.get(run.transcriptFile) : undefined,
+      );
+      await writeFile(path.join(this.runDir, "reports", `${c.id}.md`), md);
+    }
+  }
+
+  /** The final message and diff saved in a run's transcript file. */
+  private async readDetails(file: string): Promise<RunDetails> {
+    const saved = JSON.parse(
+      await readFile(path.join(this.runDir, file), "utf8"),
+    ) as RunDetails;
+    return {
+      finalMessage: saved.finalMessage,
+      ...(saved.diff !== undefined ? { diff: saved.diff } : {}),
+    };
   }
 
   private async writeFlows(

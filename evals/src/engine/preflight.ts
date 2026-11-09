@@ -2,7 +2,7 @@
 import type { Evals } from "../shared/contracts.js";
 import type { RunUnit } from "../shared/types.js";
 import { EvalSetupError } from "./errors.js";
-import { rubricOf } from "./grading.js";
+import { judgeOf } from "./grading.js";
 
 /** Throws an EvalSetupError listing every problem found. */
 export function checkSetup(units: RunUnit[], deps: Evals.Engine.Deps): void {
@@ -36,7 +36,7 @@ function judgeProblems(
   units: RunUnit[],
   judge: Evals.Judge.Grader | undefined,
 ): string[] {
-  if (!units.some((u) => rubricOf(u.case))) return [];
+  if (!units.some((u) => judgeOf(u.case))) return [];
   if (!judge) return ["some cases have a rubric but no judge is configured"];
   const notReady = judge.checkReady();
   return notReady ? [`judge: ${notReady}`] : [];

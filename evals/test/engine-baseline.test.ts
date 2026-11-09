@@ -19,7 +19,7 @@ describe("comparison and approve", () => {
       id: "a",
       kind: "trigger",
       targets: ["fake/m"],
-      prompt: "p",
+      input: { prompt: "p" },
     });
 
     const report = await runEval(
@@ -37,7 +37,7 @@ describe("comparison and approve", () => {
       id: "a",
       kind: "trigger",
       targets: ["fake/m"],
-      prompt: "p",
+      input: { prompt: "p" },
     });
     const deps = env.deps({
       adapters: {
@@ -67,25 +67,25 @@ describe("comparison and approve", () => {
       id: "keeps",
       kind: "trigger",
       targets: ["fake/m"],
-      prompt: "keeps",
+      input: { prompt: "keeps" },
     });
     await env.writeCase({
       id: "breaks",
       kind: "trigger",
       targets: ["fake/m"],
-      prompt: "breaks",
+      input: { prompt: "breaks" },
     });
     await env.writeCase({
       id: "heals",
       kind: "trigger",
       targets: ["fake/m"],
-      prompt: "heals",
+      input: { prompt: "heals" },
     });
     await env.writeCase({
       id: "goes-away",
       kind: "trigger",
       targets: ["fake/m"],
-      prompt: "goes-away",
+      input: { prompt: "goes-away" },
     });
     let round = 0;
     const adapter = fakeAdapter((input) => ({
@@ -108,10 +108,10 @@ describe("comparison and approve", () => {
       id: "brand-new",
       kind: "trigger",
       targets: ["fake/m"],
-      prompt: "brand-new",
+      input: { prompt: "brand-new" },
     });
     const { rm } = await import("node:fs/promises");
-    await rm(path.join(env.casesDir, "goes-away.yaml"));
+    await rm(path.join(env.casesDir, "goes-away.json"));
     const second = await runEval(env.options(), deps);
 
     expect(second.reference).toEqual({ kind: "baseline", runId: first.runId });
@@ -133,7 +133,7 @@ describe("comparison and approve", () => {
       id: "routing",
       kind: "trigger",
       targets: ["fake/m"],
-      prompt: "p",
+      input: { prompt: "p" },
     });
     let flow: Evals.Flow.Step[] = [
       loaded,
@@ -181,9 +181,8 @@ describe("comparison and approve", () => {
       id: "graded",
       kind: "answer",
       targets: ["fake/m"],
-      prompt: "p",
-      rubric: "- one\n- two",
-      rubricThreshold: 0.5,
+      input: { prompt: "p" },
+      output: { judge: { rubric: ["one", "two"], threshold: 0.5 } },
     });
     let failing = new Set(["two"]);
     const deps = env.deps({
@@ -225,7 +224,7 @@ describe("comparison and approve", () => {
       id: "a",
       kind: "trigger",
       targets: ["fake/m"],
-      prompt: "p",
+      input: { prompt: "p" },
     });
     const deps = env.deps({ adapters: { fake: fakeAdapter() } });
     const first = await runEval(env.options(), deps);

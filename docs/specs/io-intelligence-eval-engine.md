@@ -134,7 +134,7 @@ Each case runs several times, because results vary between runs. The engine prin
 
   Normalization: paths relative to the workdir or the skill root; temp folder names, timestamps, tool-call ids and the wording of the agent's messages are dropped. Searches, directory listings and other minor tool calls are left out of the snapshot (they stay in the full transcript). The extractor is per adapter, because the raw formats differ; the snapshot format is shared.
 - **Flow comparer:** compares snapshots in two ways. **Within a run:** the repeats of each case × target are grouped by identical snapshots; runs outside the majority group are flagged as odd. **Against the baseline:** each case × target's snapshots are compared with the approved snapshots, and the differences are reported (steps added or removed, a different reference read, a command's exit code changed, a different order). Flow differences never fail a case.
-- **Flow checks (optional, per case):** `mustRead`, `mustNotRead` and `mustRun` match against the flow snapshot (string or regex). A failed flow check fails the run like any other deterministic check.
+- **Flow checks (optional, per case):** `mustRead`, `mustNotRead`, `mustRun` and `mustFetch` (fetched URLs, web searches and download commands) match against the flow snapshot (string or regex). A failed flow check fails the run like any other deterministic check.
 - **Checkers (deterministic):** answer-case must/must-not include (string or regex) against the final message. Task-case stages, run in order and stopping at the first failure: expected files → `package.json` dependency expectations → command list (non-zero exit fails) → judge review.
 - **Judge:** `grade(rubric, output, transcript) → { lines: [{ text, pass, reason }] }`. Fixed to Opus 5.5. Each rubric line gets pass or fail with a one-line reason. The engine scores a run as the share of lines that passed (0..1), leaving out lines marked `[report-only]`, which are graded and reported but never count. For task cases, the output is the final message plus the workspace diff.
 - **Reporter:**
@@ -159,6 +159,7 @@ flow:                           # optional, any kind
   mustRead: [string | /regex/]  # e.g. references/core.md
   mustNotRead: [string | /regex/]
   mustRun: [string | /regex/]   # commands or skill scripts
+  mustFetch: [string | /regex/] # fetched URLs, web searches, download commands
 # answer
 mustInclude: [string | /regex/]
 mustNotInclude: [string | /regex/]

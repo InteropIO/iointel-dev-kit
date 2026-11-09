@@ -1,6 +1,5 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { parse as parseYaml } from "yaml";
 import { caseSchema } from "./schema.js";
 import type { Evals } from "../shared/contracts.js";
 
@@ -16,7 +15,7 @@ export class CaseValidationError extends Error {
 export async function loadCases(
   casesDir: string,
 ): Promise<Evals.Cases.Loaded[]> {
-  const files = await findYamlFiles(casesDir);
+  const files = await findJsonFiles(casesDir);
   const problems: string[] = [];
   const loaded: Evals.Cases.Loaded[] = [];
 
@@ -24,9 +23,9 @@ export async function loadCases(
     const rel = path.relative(casesDir, file).replaceAll("\\", "/");
     let raw: unknown;
     try {
-      raw = parseYaml(await readFile(file, "utf8"));
+      raw = JSON.parse(await readFile(file, "utf8"));
     } catch (err) {
-      problems.push(`${rel}: YAML parse error: ${(err as Error).message}`);
+      problems.push(`${rel}: JSON parse error: ${(err as Error).message}`);
       continue;
     }
     const result = caseSchema.safeParse(raw);
@@ -52,7 +51,7 @@ export async function loadCases(
   return loaded.sort((a, b) => a.case.id.localeCompare(b.case.id));
 }
 
-async function findYamlFiles(dir: string): Promise<string[]> {
+async function findJsonFiles(dir: string): Promise<string[]> {
   const entries = await readdir(dir, { withFileTypes: true }).catch(
     (err: NodeJS.ErrnoException) => {
       if (err.code === "ENOENT")
@@ -63,8 +62,8 @@ async function findYamlFiles(dir: string): Promise<string[]> {
   const files: string[] = [];
   for (const entry of entries) {
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) files.push(...(await findYamlFiles(full)));
-    else if (/\.ya?ml$/i.test(entry.name)) files.push(full);
+    if (entry.isDirectory()) files.push(...(await findJsonFiles(full)));
+    else if (/\.json$/i.test(entry.name)) files.push(full);
   }
   return files;
 }

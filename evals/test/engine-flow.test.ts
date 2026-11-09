@@ -18,7 +18,7 @@ describe("flow snapshots", () => {
       id: "routing",
       kind: "trigger",
       targets: ["fake/m"],
-      prompt: "p",
+      input: { prompt: "p" },
     });
     const usual = [
       loaded,
@@ -62,7 +62,7 @@ describe("flow snapshots", () => {
       id: "stable",
       kind: "trigger",
       targets: ["fake/m"],
-      prompt: "p",
+      input: { prompt: "p" },
     });
 
     const report = await runEval(
@@ -86,15 +86,15 @@ describe("flow checks", () => {
       id: "ok",
       kind: "trigger",
       targets: ["fake/m"],
-      prompt: "ok",
-      flow,
+      input: { prompt: "ok" },
+      output: { deterministic: { flow } },
     });
     await env.writeCase({
       id: "bad",
       kind: "trigger",
       targets: ["fake/m"],
-      prompt: "bad",
-      flow,
+      input: { prompt: "bad" },
+      output: { deterministic: { flow } },
     });
     const good: Evals.Flow.Step[] = [
       loaded,
@@ -127,15 +127,67 @@ describe("flow checks", () => {
     ]);
   });
 
+  it("matches mustFetch against fetched URLs and download commands only", async () => {
+    const env = await makeEnv();
+    for (const id of ["webfetch", "curl", "grep-only"])
+      await env.writeCase({
+        id,
+        kind: "trigger",
+        targets: ["fake/m"],
+        input: { prompt: id },
+        output: {
+          deterministic: { flow: { mustFetch: ["docs-ai.interop.io"] } },
+        },
+      });
+    const steps: Record<string, Evals.Flow.Step> = {
+      webfetch: {
+        kind: "fetch",
+        url: "https://docs-ai.interop.io/modules/code-mode/overview.md",
+      },
+      curl: {
+        kind: "command",
+        command: "curl -s https://docs-ai.interop.io/llms.txt",
+        exitCode: 0,
+      },
+      "grep-only": {
+        kind: "command",
+        command: "grep -r docs-ai.interop.io .",
+        exitCode: 0,
+      },
+    };
+    const adapter = fakeAdapter((input) => ({
+      flow: [loaded, steps[input.prompt]!],
+    }));
+
+    const report = await runEval(
+      env.options({ concurrency: 1 }),
+      env.deps({ adapters: { fake: adapter } }),
+    );
+
+    const pass = (id: string) =>
+      report.cases.find((c) => c.caseId === id)!.pass;
+    expect([pass("webfetch"), pass("curl"), pass("grep-only")]).toEqual([
+      true,
+      true,
+      false,
+    ]);
+  });
+
   it("matches mustRun against skill script steps", async () => {
     const env = await makeEnv();
     await env.writeCase({
       id: "scaffold",
       kind: "trigger",
       targets: ["fake/m"],
-      prompt: "p",
-      flow: {
-        mustRun: ["materialize-template --template io-assist-react-packaged"],
+      input: { prompt: "p" },
+      output: {
+        deterministic: {
+          flow: {
+            mustRun: [
+              "materialize-template --template io-assist-react-packaged",
+            ],
+          },
+        },
       },
     });
     const adapter = fakeAdapter(() => ({

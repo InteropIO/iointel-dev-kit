@@ -1,0 +1,13 @@
+{
+  "name": "io-assist-react-mcp",
+  "private": true,
+  "workspaces": [
+    "app",
+    "mcp-server"
+  ],
+  "scripts": {
+    "start:app": "npm start -w app",
+    "start:mcp": "npm start -w mcp-server",
+    "build": "npm run build --workspaces"
+  }
+}
