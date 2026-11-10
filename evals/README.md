@@ -453,7 +453,7 @@ npm run format                       prettier
 
 ```
 evals/results/<run-id>/            (gitignored)
-├── summary.json                   the full Evals.Report.RunReport
+├── summary.json                   the run at a glance (Evals.Summary.File, see below)
 ├── transcripts/
 │   └── <case>__<target>__<n>.json final message, flow, diff and raw transcript per run
 ├── flows/
@@ -462,6 +462,37 @@ evals/results/<run-id>/            (gitignored)
     └── <case>.md                  everything per case: prompt, then per run the result, checks,
                                    judge verdicts and reasons, flow, final message and diff
 ```
+
+**`summary.json`** reads top-down, from the whole run to single runs:
+
+```jsonc
+{
+  "version": 2,
+  "run":    { "id", "startedAt", "finishedAt", "durationSec", "options", "comparedTo", "resultsPath" },
+  "totals": { "verdict": "fail", "cases": { "passed", "failed", "skipped" }, "runs": { "ran", "skipped" },
+              "cost": { "usd", "incomplete", "byTarget" } },
+  "cases": [{
+    "id", "kind", "target", "verdict": "pass" | "fail" | "skipped",
+    "scores": { "pass", "trigger", "rubric" },        // shares 0..1, null when not measured
+    "passThreshold", "ran", "skipped", "network", "costUsd",
+    "change": { "status": "regressed", "before": { "pass", "trigger", "rubric" }, "flow": { "added": 17, "removed": 4 } },  // step counts; steps in flows/<case>.md
+    "oddRuns": [2],                                      // 1-based run numbers
+    "files": { "report": "reports/<case>.md", "flow": "flows/<case>.md" },
+    "runs": [{
+      "run": 1, "verdict", "stopReason", "turns", "costUsd",
+      "trigger": { "triggered", "via" },
+      "checks": { "passed", "failed", "results": [{ "name", "pass", "detail" }] },
+      "judge":  { "score", "results": [{ "criterion", "pass", "reason", "reportOnly" }] },
+      "files":  { "transcript", "workdir" },
+      "flow":   [ /* steps, always last */ ]
+    }],
+    "withoutSkill": { "ran", "scores": { "pass", "trigger" }, "runs": [] }   // --baseline only
+  }],
+  "removed": [{ "id", "target", "before": { "pass", "trigger", "rubric" } }]   // in the reference, not in this run
+}
+```
+
+Costs are rounded to 4 decimals and scores to 3. `change` is absent when there is nothing to compare with. Runs saved before this format (no `version`) are still read when they are the comparison reference.
 
 **Start with `reports/<case>.md`** to see what happened in a case. It links each run to its transcript file for the raw events. Diffs over 20,000 characters are cut in the report; the transcript has the full diff.
 
@@ -515,7 +546,7 @@ evals/
 │   ├── checks/               matcher.ts, checks.ts, command-runner.ts
 │   ├── judge/                anthropic-judge.ts (Opus 5.5 through the Agent SDK, no tools)
 │   ├── workspace/            workspace.ts (temp folder + git start state + diff)
-│   └── report/               baseline.ts, console.ts, flow-markdown.ts, case-markdown.ts
+│   └── report/               summary-file.ts, baseline.ts, console.ts, flow-markdown.ts, case-markdown.ts
 └── test/
     ├── engine-*.test.ts      engine behaviour through EvalEngine.run with fake adapters and judge
     ├── *-flow.test.ts        transcript → flow extraction per tool

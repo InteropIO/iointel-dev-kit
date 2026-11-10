@@ -1,8 +1,8 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { SUMMARY_FILE } from "../report/baseline.js";
 import { renderCaseMarkdown } from "../report/case-markdown.js";
 import { renderFlowMarkdown } from "../report/flow-markdown.js";
+import { SUMMARY_FILE, toSummaryFile } from "../report/summary-file.js";
 import type { Evals } from "../shared/contracts.js";
 import type { RunDetails, RunUnit } from "../shared/types.js";
 import { flowSnapshot } from "./records.js";
@@ -10,7 +10,7 @@ import { flowSnapshot } from "./records.js";
 /**
  * Owns one run's results folder, `<resultsDir>/<runId>/`:
  *   transcripts/<case>__<target>__<n>.json   one per run, written as each run finishes
- *   summary.json                             the RunReport
+ *   summary.json                             the RunReport shaped for reading (Evals.Summary.File)
  *   flows/<case>.md                          flow snapshots per case, for reading and diffing
  *   reports/<case>.md                        everything per case: prompt, checks, judge, flow, final message, diff
  */
@@ -54,7 +54,7 @@ export class ResultsWriter {
   ): Promise<void> {
     await writeFile(
       path.join(this.runDir, SUMMARY_FILE),
-      JSON.stringify(report, null, 2),
+      JSON.stringify(toSummaryFile(report), null, 2) + "\n",
     );
     await this.writeFlows(report, cases);
     await this.writeCaseReports(report, cases);

@@ -412,6 +412,126 @@ export declare namespace Evals {
     }
   }
 
+  /**
+   * The summary.json file format: the RunReport reshaped for reading. Grouped per case, then per
+   * run, with the verdict and scores first and long details (flow steps) last.
+   */
+  namespace Summary {
+    type Verdict = "pass" | "fail" | "skipped";
+
+    /** Shares 0..1; null when nothing was measured. */
+    interface Scores {
+      readonly pass: number | null;
+      readonly trigger: number | null;
+      readonly rubric: number | null;
+    }
+
+    interface File {
+      readonly version: 2;
+      readonly run: {
+        readonly id: string;
+        readonly startedAt: string;
+        readonly finishedAt: string;
+        readonly durationSec: number;
+        readonly options: Report.RunReport["options"];
+        readonly comparedTo: Report.RunReport["reference"];
+        readonly resultsPath: string;
+      };
+      readonly totals: {
+        /** "fail" when any case failed. */
+        readonly verdict: Verdict;
+        readonly cases: {
+          readonly passed: number;
+          readonly failed: number;
+          readonly skipped: number;
+        };
+        readonly runs: { readonly ran: number; readonly skipped: number };
+        readonly cost: {
+          readonly usd: number;
+          /** true when some run's cost was not reported, so usd is a lower bound. */
+          readonly incomplete: boolean;
+          readonly byTarget: Readonly<Record<string, number>>;
+        };
+      };
+      readonly cases: readonly Case[];
+      /** Reference cases this (unfiltered) run no longer has. */
+      readonly removed: readonly {
+        readonly id: string;
+        readonly target: string;
+        readonly before: Scores;
+      }[];
+    }
+
+    interface Case {
+      readonly id: string;
+      readonly kind: Cases.Kind;
+      readonly target: string;
+      readonly verdict: Verdict;
+      readonly scores: Scores;
+      /** Share of runs that must pass. */
+      readonly passThreshold: number;
+      readonly ran: number;
+      readonly skipped: number;
+      readonly network: boolean;
+      readonly costUsd: number;
+      /** Against the reference run or baseline; absent when there is none. */
+      readonly change?: {
+        readonly status: Report.ComparisonStatus;
+        readonly before: Scores;
+        /** How many majority-flow steps were added and removed; the steps are in files.flow. */
+        readonly flow?: { readonly added: number; readonly removed: number };
+      };
+      /** 1-based run numbers whose flow differs from the majority. */
+      readonly oddRuns: readonly number[];
+      /** Relative to the run's results folder. */
+      readonly files: { readonly report: string; readonly flow: string };
+      readonly runs: readonly Run[];
+      /** Present when --baseline was used: the same case with the skill removed. */
+      readonly withoutSkill?: {
+        readonly ran: number;
+        readonly scores: Pick<Scores, "pass" | "trigger">;
+        readonly runs: readonly Run[];
+      };
+    }
+
+    interface Run {
+      /** 1-based. */
+      readonly run: number;
+      readonly verdict: Verdict;
+      readonly skipReason?: string;
+      readonly error?: string;
+      readonly stopReason?: Agent.StopReason;
+      readonly turns?: number;
+      readonly costUsd: number | null;
+      readonly trigger: {
+        readonly triggered: boolean;
+        readonly via?: Flow.TriggerDetection;
+      };
+      readonly checks: {
+        readonly passed: number;
+        readonly failed: number;
+        readonly results: readonly Checks.Result[];
+      };
+      readonly judge?: {
+        /** Share of graded, non-report-only lines that passed. */
+        readonly score: number | null;
+        readonly results: readonly {
+          readonly criterion: string;
+          readonly pass: boolean;
+          readonly reason: string;
+          readonly reportOnly?: true;
+        }[];
+      };
+      readonly files: {
+        readonly transcript?: string;
+        /** Kept workspace (--keep-workdirs). */
+        readonly workdir?: string;
+      };
+      /** Key steps the agent took; absent when the agent did not run to completion. */
+      readonly flow?: readonly Flow.Step[];
+    }
+  }
+
   /** The committed baseline (baseline.json) and what a run is compared against. */
   namespace Baseline {
     interface Entry {

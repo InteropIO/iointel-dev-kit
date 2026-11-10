@@ -2,24 +2,13 @@ import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { diffFlows, findOddRuns } from "../flow/compare.js";
 import type { Evals } from "../shared/contracts.js";
+import {
+  SUMMARY_FILE,
+  summaryEntries,
+  summaryOptions,
+} from "./summary-file.js";
 
-export const SUMMARY_FILE = "summary.json";
-
-function toBaselineEntries(
-  report: Pick<Evals.Report.RunReport, "cases">,
-): Evals.Baseline.Entry[] {
-  return report.cases.map((c) => ({
-    caseId: c.caseId,
-    target: c.target,
-    kind: c.kind,
-    pass: c.pass,
-    passRate: c.passRate,
-    triggerRate: c.triggerRate,
-    rubricScore: c.rubricScore,
-    costUsd: c.costUsd,
-    flows: c.runs.flatMap((r) => (r.flow ? [r.flow.steps] : [])),
-  }));
-}
+type SavedSummary = Parameters<typeof summaryEntries>[0];
 
 /** The committed baseline if there is one, otherwise the most recent earlier local run. */
 export async function loadReference(
@@ -39,14 +28,14 @@ export async function loadReference(
     .filter((id) => id < currentRunId)
     .at(-1);
   if (previous) {
-    const report = await readJson<Evals.Report.RunReport>(
+    const saved = await readJson<SavedSummary>(
       path.join(resultsDir, previous, SUMMARY_FILE),
     );
-    if (report)
+    if (saved)
       return {
         kind: "previous-run",
         runId: previous,
-        entries: toBaselineEntries(report),
+        entries: summaryEntries(saved),
       };
   }
   return { kind: "none", entries: [] };
@@ -132,13 +121,13 @@ export async function approveRun(
 ): Promise<string> {
   const runId = options.runId ?? (await listRunIds(options.resultsDir)).at(-1);
   if (!runId) throw new Error(`No runs found in ${options.resultsDir}`);
-  const report = await readJson<Evals.Report.RunReport>(
+  const saved = await readJson<SavedSummary>(
     path.join(options.resultsDir, runId, SUMMARY_FILE),
   );
-  if (!report) throw new Error(`Run ${runId} has no ${SUMMARY_FILE}`);
+  if (!saved) throw new Error(`Run ${runId} has no ${SUMMARY_FILE}`);
 
-  let entries = toBaselineEntries(report);
-  if (isFiltered(report.options)) {
+  let entries = summaryEntries(saved);
+  if (isFiltered(summaryOptions(saved))) {
     const covered = new Set(entries.map((e) => `${e.caseId}|${e.target}`));
     const existing =
       (await readJson<Evals.Baseline.File>(options.baselineFile))?.entries ??

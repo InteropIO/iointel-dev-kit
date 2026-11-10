@@ -42,7 +42,8 @@ describe("trigger cases", () => {
     const summary = JSON.parse(
       await readFile(path.join(report.resultsPath, "summary.json"), "utf8"),
     );
-    expect(summary.cases[0].caseId).toBe("mcp-tool");
+    expect(summary.version).toBe(2);
+    expect(summary.cases[0].id).toBe("mcp-tool");
     await access(
       path.join(report.resultsPath, report.cases[0]!.runs[0]!.transcriptFile!),
     );
