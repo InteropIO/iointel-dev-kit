@@ -339,10 +339,15 @@ export declare namespace Evals {
       readonly caseId: string;
       readonly kind: Cases.Kind;
       readonly target: string;
+      /** The message sent to the agent, and the simulated user reply when the case has one. */
+      readonly prompt: string;
+      readonly reply?: string;
       readonly network: boolean;
       /** null when every run was skipped. */
       readonly pass: boolean | null;
       readonly threshold: number;
+      /** Share of counted rubric lines a run must pass; null when the case has no rubric. */
+      readonly rubricThreshold: number | null;
       readonly ran: number;
       readonly skipped: number;
       readonly passRate: number | null;
@@ -466,10 +471,15 @@ export declare namespace Evals {
       readonly id: string;
       readonly kind: Cases.Kind;
       readonly target: string;
+      /** The message sent to the agent, and the simulated user reply when the case has one. */
+      readonly prompt: string;
+      readonly reply?: string;
       readonly verdict: Verdict;
       readonly scores: Scores;
       /** Share of runs that must pass. */
       readonly passThreshold: number;
+      /** Share of counted rubric lines a run must pass (scores.rubric is compared to it); null when the case has no rubric. */
+      readonly rubricThreshold: number | null;
       readonly ran: number;
       readonly skipped: number;
       readonly network: boolean;

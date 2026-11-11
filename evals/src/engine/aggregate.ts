@@ -3,6 +3,7 @@ import { findOddRuns } from "../flow/compare.js";
 import type { Evals } from "../shared/contracts.js";
 import type { RunUnit } from "../shared/types.js";
 import { TRIGGER_THRESHOLD } from "./defaults.js";
+import { judgeOf, rubricThresholdOf } from "./grading.js";
 
 type RunRecord = Evals.Report.RunRecord;
 
@@ -45,9 +46,12 @@ function caseReport(
     caseId: c.id,
     kind: c.kind,
     target,
+    prompt: c.input.prompt,
+    ...(c.input.reply ? { reply: c.input.reply } : {}),
     network: c.network,
     pass: passRate === null ? null : passRate >= threshold - 1e-9,
     threshold,
+    rubricThreshold: judgeOf(c) ? rubricThresholdOf(c) : null,
     ran: ran.length,
     skipped: withSkill.length - ran.length,
     passRate,

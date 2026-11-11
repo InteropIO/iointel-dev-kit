@@ -1,0 +1,49 @@
+{
+  "id": "code-mode-approve-payment",
+  "note": "HUMAN_PROMPTS.md row 17, run as a task: the prompt adds an explicit go-ahead so the agent implements instead of only explaining. Template has no Code Mode yet, so this covers setup + an async approval interceptor on the acme submit_payment tool.",
+  "kind": "task",
+  "targets": [
+    "claude-code/claude-sonnet-5-5"
+  ],
+  "maxTurns": 60,
+  "timeoutMs": 900000,
+  "input": {
+    "prompt": "Can I make Code Mode ask me before it submits a payment? If so, please set it up.",
+    "reply": "Show me a confirmation in the app with the payment details before any submit_payment call goes through, and block it if I decline. Use your recommended defaults for everything else.",
+    "template": {
+      "local": "io-assist-react-mcp"
+    }
+  },
+  "output": {
+    "deterministic": {
+      "flow": {
+        "mustRead": [
+          "references/code-mode.md"
+        ],
+        "mustFetch": [
+          "docs-ai.interop.io"
+        ]
+      },
+      "commands": [
+        "npm install",
+        "npm run build"
+      ]
+    },
+    "judge": {
+      "threshold": 0.5,
+      "rubric": [
+        "Enables Code Mode exactly once for this assistant, in the AI Web configuration io.Assist uses (aiWebConfig in app/src/App.tsx), not in the acme MCP server",
+        "Uses the browser entry point and points the WASM location at a URL the app serves, delivered from the installed @interopio/code-mode package through a repeatable step or an exact-version URL",
+        "Adds an asynchronous interceptors.onToolCall on that Code Mode configuration that awaits the user's decision before submit_payment runs",
+        "Matches submit_payment by the tool identifier the host actually passes to the interceptor (verified in docs or installed types), not a guessed name",
+        "Shows the payment details from the call input (client, amount, currency, beneficiary) in the approval prompt",
+        "Fails closed: a declined, dismissed or failed approval denies the call, and approval is never assumed or auto-granted",
+        "Lets every other tool call through unchanged and does not add a toolFilter or rewrite the payment input",
+        "Leaves submit_payment's server-side validation in mcp-server intact",
+        "Explains in the final message that the interceptor only gates calls made through Code Mode, so the server must still authorize and validate payments",
+        "[report-only] Uses the io.Connect modals dialogs that the app already enables instead of window.confirm",
+        "[report-only] Chooses the @interopio/code-mode version from the npm registry and the installed host's range, not from a docs example"
+      ]
+    }
+  }
+}

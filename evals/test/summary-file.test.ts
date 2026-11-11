@@ -46,9 +46,12 @@ const report: Evals.Report.RunReport = {
       caseId: "add",
       kind: "task",
       target: run.target,
+      prompt: "Add a tool.",
+      reply: "Use your recommended defaults.",
       network: true,
       pass: false,
       threshold: 1,
+      rubricThreshold: 0.8,
       ran: 1,
       skipped: 0,
       passRate: 0,
@@ -114,8 +117,12 @@ describe("summary.json", () => {
     const c = summary.cases[0]!;
     expect(c).toMatchObject({
       id: "add",
+      prompt: "Add a tool.",
+      reply: "Use your recommended defaults.",
       verdict: "fail",
       scores: { pass: 0, trigger: 1, rubric: 0.2 },
+      passThreshold: 1,
+      rubricThreshold: 0.8,
       change: {
         status: "regressed",
         before: { pass: 1, trigger: 1, rubric: 1 },

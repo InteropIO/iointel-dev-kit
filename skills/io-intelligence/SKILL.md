@@ -1,6 +1,6 @@
 ---
 name: io-intelligence
-description: Build, scaffold, extend, explain, or diagnose AI assistants in io.Connect with io.Intelligence. Use for official React, Angular, editable io.Assist, or Vanilla AI Web templates; the io.Assist Anywhere guide or ACME Banking sample; io.Assist React or Angular; @interopio/ai-web custom frontends; @interopio/mcp-core, mcp-web, or mcp-http; Working Context; MCP Apps; sampling; elicitation; @interopio/ai-mastra-bridge; the io.Intelligence Agent Protocol; AG-UI bridge behavior; missing tools or applications; streaming and thread problems; or package and topology selection.
+description: Build, scaffold, extend, explain, or diagnose AI assistants in io.Connect with io.Intelligence. Use for official React, Angular, editable io.Assist, or Vanilla AI Web templates; the io.Assist Anywhere guide or ACME Banking sample; io.Assist React or Angular; @interopio/ai-web custom frontends; @interopio/mcp-core, mcp-web, or mcp-http; Working Context; MCP Apps; sampling; elicitation; @interopio/ai-mastra-bridge; Code Mode; the io.Intelligence Agent Protocol; AG-UI bridge behavior; missing tools or applications; streaming and thread problems; or package and topology selection.
 ---
 
 # io.Intelligence
@@ -42,13 +42,13 @@ Always read [references/core.md](references/core.md), then load only the task-sp
 
 ### Optional capability routing
 
-| Capability                        | Read                                                                     |
-| --------------------------------- | ------------------------------------------------------------------------ |
-| Use Mastra as the backend         | [references/mastra-backend.md](references/mastra-backend.md)             |
-| Add live business context         | [references/working-context.md](references/working-context.md)           |
-| Orchestrate tools through code    | [references/code-mode.md](references/code-mode.md)                       |
-| Host interactive MCP UI resources | [references/mcp-apps.md](references/mcp-apps.md)                         |
-| Handle sampling or elicitation    | [references/sampling-elicitation.md](references/sampling-elicitation.md) |
+| Capability                          | Read                                                                     |
+| ----------------------------------- | ------------------------------------------------------------------------ |
+| Use Mastra as the backend           | [references/mastra-backend.md](references/mastra-backend.md)             |
+| Add live business context           | [references/working-context.md](references/working-context.md)           |
+| Orchestrate tools through code mode | [references/code-mode.md](references/code-mode.md)                       |
+| Host interactive MCP UI resources   | [references/mcp-apps.md](references/mcp-apps.md)                         |
+| Handle sampling or elicitation      | [references/sampling-elicitation.md](references/sampling-elicitation.md) |
 
 ### Diagnostic routing
 

@@ -473,8 +473,11 @@ evals/results/<run-id>/            (gitignored)
               "cost": { "usd", "incomplete", "byTarget" } },
   "cases": [{
     "id", "kind", "target", "verdict": "pass" | "fail" | "skipped",
+    "prompt", "reply",                                  // reply only when the case sets input.reply
     "scores": { "pass", "trigger", "rubric" },        // shares 0..1, null when not measured
-    "passThreshold", "ran", "skipped", "network", "costUsd",
+    "passThreshold",                                   // share of runs that must pass
+    "rubricThreshold",                                 // share of rubric lines a run must pass; null without a rubric
+    "ran", "skipped", "network", "costUsd",
     "change": { "status": "regressed", "before": { "pass", "trigger", "rubric" }, "flow": { "added": 17, "removed": 4 } },  // step counts; steps in flows/<case>.md
     "oddRuns": [2],                                      // 1-based run numbers
     "files": { "report": "reports/<case>.md", "flow": "flows/<case>.md" },

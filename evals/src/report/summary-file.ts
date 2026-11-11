@@ -70,6 +70,8 @@ function toCase(
     id: c.caseId,
     kind: c.kind,
     target: c.target,
+    prompt: c.prompt,
+    ...(c.reply ? { reply: c.reply } : {}),
     verdict: verdict(c.pass),
     scores: {
       pass: share(c.passRate),
@@ -77,6 +79,7 @@ function toCase(
       rubric: share(c.rubricScore),
     },
     passThreshold: c.threshold,
+    rubricThreshold: c.rubricThreshold,
     ran: c.ran,
     skipped: c.skipped,
     network: c.network,

@@ -21,7 +21,7 @@ Each case runs several times, because results vary between runs. The engine prin
 1. As a skill author, I want to run the whole eval suite with one command, so that I can check a skill change before committing it.
 2. As a skill author, I want the eval to use the working copy of the skill in this repo, so that I can test unsaved or branch-specific edits without reinstalling anything.
 3. As a skill author, I want each run fully isolated from my own installed skills, plugins, `CLAUDE.md` and MCP servers, so that results are repeatable and the same on every machine.
-4. As a skill author, I want to write a case as a short YAML file, so that adding coverage takes minutes and doesn't require reading engine code.
+4. As a skill author, I want to write a case as a short JSON file, so that adding coverage takes minutes and doesn't require reading engine code.
 5. As a skill author, I want case files checked against a schema when a run starts, so that a typo fails immediately instead of silently skipping a check.
 6. As a skill author, I want trigger cases that state whether the skill should or shouldn't load, so that I can catch descriptions that are too narrow or too broad.
 7. As a skill author, I want negative trigger cases (prompts that must not load the skill), so that the skill doesn't take over unrelated requests.
@@ -30,7 +30,7 @@ Each case runs several times, because results vary between runs. The engine prin
 10. As a skill author, I want an LLM judge to grade answers against a rubric I write, so that subtler correctness ("explains that io.Assist discovers the tool") is checked too.
 11. As a skill author, I want the judge to mark each rubric line pass or fail with a one-line reason, so that I know exactly which expectation was missed and why.
 12. As a skill author, I want the judge to see the final output and the transcript, so that it can judge whether the answer was grounded in what the agent actually did.
-13. As a skill author, I want task cases to start from a chosen state (an official template, a fixture folder in the repo, or an empty folder), so that I can test both scaffolding from scratch and extending an existing project.
+13. As a skill author, I want cases to start from a chosen state (an official template, a local template folder in the repo, or an empty folder), so that I can test both scaffolding from scratch and extending an existing project.
 14. As a skill author, I want task cases to check that expected files exist, so that structural mistakes are caught cheaply.
 15. As a skill author, I want task cases to check `package.json` for expected `@interopio/*` dependencies, so that wrong or missing packages are caught.
 16. As a skill author, I want task cases to run a list of commands (install, type-check, build) and fail on a non-zero exit, so that I know the generated project actually builds.
@@ -92,9 +92,9 @@ Each case runs several times, because results vary between runs. The engine prin
 - Credentials come from a gitignored env file in the eval package. Claude (the Claude Code target and the judge, which both run through the Claude Code CLI via the Agent SDK) uses `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN` when set, and otherwise the local Claude Code login, including a subscription, for personal local runs. Codex uses `OPENAI_API_KEY`.
 
 **Modules**
-- **Case loader:** discovers case YAML files, validates them against the case schema (Zod), applies defaults, and expands each case × target × repeat into run units. Fails the whole run immediately on any invalid case.
+- **Case loader:** discovers case JSON files, validates them against the case schema (Zod), applies defaults, and expands each case × target × repeat into run units. Fails the whole run immediately on any invalid case.
 - **Engine (the single test seam):** `runEval(options, deps) → RunReport`, where `deps` supplies the adapters (keyed by tool name) and the judge, plus optional clock and filesystem. It handles filtering, scheduling with concurrency, workspace preparation, adapter calls, checks, judging, aggregation, the cost cap, the baseline comparison and writing results. Everything outside the process comes in through `deps`.
-- **Workspace manager:** creates a fresh temp folder per run unit and seeds it from the case's setup (an official template through the skill's own template materializer, a fixture folder, or empty). It installs the working copy of the skill where the target's tool discovers it, removes it for `--baseline` runs, and records the starting state so a diff can be produced at the end.
+- **Workspace manager:** creates a fresh temp folder per run unit and seeds it from the case's `input.template` (an official template through the skill's own template materializer, a local template folder, or empty). It installs the working copy of the skill where the target's tool discovers it, removes it for `--baseline` runs, and records the starting state so a diff can be produced at the end.
 - **Agent adapters:** one per tool, all implementing the same interface:
 
   ```ts
@@ -147,32 +147,36 @@ Each case runs several times, because results vary between runs. The engine prin
 
 **Case schema (decision shape)**
 
+Shown in YAML-style shorthand for readability; case files are JSON with these fields.
+
 ```yaml
 id: string                      # unique
+note: string                    # optional free text for humans; ignored by the engine
 kind: trigger | answer | task
 targets: [claude-code/<model>, codex/<model>]   # required, non-empty
 network: true                   # default true
-prompt: string                  # single turn in v1
-expectSkill: true               # default true; false = negative trigger case
 repeat / passThreshold / maxTurns / timeoutMs: optional per-case overrides
-flow:                           # optional, any kind
-  mustRead: [string | /regex/]  # e.g. references/core.md
-  mustNotRead: [string | /regex/]
-  mustRun: [string | /regex/]   # commands or skill scripts
-  mustFetch: [string | /regex/] # fetched URLs, web searches, download commands
-# answer
-mustInclude: [string | /regex/]
-mustNotInclude: [string | /regex/]
-rubric: string                  # one expectation per line; "[report-only]" prefix = graded, never counted
-rubricThreshold: number         # share of counted lines a run must pass, (0, 1], default 1
-# task
-setup: { template: <template id> } | { fixture: <path> } | {}
-checks:
-  files: [path]
-  packageJson: { dependencies: { <name>: <range or "*"> } }
-  commands: [string]
-  reviewRubric: string
-  reviewThreshold: number       # as rubricThreshold, for the review rubric
+input:                          # what the agent gets
+  prompt: string                # single turn in v1
+  template: { official: <template id> } | { local: <name in evals/templates/> }   # optional; omitted = empty folder
+output:                         # what is checked afterwards
+  deterministic:                # no model involved
+    expectSkill: true           # default true; false = negative case
+    flow:                       # optional, any kind; order-independent
+      mustRead: [string | /regex/]  # e.g. references/core.md
+      mustNotRead: [string | /regex/]
+      mustRun: [string | /regex/]   # commands or skill scripts
+      mustFetch: [string | /regex/] # fetched URLs, web searches, download commands
+    # answer only
+    mustInclude: [string | /regex/]
+    mustNotInclude: [string | /regex/]
+    # task only
+    files: [path]
+    packageJson: { dependencies: { <name>: <range or "*"> } }
+    commands: [string]
+  judge:                        # answer and task only
+    rubric: [string]            # one expectation per item; "[report-only]" prefix = graded, never counted
+    threshold: number           # share of counted items a run must pass, (0, 1], default 1
 ```
 
 **Pass rules**
