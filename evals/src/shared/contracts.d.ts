@@ -64,6 +64,8 @@ export declare namespace Evals {
       /** Model from the target; undefined means the adapter's default. */
       readonly model: string | undefined;
       readonly workdir: string;
+      /** Where the skill under test is installed, relative to the workdir: <skillsDir>/<skill name>. */
+      readonly skillInstallPath: string;
       readonly network: boolean;
       readonly maxTurns: number;
       readonly timeoutMs: number;
@@ -86,8 +88,8 @@ export declare namespace Evals {
     interface Adapter {
       /** The tool part of a target id, e.g. "claude-code" in "claude-code/claude-sonnet-5-5". */
       readonly tool: string;
-      /** Where the skill folder is installed, relative to the workdir. */
-      readonly skillInstallPath: string;
+      /** The folder the tool discovers skills in, relative to the workdir (e.g. ".claude/skills"). */
+      readonly skillsDir: string;
       /** Returns an error message when the adapter cannot run (e.g. a missing API key). */
       checkReady(): string | undefined;
       run(input: RunInput): Promise<RunResult>;
@@ -299,6 +301,8 @@ export declare namespace Evals {
 
     interface Deps {
       readonly adapters: Readonly<Record<string, Agent.Adapter>>;
+      /** Name of the skill under test (SKILL.md frontmatter name): its install folder and what triggering means. */
+      readonly skillName: string;
       readonly judge?: Judge.Grader;
       readonly workspace: Workspace.Manager;
       readonly runCommand?: Commands.Runner;

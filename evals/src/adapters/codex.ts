@@ -25,7 +25,7 @@ export class CodexAdapter implements Evals.Agent.Adapter {
   ]);
 
   public readonly tool = "codex";
-  public readonly skillInstallPath = ".agents/skills/io-intelligence";
+  public readonly skillsDir = ".agents/skills";
 
   private constructor() {}
 
@@ -125,7 +125,7 @@ export class CodexAdapter implements Evals.Agent.Adapter {
     // An abort may end the stream quietly instead of throwing.
     if (timedOut) stopReason = "timeout";
 
-    const flow = extractCodexFlow(items, input.workdir, this.skillInstallPath);
+    const flow = extractCodexFlow(items, input.workdir, input.skillInstallPath);
     return {
       finalMessage,
       transcript: events,

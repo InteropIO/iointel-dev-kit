@@ -11,8 +11,9 @@ import { GitWorkspaceManager } from "../../src/workspace/workspace.js";
 import type { Evals } from "../../src/shared/contracts.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+const SKILL = "io-intelligence";
 const workspace = new GitWorkspaceManager({
-  skillDir: path.resolve(here, "../../../skills/io-intelligence"),
+  skillDir: path.resolve(here, "../../../skills", SKILL),
   localTemplatesDir: path.resolve(here, "../../templates"),
 });
 const recordings = path.resolve(here, "../fixtures/transcripts");
@@ -27,15 +28,14 @@ async function run(
   prompt: string,
   record?: string,
 ): Promise<{ result: Evals.Agent.RunResult; workdir: string }> {
-  const ws = await workspace.prepare({
-    skillInstallPath: adapter.skillInstallPath,
-    withSkill: true,
-  });
+  const skillInstallPath = `${adapter.skillsDir}/${SKILL}`;
+  const ws = await workspace.prepare({ skillInstallPath, withSkill: true });
   try {
     const result = await adapter.run({
       prompt,
       model: undefined,
       workdir: ws.workdir,
+      skillInstallPath,
       network: true,
       maxTurns: 15,
       timeoutMs: 300_000,

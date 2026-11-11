@@ -17,7 +17,7 @@ Design background: [docs/specs/io-intelligence-eval-engine.md](../docs/specs/io-
 ```bash
 cd evals
 npm install
-cp .env.example .env          # optional for Claude (see below); add OPENAI_API_KEY for Codex
+cp .env.example .env          # sets EVAL_SKILL_DIR; Claude keys optional (see below); add OPENAI_API_KEY for Codex
 # write cases in evals/cases/<kind>/<id>.json (see "Writing cases")
 npm run eval -- --kind trigger --repeat 1   # a quick first run
 npm run eval                                # the full suite
@@ -26,6 +26,8 @@ npm run eval:approve                        # make the latest run the baseline, 
 
 | Key | Needed for |
 |---|---|
+| `EVAL_WORKDIR_ROOT` | optional: where run workspaces are created (absolute, or relative to `evals/`). Must be outside the repository. Default: the OS temp folder |
+| `EVAL_SKILL_DIR` | **required**: the skill under test, a folder holding `SKILL.md` (absolute, or relative to `evals/`), e.g. `../skills/io-intelligence` |
 | `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN` | optional: `claude-code/*` targets and the judge. Without either, they use your local Claude Code login |
 | `OPENAI_API_KEY` | `codex/*` targets |
 | `CODEX_PRICE_*` | optional: lets Codex runs count towards cost totals and `--max-cost` |
@@ -34,6 +36,8 @@ npm run eval:approve                        # make the latest run the baseline, 
 - reported costs are API-price estimates, not what you pay, so `--max-cost` limits an estimate, not real spend;
 - runs count against your subscription's usage limits, so lower `--concurrency` for big suites;
 - it's for your own local runs only. Shared or CI setups should use an API key.
+
+**Testing another skill.** Set `EVAL_SKILL_DIR` to its folder. The `name` in its `SKILL.md` frontmatter (or the folder name, without one) becomes the install folder in each workspace and the name a run must load to count as triggered. The CLI prints `Skill under test: <name>` at the start. The cases in `evals/cases` and the comparison with the previous run or `baseline.json` aren't separated per skill, so pick cases written for that skill (`--case`, `--kind`) and don't approve a baseline from another skill's run. Official templates need the skill's `scripts/materialize-template.mjs`, which only `io-intelligence` has; use local templates otherwise.
 
 If credentials that the selected cases need are missing, the run stops before anything starts. On macOS the login lives in the Keychain and isn't checked up front; a missing login shows up as a failed run instead.
 
@@ -171,7 +175,7 @@ Every case has the same three parts: settings at the top level, `input` (what th
 | `template` | | The project the agent starts in. `{ "official": "<id>" }` fetches an official template with the skill's own `materialize-template.mjs` (needs network access and Git). `{ "local": "<name>" }` copies `evals/templates/<name>`. Omitted: an empty folder |
 | `reply` | | What the simulated user answers when the agent asks a question (Claude Code's `AskUserQuestion`). Every question gets this reply as free text, so it can name an option's label or say anything else, e.g. `"Use your recommended defaults."` Omitted: questions come back unanswered, and the agent usually stops to wait. Codex has no question tool, so it ignores this field |
 
-Every run gets a fresh temp folder, seeded from the template, with the skill copied to where the tool discovers it and the starting state committed to a throwaway git repo, so the diff of what the agent changed is exact.
+Every run gets a fresh temp folder, seeded from the template, with the skill copied to where the tool discovers it and the starting state committed to a throwaway git repo, so the diff of what the agent changed is exact. The temp folder is named `project-XXXX`, so paths don't say "eval", and is created in `EVAL_WORKDIR_ROOT` (default: the OS temp folder). That folder must be outside the repository, because Node, TypeScript, Prettier, ESLint, npm and Claude Code search parent folders and would pick up `evals/node_modules` and the repo's configs. The repo has no remote and is deleted after the run. The starting commit is `eval: starting state` by `eval <eval@localhost>`. The diff is taken against that commit's hash, not `HEAD`, so changes the agent commits itself still count.
 
 **`output.deterministic`**: checks with no model involved, all optional.
 
@@ -296,20 +300,20 @@ classDiagram
     class Adapter {
         <<Evals.Agent.Adapter>>
         +tool: string
-        +skillInstallPath: string
+        +skillsDir: string
         +checkReady() string | undefined
         +run(RunInput) Promise~RunResult~
     }
     class ClaudeCodeAdapter {
         <<singleton>>
         +tool = "claude-code"
-        +skillInstallPath = ".claude/skills/io-intelligence"
+        +skillsDir = ".claude/skills"
         +getInstance()$
     }
     class CodexAdapter {
         <<singleton>>
         +tool = "codex"
-        +skillInstallPath = ".agents/skills/io-intelligence"
+        +skillsDir = ".agents/skills"
         +getInstance()$
         +estimateCost(usage)$
     }
@@ -320,10 +324,10 @@ classDiagram
 | | Claude Code | Codex |
 |---|---|---|
 | Runs through | `@anthropic-ai/claude-agent-sdk` | `@openai/codex-sdk` |
-| Skill installed at | `.claude/skills/io-intelligence` | `.agents/skills/io-intelligence` |
+| Skill installed at | `.claude/skills/<skill name>` | `.agents/skills/<skill name>` |
 | Isolation | Loads only project settings from the temp folder: no user skills, plugins, `CLAUDE.md` or MCP servers | Runs with an empty, temporary home folder, so no user config or skills |
 | Containment | A permission guard (`canUseTool`) rejects file access and commands that point outside the workdir | Codex's own `workspace-write` sandbox |
-| Trigger detected by | A `Skill` tool call naming `io-intelligence` | Any command that reads `<skill>/SKILL.md` (Codex has no explicit skill event) |
+| Trigger detected by | A `Skill` tool call naming the skill under test | Any command that reads `<skill>/SKILL.md` (Codex has no explicit skill event) |
 | `network: false` | Removes `WebFetch`/`WebSearch` and blocks `curl`, `wget`, `iwr`, `git clone/fetch/pull` | Disables network access and web search |
 | Turn limit | Enforced | Not available in Codex; only the timeout applies |
 | Credentials | `ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`, or the local Claude Code login (`claude-auth.ts`) | `OPENAI_API_KEY` |

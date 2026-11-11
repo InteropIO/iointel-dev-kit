@@ -10,7 +10,8 @@ const exec = promisify(execFile);
 
 /**
  * Creates a fresh temp folder per run, seeds it, installs the skill where the tool discovers it,
- * and commits the starting state to a throwaway git repo so the final diff is exact.
+ * and commits the starting state to a throwaway git repo so the final diff is exact. The diff is
+ * taken against that commit's hash, not HEAD, so it still holds if the agent commits.
  *
  * Not a singleton: each instance is bound to a skill folder and local templates folder, and tests
  * create one per isolated environment.
@@ -27,6 +28,8 @@ export class GitWorkspaceManager implements Evals.Workspace.Manager {
     "yarn.lock",
   ];
   private static readonly MAX_DIFF_CHARS = 200_000;
+  // Neutral name for the temp folder, which the agent sees in every path.
+  private static readonly TEMP_PREFIX = "project-";
 
   public constructor(private readonly options: GitWorkspaceOptions) {}
 
@@ -35,7 +38,12 @@ export class GitWorkspaceManager implements Evals.Workspace.Manager {
     skillInstallPath,
     withSkill,
   }: Evals.Workspace.PrepareOptions): Promise<Evals.Workspace.Prepared> {
-    const root = await mkdtemp(path.join(os.tmpdir(), "iointel-eval-"));
+    const root = await mkdtemp(
+      path.join(
+        this.options.workdirRoot ?? os.tmpdir(),
+        GitWorkspaceManager.TEMP_PREFIX,
+      ),
+    );
     const workdir = path.join(root, "work");
 
     if (template && "official" in template) {
@@ -70,11 +78,14 @@ export class GitWorkspaceManager implements Evals.Workspace.Manager {
       "-m",
       "eval: starting state",
     ]);
+    const start = (
+      await GitWorkspaceManager.git(workdir, ["rev-parse", "HEAD"])
+    ).stdout.trim();
 
     return {
       workdir,
       kept: !!this.options.keep,
-      diff: () => GitWorkspaceManager.diff(workdir, skillRel),
+      diff: () => GitWorkspaceManager.diff(workdir, start, skillRel),
       cleanup: async () => {
         if (!this.options.keep)
           await rm(root, { recursive: true, force: true, maxRetries: 3 });
@@ -96,8 +107,10 @@ export class GitWorkspaceManager implements Evals.Workspace.Manager {
       );
     };
 
+  /** Everything that differs from the starting commit, committed by the agent or not. */
   private static async diff(
     workdir: string,
+    start: string,
     skillRel: string,
   ): Promise<string> {
     const max = GitWorkspaceManager.MAX_DIFF_CHARS;
@@ -110,6 +123,7 @@ export class GitWorkspaceManager implements Evals.Workspace.Manager {
       "diff",
       "--cached",
       "--no-color",
+      start,
       "--",
       ".",
       ...excludes,

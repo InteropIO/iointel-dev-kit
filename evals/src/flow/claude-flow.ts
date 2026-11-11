@@ -1,6 +1,6 @@
 import {
   FlowNormalizer,
-  SKILL_NAME,
+  skillNameOf,
   toCommandOrScriptStep,
 } from "./normalize.js";
 import type { Evals } from "../shared/contracts.js";
@@ -21,6 +21,7 @@ export function extractClaudeFlow(
   skillInstallPath: string,
 ): Evals.Flow.Extraction {
   const norm = new FlowNormalizer(workdir, skillInstallPath);
+  const skillName = skillNameOf(skillInstallPath);
   const uses: ClaudeToolUse[] = [];
   const results = new Map<string, ClaudeToolResult>();
 
@@ -55,7 +56,7 @@ export function extractClaudeFlow(
         : undefined;
     if (use.name === "Skill") {
       const skill = str("skill") ?? str("command") ?? str("name") ?? "";
-      if (skill.replace(/^\//, "") === SKILL_NAME) skillTriggered = true;
+      if (skill.replace(/^\//, "") === skillName) skillTriggered = true;
       steps.push({
         kind: "skill-loaded",
         skill: skill.replace(/^\//, ""),

@@ -1,8 +1,12 @@
 import path from "node:path";
 import type { Evals } from "../shared/contracts.js";
 
-export const SKILL_NAME = "io-intelligence";
 export const SKILL_PREFIX = "<skill>";
+
+/** The skill's name is its install folder's name: ".claude/skills/io-intelligence" → "io-intelligence". */
+export function skillNameOf(skillInstallPath: string): string {
+  return path.posix.basename(skillInstallPath.replaceAll("\\", "/").replace(/\/$/, ""));
+}
 
 /**
  * Rewrites paths and command text so that runs in different temp folders, and different tools'

@@ -40,6 +40,8 @@ export interface GitWorkspaceOptions {
   readonly skillDir: string;
   /** Folder that `input.template.local` names are relative to. */
   readonly localTemplatesDir: string;
+  /** Folder the per-run temp folders are created in; default the OS temp folder. */
+  readonly workdirRoot?: string;
   /** Keep temp folders after the run, for debugging. */
   readonly keep?: boolean;
   readonly materialize?: Evals.Workspace.TemplateMaterializer;

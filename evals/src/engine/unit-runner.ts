@@ -32,16 +32,22 @@ export class UnitRunner {
 
   private async attempt(unit: RunUnit): Promise<Evals.Report.RunRecord> {
     const adapter = this.deps.adapters[unit.tool]!;
+    const skillInstallPath = `${adapter.skillsDir}/${this.deps.skillName}`;
     const workspace = await this.deps.workspace.prepare({
       ...(unit.case.input.template
         ? { template: unit.case.input.template }
         : {}),
-      skillInstallPath: adapter.skillInstallPath,
+      skillInstallPath,
       withSkill: unit.withSkill,
     });
 
     try {
-      const agent = await UnitRunner.runAgent(adapter, unit, workspace.workdir);
+      const agent = await UnitRunner.runAgent(
+        adapter,
+        unit,
+        workspace.workdir,
+        skillInstallPath,
+      );
       const outcome = await runChecks(unit, agent, workspace, this.runCommand);
       const grading = outcome.checks.every((x) => x.pass)
         ? await this.grade(unit, agent, outcome.diff)
@@ -82,6 +88,7 @@ export class UnitRunner {
     adapter: Evals.Agent.Adapter,
     unit: RunUnit,
     workdir: string,
+    skillInstallPath: string,
   ): Promise<Evals.Agent.RunResult> {
     const c = unit.case;
     const limits = c.kind === "task" ? AGENT_LIMITS.task : AGENT_LIMITS.other;
@@ -91,6 +98,7 @@ export class UnitRunner {
         ...(c.input.reply ? { reply: c.input.reply } : {}),
         model: unit.model,
         workdir,
+        skillInstallPath,
         network: c.network,
         maxTurns: c.maxTurns ?? limits.maxTurns,
         timeoutMs: c.timeoutMs ?? limits.timeoutMs,

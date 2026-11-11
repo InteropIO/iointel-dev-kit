@@ -9,6 +9,8 @@ import { EvalEngine, EvalSetupError } from "./engine/index.js";
 import { AnthropicJudge } from "./judge/anthropic-judge.js";
 import { approveRun } from "./report/baseline.js";
 import { renderConsoleSummary } from "./report/console.js";
+import { resolveSkill } from "./workspace/skill.js";
+import { resolveWorkdirRoot } from "./workspace/workdir-root.js";
 import { GitWorkspaceManager } from "./workspace/workspace.js";
 import type { Evals } from "./shared/contracts.js";
 
@@ -21,7 +23,6 @@ const paths = {
   results: path.join(evalsRoot, "results"),
   baseline: path.join(evalsRoot, "baseline.json"),
   localTemplates: path.join(evalsRoot, "templates"),
-  skill: path.resolve(evalsRoot, "..", "skills", "io-intelligence"),
 };
 
 const USAGE = `Usage:
@@ -73,15 +74,26 @@ async function main(argv: string[]) {
 
   if (values.kind && !["trigger", "answer", "task"].includes(values.kind))
     throw new EvalSetupError(`--kind must be trigger, answer or task`);
+  const skill = await resolveSkill(evalsRoot);
+  console.log(
+    `Skill under test: ${skill.name} (${path.relative(process.cwd(), skill.dir) || "."})`,
+  );
+  const workdirRoot = await resolveWorkdirRoot(
+    evalsRoot,
+    path.resolve(evalsRoot, ".."),
+  );
+  console.log(`Workspaces in: ${workdirRoot}`);
   const engine = new EvalEngine({
     adapters: {
       "claude-code": ClaudeCodeAdapter.getInstance(),
       codex: CodexAdapter.getInstance(),
     },
+    skillName: skill.name,
     judge: AnthropicJudge.getInstance(),
     workspace: new GitWorkspaceManager({
-      skillDir: paths.skill,
+      skillDir: skill.dir,
       localTemplatesDir: paths.localTemplates,
+      workdirRoot,
       keep: !!values["keep-workdirs"],
     }),
     log: (line) => console.log(line),

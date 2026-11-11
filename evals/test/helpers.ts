@@ -66,6 +66,7 @@ export async function makeEnv(): Promise<TestEnv> {
       ...extra,
     }),
     deps: (extra) => ({
+      skillName: "io-intelligence",
       workspace: new GitWorkspaceManager({
         skillDir: env.skillDir,
         localTemplatesDir: env.localTemplatesDir,
@@ -95,7 +96,7 @@ export function fakeAdapter(
   const calls: Evals.Agent.RunInput[] = [];
   return {
     tool,
-    skillInstallPath: SKILL_INSTALL,
+    skillsDir: ".claude/skills",
     calls,
     checkReady: () => ready,
     async run(input) {

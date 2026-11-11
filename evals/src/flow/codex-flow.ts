@@ -1,7 +1,7 @@
 import {
   FlowNormalizer,
-  SKILL_NAME,
   SKILL_PREFIX,
+  skillNameOf,
   toCommandOrScriptStep,
 } from "./normalize.js";
 import type { Evals } from "../shared/contracts.js";
@@ -45,6 +45,7 @@ export function extractCodexFlow(
   skillInstallPath: string,
 ): Evals.Flow.Extraction {
   const norm = new FlowNormalizer(workdir, skillInstallPath);
+  const skillName = skillNameOf(skillInstallPath);
   const steps: Evals.Flow.Step[] = [];
   let skillTriggered = false;
 
@@ -53,7 +54,7 @@ export function extractCodexFlow(
       if (!skillTriggered)
         steps.push({
           kind: "skill-loaded",
-          skill: SKILL_NAME,
+          skill: skillName,
           via: "skill-md-read",
         });
       skillTriggered = true;

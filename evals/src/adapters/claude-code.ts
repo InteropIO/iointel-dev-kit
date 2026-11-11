@@ -14,7 +14,7 @@ export class ClaudeCodeAdapter implements Evals.Agent.Adapter {
   private static readonly DEFAULT_MODEL = "claude-sonnet-5-5";
 
   public readonly tool = "claude-code";
-  public readonly skillInstallPath = ".claude/skills/io-intelligence";
+  public readonly skillsDir = ".claude/skills";
 
   private constructor() {}
 
@@ -94,7 +94,7 @@ export class ClaudeCodeAdapter implements Evals.Agent.Adapter {
     const flow = extractClaudeFlow(
       messages,
       input.workdir,
-      this.skillInstallPath,
+      input.skillInstallPath,
     );
     return {
       finalMessage,
