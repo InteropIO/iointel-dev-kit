@@ -41,10 +41,12 @@ The judge is Claude Opus 5.5 (`src/judge/anthropic-judge.ts`). After an agent fi
 | The rubric lines, numbered | What to check |
 | The agent's final message | What the agent *said* it did |
 | The workspace git diff (task cases) | What the agent *actually changed* |
-| The full transcript | *How* it got there: what it read, ran and fetched |
+| The transcript, compacted (see [5.8](#58-compact-transcripts-exists)) | *How* it got there: what it read, ran and fetched |
 | **Opt-in:** read-only access to the finished workspace | The code the agent *didn't* change, and installed packages (see [5.7](#57-workspace-access-exists)) |
 
 For every line it returns `pass: true/false` and a one-line `reason`.
+
+**You can see exactly what it received.** Every graded run writes `results/<run-id>/judge/<case>__<target>__<n>.md`, linked from the case report as "What the judge saw". It holds the verbatim system prompt and prompt, the tools it had, and how the transcript was compacted. It's written even when the judge fails, so a refusal or a strange verdict can be debugged from the real input.
 
 ### How a score is made (exists)
 
@@ -97,6 +99,7 @@ Two of these errors matter much more than the others:
 3. **Score changes don't decide regressions.** A rubric score change against the baseline is reported, but on its own it never marks a case regressed or improved.
 4. **The baseline moves deliberately.** `npm run eval:approve` plus a commit, so baseline changes show up in review.
 5. **A contract test.** `test/contract/judge.test.ts` checks that one obviously satisfied line passes and one obviously unsatisfied line fails.
+6. **The judge's input is saved.** Every graded run has a `judge/` file with exactly what the judge was sent, so any verdict can be checked against the evidence it actually had.
 
 ### What this doesn't give us
 
@@ -113,7 +116,7 @@ None of the above **measures** how often the judge is right. The contract test i
 | 3 | No standard for writing rubric lines | Vague lines produce noisy verdicts |
 | 4 | Nothing re-checks old verdicts when the judge model or prompt changes | A judge change could silently shift every score |
 | 5 | All lines weigh the same | A critical safety line ("fails closed") can be outvoted by cosmetic lines at a 0.5 threshold |
-| 6 | Very long transcripts are truncated (over 1.5M chars) | The evidence for a line may be cut off |
+| 6 | ~~Very long transcripts were cut at 1.5M chars, keeping the start and losing the end~~ | **Addressed** by compact transcripts (5.8): the end of the run is now the last thing to lose detail, and trimming is flagged |
 | 7 | ~~The judge only sees the diff, so it can't verify unchanged code~~ | **Addressed** by opt-in `workspaceAccess` (5.7), for cases that turn it on |
 
 ---
@@ -182,6 +185,8 @@ An unstable line is almost always a **wording** problem, not a judge problem: th
 
 ### 5.3 Rules for writing rubric lines
 
+Agents apply these rules through the `eval-grading` skill (`.claude/skills/eval-grading/SKILL.md`), which also covers routing checks and reviewing verdicts. **Change a rule there and here together.**
+
 Most judge errors start with the line. A good line is:
 
 | Rule | Bad | Good |
@@ -192,8 +197,11 @@ Most judge errors start with the line. A good line is:
 | **Says what fails** | "Handles declines" | "A declined, dismissed **or failed** approval denies the call" |
 | **No judgement words** | "Clean", "good", "appropriate", "recommended" | Name the concrete property you mean |
 | **Doesn't repeat a code check** | "Runs `npm run build` successfully" | Leave it to `deterministic.commands` |
+| **Can be judged without the prompt** | "Shows the payment details", "Answers the question without changing files" | "Shows client, amount, currency and beneficiary", "Changes no files" |
 
 Rule of thumb: **if two engineers could disagree about whether a line passed, the judge will too.**
+
+The last rule exists because the judge doesn't see the case's prompt (see [5.9](#59-decision-the-judge-doesnt-see-the-prompt-for-now)). A line that only makes sense next to the request ("the details", "the question", "what the user asked for") has to name what it means.
 
 ### 5.4 Lifecycle of a rubric line
 
@@ -286,6 +294,108 @@ A good habit: if a line can only pass by *trusting* the agent's final message, e
 
 ---
 
+### 5.8 Compact transcripts (exists)
+
+**The problem.** The judge used to get the raw transcript as JSON, cut at 1.5M characters. Two things were wrong with that:
+
+1. **Half of it was noise.** On two real runs, 53% of the transcript was duplicate copies and bookkeeping: the SDK stores every tool result twice (`tool_use_result`) and every tool input twice (`wire_tool_inputs`), plus ids, token usage, timestamps and rate-limit events.
+2. **The cut was at the wrong end.** Cutting at 1.5M kept the *start* and dropped the *end*, which is where the final edits, the build and the agent's own checks are: the most important evidence.
+
+Real runs were about 200K characters, so the cut hadn't happened yet. But a long run would have been graded without its ending, silently.
+
+**The fix: three layers** (`src/judge/compact-transcript.ts`). Only what the judge reads changes; `transcripts/*.json` stays complete.
+
+| Layer | What it does | Why |
+|---|---|---|
+| 1. Compact | Turns the raw events into a numbered, readable log: the agent's messages and thinking, tool calls (name + input), tool results, and injected text such as a loaded skill. Duplicates and bookkeeping are dropped. Works for both Claude Code and Codex transcripts. | Less noise for the judge, and lower cost |
+| 2. Cap each entry | Each tool result keeps its first 4,000 and last 2,000 characters, with a `[… N chars cut …]` marker. Tool calls get a larger cap (6,000 + 2,000). The agent's own text and thinking are never cut. | One huge file read or `npm install` log can't push out everything else |
+| 3. Budget fallback | If the log is still over 1,000,000 characters, the **oldest** entries are cut down to 400 + 200 characters, one by one, until it fits. | The end of the run is the last thing to lose detail |
+
+What the judge reads looks like this:
+
+```text
+[#7] tool call Read (toolu_01…)
+{"file_path":"app/src/App.tsx"}
+
+[#8] tool result (toolu_01…)
+import { … } from "@interopio/ai-web";
+…
+[… 12,345 chars cut …]
+…
+
+[#9] assistant
+Code Mode is enabled in aiWebConfig.
+```
+
+The judge's instructions explain the format and say: *don't assume what a cut part contained*. Entry numbers let its reasons point at specific evidence ("#8 shows…").
+
+**Measured on real runs:**
+
+| Run | Raw | Sent to judge | Entries shortened | Trimmed |
+|---|---|---|---|---|
+| approve-payment | 218,283 chars | 64,535 chars (−70%) | 3 | no |
+| add-code-mode | 191,494 chars | 51,229 chars (−73%) | 3 | no |
+
+**How to tell when it mattered:**
+
+- The `<transcript>` tag the judge gets says how many entries there were, how many were shortened, and whether the log was trimmed.
+- The run's `judge/` file shows the same numbers in a table at the top, followed by the full input.
+- A case with any trimmed run gets a **"judge transcript trimmed"** note in the console, and the run's report link says so. Treat verdicts on those runs with more care: the judge had less detail than usual.
+
+**What's still not covered.** A line whose only evidence sits in the *middle* of a very large tool result can still be missed: the cap keeps the start and end of each result. When that matters, turn on `workspaceAccess` (5.7) so the judge can read the file itself, or point the rubric line at evidence that is easier to see.
+
+**Tests.** `test/compact-transcript.test.ts` covers each layer on Claude and Codex shapes. `test/engine-answer.test.ts` checks that the `judge/` file is written, linked from the report and flagged when trimmed, and that it's also written when the judge fails.
+
+### 5.9 Decision: the judge doesn't see the prompt (for now)
+
+**Status:** decided 2026-11-16, to revisit once the calibration set (5.1) exists.
+
+**The question.** The judge gets the rubric, the final message, the diff and the transcript, but not the case's `input.prompt` or `input.reply`. Should it?
+
+**What it already sees.** Not nothing. The transcript contains the agent's *own rewording* of the request, for example its skill call:
+
+```text
+[#1] tool call Skill
+{"skill":"io-intelligence","args":"Can Code Mode ask the user for confirmation before submitting a payment? Set it up."}
+```
+
+The scripted reply can also appear where the agent asked a question and got it back as an answer. So the real choice is **the real request vs the agent's version of it**, not "the request vs nothing".
+
+**Why we're leaving it out: it can bias the judge.**
+
+| Bias | What happens | Example |
+|---|---|---|
+| **Grading the request instead of the rubric** | The judge asks "did it do what the user wanted?" rather than checking each line | It fails a line because the overall answer felt incomplete, or passes one because the user's need was met in some other way |
+| **Filling in gaps** | Knowing the intent, it reads vague evidence charitably | "The user wanted approval before payment and there's an approval prompt, so 'fails closed' is probably fine" |
+| **Matching words** | A final message that repeats the prompt's wording looks like it did the work | "I set up confirmation before submit_payment" is just the request restated |
+| **Excusing choices** | "Use your recommended defaults" in the reply gets read as permission for anything | It passes a guessed version number because the user said to use defaults |
+
+The first two are the dangerous ones: they create **false passes**, the error that matters most (section 2).
+
+DeepEval gives the same advice for G-Eval's `evaluation_params`: include only the inputs your criteria refer to, because extra fields add noise and can shift scores.
+
+**What we give up by leaving it out.**
+
+| Reason to include it | How we cover it instead |
+|---|---|
+| Lines that only make sense next to the request ("answers the question") | **Rule:** every line must be judgeable without the prompt (5.3) |
+| Vague lines that the request would explain ("the payment details") | Same rule: name the concrete things |
+| **Spotting misreadings:** if the agent misunderstood the request, the judge only sees the misunderstanding | **Not covered.** This is the real cost. Deterministic checks (files, flow, `mustInclude`) catch some misreadings; the rest is a known gap |
+
+**How we'll settle it: measure it, don't argue it.** Once the calibration set (5.1) exists:
+
+1. Grade the same labelled runs twice: as now, and with the prompt added.
+2. Compare agreement and **false-pass rate** between the two.
+3. If the prompt raises the false-pass rate, keep it out. If it lowers it, through misreadings caught and nothing else made worse, add it.
+
+The saved `judge/` files (5.8) make this cheap: they're the exact inputs to replay, and the only change is one added section.
+
+**If we add it later, frame it narrowly:**
+
+- Put it in its own `<request>` section, after the rubric.
+- Instruct the judge: *"This is context only. Grade each rubric line on its own evidence. Don't pass or fail a line because of how well the request was met overall."*
+- Optionally make it a per-case opt-in (like `workspaceAccess`), used only for cases where catching a misreading matters.
+
 ## 6. Summary
 
 | Question | Answer today | Answer after the plan |
@@ -297,6 +407,9 @@ A good habit: if a line can only pass by *trusting* the agent's final message, e
 | What if we change the judge? | Nothing re-checks it | Calibration must pass before the change ships |
 | Who checks surprising verdicts? | Whoever notices | A defined step before every baseline approval |
 | Can it verify code the agent didn't change? | **Yes, for cases that opt in** with `workspaceAccess` (5.7) | Same, used wherever the rubric needs it |
+| Can a long run lose its evidence? | **No longer silently**: the transcript is compacted, the end is kept, trimming is flagged (5.8) | Same |
+| Can we see what the judge saw? | **Yes**: `judge/<run>.md` per graded run, also on failure | Same; these files become calibration fixtures (5.1) |
+| Does the judge see the user's request? | **No, on purpose**: avoids bias; lines must be self-contained (5.9) | Decided by measuring false passes with and without it |
 
 **Start with 5.1.** The calibration set turns "we think the judge is right" into "the judge agrees with humans 95% of the time and wrongly passes 3% of lines that should fail". The other steps make that number better and keep it from slipping.
 

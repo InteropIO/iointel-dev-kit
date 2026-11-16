@@ -132,6 +132,8 @@ function notes(
     r.judge?.some((l) => l.reportOnly && !l.pass),
   );
   if (reportOnlyFailed) parts.push("report-only lines failed");
+  if (c.runs.some((r) => r.judgeTranscriptTrimmed))
+    parts.push("judge transcript trimmed");
   if (c.withoutSkill)
     parts.push(`without skill: pass ${pct(c.withoutSkill.passRate)}`);
   const stops = new Set(

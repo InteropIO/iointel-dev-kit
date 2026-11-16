@@ -117,6 +117,11 @@ function renderRun(
       `Full transcript: [${run.transcriptFile}](../${run.transcriptFile})`,
       "",
     );
+  if (run.judgeInputFile)
+    out.push(
+      `What the judge saw: [${run.judgeInputFile}](../${run.judgeInputFile})${run.judgeTranscriptTrimmed ? " (transcript **trimmed** to fit the judge's budget)" : ""}`,
+      "",
+    );
   return out;
 }
 

@@ -10,6 +10,7 @@ export function completedRecord(
   outcome: CheckOutcome,
   grading: Grading,
   transcriptFile: string,
+  judgeInputFile?: string,
 ): Evals.Report.RunRecord {
   const checks = grading.failedCheck
     ? [...outcome.checks, grading.failedCheck]
@@ -36,6 +37,10 @@ export function completedRecord(
         : agent.costUsd + grading.costUsd,
     flow: flowSnapshot(agent),
     transcriptFile,
+    ...(judgeInputFile ? { judgeInputFile } : {}),
+    ...(grading.request?.transcript.trimmed
+      ? { judgeTranscriptTrimmed: true as const }
+      : {}),
   };
 }
 

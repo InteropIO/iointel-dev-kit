@@ -198,6 +198,8 @@ Every run gets a fresh temp folder, seeded from the template, with the skill cop
 
 The judge sees the final message, the transcript and the **git diff** of everything the agent changed (lockfiles and the skill folder left out).
 
+**The judge's transcript is compacted** (`src/judge/compact-transcript.ts`); the saved transcript file stays complete. It's a numbered log of the agent's messages, thinking, tool calls and tool results, without the SDK's duplicate copies and bookkeeping (about 70% smaller on real runs). Each tool result is capped at its first 4,000 and last 2,000 characters, with a `[… N chars cut …]` marker. If the log is still over 1,000,000 characters, the oldest entries are cut further first, so the end of the run stays intact, and the case gets a "judge transcript trimmed" note. Every graded run saves exactly what the judge was sent to `judge/<case>__<target>__<n>.md`, also when the judge fails.
+
 **`workspaceAccess`.** The diff only shows what changed, so it can't settle lines about code the agent left alone ("leaves the server-side validation intact"), things that must appear "exactly once", or what an installed package's types declare. With `workspaceAccess: true` the judge can look those up in the workspace, which is still on disk while it grades. The diff stays the main evidence of what the agent did. Grading takes more turns, so it costs more and varies a little more between runs: turn it on only for cases whose rubric needs it. See [docs/judge-governance.md](docs/judge-governance.md).
 
 **Matchers.** Anywhere a check takes text, a plain string is a case-sensitive substring, and `/pattern/flags` is a regex. The `g` and `y` flags are ignored.
@@ -463,6 +465,9 @@ evals/results/<run-id>/            (gitignored)
 ├── summary.json                   the run at a glance (Evals.Summary.File, see below)
 ├── transcripts/
 │   └── <case>__<target>__<n>.json final message, flow, diff and raw transcript per run
+├── judge/
+│   └── <case>__<target>__<n>.md   exactly what the judge was sent for a graded run: system prompt,
+│                                  prompt (rubric, final message, diff, compact transcript), tools
 ├── flows/
 │   └── <case>.md                  every run and target side by side, odd runs and changes highlighted
 └── reports/
@@ -504,7 +509,7 @@ evals/results/<run-id>/            (gitignored)
 
 Costs are rounded to 4 decimals and scores to 3. `change` is absent when there is nothing to compare with. Runs saved before this format (no `version`) are still read when they are the comparison reference.
 
-**Start with `reports/<case>.md`** to see what happened in a case. It links each run to its transcript file for the raw events. Diffs over 20,000 characters are cut in the report; the transcript has the full diff.
+**Start with `reports/<case>.md`** to see what happened in a case. It links each run to its transcript file for the raw events, and graded runs to their `judge/` file ("What the judge saw"). Diffs over 20,000 characters are cut in the report; the transcript has the full diff.
 
 The console summary:
 
@@ -546,7 +551,7 @@ evals/
 │   │   ├── records.ts        the RunRecord for a completed, failed or skipped run
 │   │   ├── aggregate.ts      run records → one CaseReport per case and target
 │   │   ├── run-report.ts     assembles the RunReport (options echo, totals)
-│   │   ├── results-writer.ts ResultsWriter: transcripts/, summary.json, flows/, reports/
+│   │   ├── results-writer.ts ResultsWriter: transcripts/, judge/, summary.json, flows/, reports/
 │   │   ├── pool.ts           bounded-concurrency pool
 │   │   ├── defaults.ts       repeat, concurrency, thresholds, turn and time limits
 │   │   └── errors.ts         EvalSetupError
@@ -554,9 +559,9 @@ evals/
 │   ├── adapters/             claude-code.ts, claude-auth.ts, claude-guard.ts, codex.ts
 │   ├── flow/                 normalize.ts, claude-flow.ts, codex-flow.ts, compare.ts
 │   ├── checks/               matcher.ts, checks.ts, command-runner.ts
-│   ├── judge/                anthropic-judge.ts (Opus 5.5 through the Agent SDK, no tools)
+│   ├── judge/                anthropic-judge.ts (Opus 5.5 through the Agent SDK; read-only workspace tools with workspaceAccess), compact-transcript.ts, judge-error.ts
 │   ├── workspace/            workspace.ts (temp folder + git start state + diff)
-│   └── report/               summary-file.ts, baseline.ts, console.ts, flow-markdown.ts, case-markdown.ts
+│   └── report/               summary-file.ts, baseline.ts, console.ts, flow-markdown.ts, case-markdown.ts, judge-input-markdown.ts
 └── test/
     ├── engine-*.test.ts      engine behaviour through EvalEngine.run with fake adapters and judge
     ├── *-flow.test.ts        transcript → flow extraction per tool

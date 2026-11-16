@@ -1,4 +1,8 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { JudgeError } from "../src/judge/judge-error.js";
+import type { Evals } from "../src/shared/contracts.js";
 import { fakeAdapter, fakeJudge, makeEnv, runEval } from "./helpers.js";
 
 // `input` is merged over the default input; other overrides (including `output`) replace top-level fields.
@@ -121,6 +125,89 @@ describe("answer cases", () => {
     expect(report.cases.find((c) => c.caseId === "offline")!.network).toBe(
       false,
     );
+  });
+});
+
+describe("judge input file", () => {
+  const request = (trimmed: boolean): Evals.Judge.Request => ({
+    model: "judge-model",
+    system: "SYSTEM PROMPT",
+    prompt: "PROMPT with ``` fences inside",
+    tools: [],
+    transcript: {
+      rawChars: 1000,
+      sentChars: 400,
+      entries: 3,
+      entriesShortened: 1,
+      entriesTrimmed: trimmed ? 1 : 0,
+      trimmed,
+    },
+  });
+
+  it("saves exactly what the judge was sent and links it from the report", async () => {
+    const env = await makeEnv();
+    await env.writeCase(
+      answer("graded", { output: { judge: { rubric: ["Line"] } } }),
+    );
+    const inner = fakeJudge();
+    const judge: Evals.Judge.Grader = {
+      checkReady: () => undefined,
+      grade: async (input) => ({
+        ...(await inner.grade(input)),
+        request: request(true),
+      }),
+    };
+
+    const report = await runEval(
+      env.options(),
+      env.deps({
+        adapters: { fake: fakeAdapter(() => ({ finalMessage: "x" })) },
+        judge,
+      }),
+    );
+
+    const run = report.cases[0]!.runs[0]!;
+    expect(run.judgeInputFile).toBe("judge/graded__fake_m__1.md");
+    expect(run.judgeTranscriptTrimmed).toBe(true);
+    const runDir = path.join(env.resultsDir, report.runId);
+    const md = await readFile(path.join(runDir, run.judgeInputFile!), "utf8");
+    expect(md).toContain("SYSTEM PROMPT");
+    // The fence is longer than the backticks inside, so the prompt is shown whole.
+    expect(md).toContain("````text\nPROMPT with ``` fences inside\n````");
+    expect(md).toContain("**yes**: 1 older entries cut further");
+    const caseMd = await readFile(
+      path.join(runDir, "reports", "graded.md"),
+      "utf8",
+    );
+    expect(caseMd).toContain(
+      "What the judge saw: [judge/graded__fake_m__1.md](../judge/graded__fake_m__1.md)",
+    );
+  });
+
+  it("still saves it when the judge fails", async () => {
+    const env = await makeEnv();
+    await env.writeCase(
+      answer("refused", { output: { judge: { rubric: ["Line"] } } }),
+    );
+    const judge: Evals.Judge.Grader = {
+      checkReady: () => undefined,
+      grade: async () => {
+        throw new JudgeError("judge refused to grade this output", request(false));
+      },
+    };
+
+    const report = await runEval(
+      env.options(),
+      env.deps({
+        adapters: { fake: fakeAdapter(() => ({ finalMessage: "x" })) },
+        judge,
+      }),
+    );
+
+    const run = report.cases[0]!.runs[0]!;
+    expect(run.pass).toBe(false);
+    expect(run.judgeInputFile).toBe("judge/refused__fake_m__1.md");
+    expect(run.judgeTranscriptTrimmed).toBeUndefined();
   });
 });
 

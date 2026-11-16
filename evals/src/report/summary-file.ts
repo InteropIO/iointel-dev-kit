@@ -159,6 +159,7 @@ function toRun(r: Evals.Report.RunRecord): Evals.Summary.Run {
       : {}),
     files: {
       ...(r.transcriptFile ? { transcript: r.transcriptFile } : {}),
+      ...(r.judgeInputFile ? { judgeInput: r.judgeInputFile } : {}),
       ...(r.workdir ? { workdir: r.workdir } : {}),
     },
     ...(r.flow ? { flow: r.flow.steps } : {}),

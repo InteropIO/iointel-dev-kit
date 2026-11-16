@@ -57,12 +57,16 @@ export class UnitRunner {
         agent,
         outcome.diff,
       );
+      const judgeInputFile = grading.request
+        ? await this.results.writeJudgeInput(unit, grading.request)
+        : undefined;
       const record = completedRecord(
         unit,
         agent,
         outcome,
         grading,
         transcriptFile,
+        judgeInputFile,
       );
       return workspace.kept
         ? { ...record, workdir: workspace.workdir }

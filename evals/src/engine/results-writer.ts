@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { renderCaseMarkdown } from "../report/case-markdown.js";
+import { renderJudgeInput } from "../report/judge-input-markdown.js";
 import { renderFlowMarkdown } from "../report/flow-markdown.js";
 import { SUMMARY_FILE, toSummaryFile } from "../report/summary-file.js";
 import type { Evals } from "../shared/contracts.js";
@@ -10,6 +11,7 @@ import { flowSnapshot } from "./records.js";
 /**
  * Owns one run's results folder, `<resultsDir>/<runId>/`:
  *   transcripts/<case>__<target>__<n>.json   one per run, written as each run finishes
+ *   judge/<case>__<target>__<n>.md           exactly what the judge was sent, for graded runs
  *   summary.json                             the RunReport shaped for reading (Evals.Summary.File)
  *   flows/<case>.md                          flow snapshots per case, for reading and diffing
  *   reports/<case>.md                        everything per case: prompt, checks, judge, flow, final message, diff
@@ -26,6 +28,20 @@ export class ResultsWriter {
   /** Creates the folder. Called only once the run is known to be able to start. */
   public async prepare(): Promise<void> {
     await mkdir(path.join(this.runDir, "transcripts"), { recursive: true });
+    await mkdir(path.join(this.runDir, "judge"), { recursive: true });
+  }
+
+  /** Writes exactly what the judge was sent for one run, and returns its path relative to the run folder. */
+  public async writeJudgeInput(
+    unit: RunUnit,
+    request: Evals.Judge.Request,
+  ): Promise<string> {
+    const file = ResultsWriter.unitFile("judge", unit, "md");
+    await writeFile(
+      path.join(this.runDir, file),
+      renderJudgeInput(unit, request),
+    );
+    return file;
   }
 
   /** Writes one run's transcript and returns its path relative to the run folder. */
@@ -112,11 +128,15 @@ export class ResultsWriter {
   }
 
   private static transcriptFile(unit: RunUnit): string {
+    return ResultsWriter.unitFile("transcripts", unit, "json");
+  }
+
+  private static unitFile(dir: string, unit: RunUnit, ext: string): string {
     const target = unit.target.replace(/[^\w.-]+/g, "_");
     const skill = unit.withSkill ? "" : "noskill-";
     return path.posix.join(
-      "transcripts",
-      `${unit.case.id}__${target}__${skill}${unit.index + 1}.json`,
+      dir,
+      `${unit.case.id}__${target}__${skill}${unit.index + 1}.${ext}`,
     );
   }
 }

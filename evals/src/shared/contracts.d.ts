@@ -119,9 +119,37 @@ export declare namespace Evals {
       readonly reportOnly?: boolean;
     }
 
+    /** How the raw transcript was turned into what the judge reads (see src/judge/compact-transcript.ts). */
+    interface TranscriptStats {
+      /** Size of the raw transcript as JSON. */
+      readonly rawChars: number;
+      /** Size of the compact log actually sent. */
+      readonly sentChars: number;
+      readonly entries: number;
+      /** Entries cut to their start and end by the normal per-entry caps. */
+      readonly entriesShortened: number;
+      /** Entries cut further because the log was over budget (oldest first). */
+      readonly entriesTrimmed: number;
+      /** The over-budget fallback ran: the judge saw less detail than usual. */
+      readonly trimmed: boolean;
+    }
+
+    /** Exactly what was sent to the judge model, saved per run as judge/<run>.md. */
+    interface Request {
+      readonly model: string;
+      readonly system: string;
+      readonly prompt: string;
+      readonly tools: readonly string[];
+      /** Set when the judge could read the workspace (judge.workspaceAccess). */
+      readonly workdir?: string;
+      readonly transcript: TranscriptStats;
+    }
+
     interface Result {
       readonly lines: readonly Line[];
       readonly costUsd: number | null;
+      /** What the judge was sent. A grader that doesn't report it gets no judge-input file. */
+      readonly request?: Request;
     }
 
     interface Grader {
@@ -346,6 +374,10 @@ export declare namespace Evals {
       readonly flow?: Flow.Snapshot;
       /** Relative to the run's results folder. */
       readonly transcriptFile?: string;
+      /** Exactly what the judge was sent, relative to the run's results folder. Absent when not judged. */
+      readonly judgeInputFile?: string;
+      /** The judge's transcript was trimmed beyond the normal per-entry caps because it was over budget. */
+      readonly judgeTranscriptTrimmed?: true;
       /** Absolute path of the run's workspace, set only when it was kept (--keep-workdirs). */
       readonly workdir?: string;
     }
@@ -549,6 +581,8 @@ export declare namespace Evals {
       };
       readonly files: {
         readonly transcript?: string;
+        /** Exactly what the judge was sent: system prompt, prompt with the compact transcript, tools. */
+        readonly judgeInput?: string;
         /** Kept workspace (--keep-workdirs). */
         readonly workdir?: string;
       };

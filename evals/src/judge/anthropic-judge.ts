@@ -3,6 +3,8 @@ import { query, type SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 import { claudeAuthProblem, claudeEnv } from "../adapters/claude-auth.js";
 import { createWorkdirGuard } from "../adapters/claude-guard.js";
+import { compactTranscript } from "./compact-transcript.js";
+import { JudgeError } from "./judge-error.js";
 import type { Evals } from "../shared/contracts.js";
 
 /**
@@ -22,8 +24,6 @@ export class AnthropicJudge implements Evals.Judge.Grader {
   private static readonly MAX_TURNS_WITH_WORKSPACE = 20;
   // Read-only: the judge may look, never run or change anything.
   private static readonly WORKSPACE_TOOLS = ["Read", "Grep", "Glob"];
-  // Keeps a pathological transcript from exceeding the context window; the judge is told when it happens.
-  private static readonly MAX_TRANSCRIPT_CHARS = 1_500_000;
   private static readonly VERDICT_SCHEMA = z.object({
     lines: z.array(
       z.object({
@@ -41,7 +41,8 @@ export class AnthropicJudge implements Evals.Judge.Grader {
   private static readonly SYSTEM = `You grade the output of an AI coding agent against a rubric.
 Grade each rubric line independently as pass or fail, using the agent's final message, the workspace diff when given, and the transcript as evidence of what it actually did.
 A line passes only if the evidence clearly satisfies it. Do not give credit for intent, for claims the transcript or diff contradicts, or for things the rubric does not ask for.
-Give a one-line reason for every verdict, citing the evidence.`;
+Give a one-line reason for every verdict, citing the evidence.
+The transcript is a compacted log of numbered entries (#n) in the order they happened: the agent's messages and thinking, its tool calls, and their results. Long entries are shortened to their start and end with a "[… N chars cut …]" marker; don't assume what a cut part contained.`;
   private static readonly WORKSPACE_NOTE = `
 You can also read the agent's finished workspace (your working directory) with Read, Grep and Glob.
 The diff is what the agent changed; the workspace is the whole project after the run, including code it left alone and installed packages.
@@ -60,17 +61,66 @@ Look up what you need and stop; don't review the project beyond the rubric.`;
   }
 
   public async grade(input: Evals.Judge.Input): Promise<Evals.Judge.Result> {
+    const request = AnthropicJudge.buildRequest(input);
+    try {
+      const { lines, costUsd } = await this.send(input, request);
+      return { lines, costUsd, request };
+    } catch (err) {
+      throw new JudgeError((err as Error).message, request);
+    }
+  }
+
+  /** Exactly what the judge is sent for this input: saved as the run's judge-input file. */
+  public static buildRequest(input: Evals.Judge.Input): Evals.Judge.Request {
+    const workdir = input.workdir;
+    const transcript = compactTranscript(input.transcript);
+    const s = transcript.stats;
+    const attrs = [
+      `entries="${s.entries}"`,
+      ...(s.entriesShortened ? [`shortened="${s.entriesShortened}"`] : []),
+      ...(s.trimmed ? ['trimmed="true"'] : []),
+    ].join(" ");
+    const prompt = [
+      `<rubric>\n${input.rubric.map((line, i) => `${i}. ${line}`).join("\n")}\n</rubric>`,
+      `<final_message>\n${input.finalMessage || "(empty)"}\n</final_message>`,
+      ...(input.diff !== undefined
+        ? [
+            `<workspace_diff>\n${input.diff || "(no changes)"}\n</workspace_diff>`,
+          ]
+        : []),
+      `<transcript ${attrs}>\n${transcript.text}\n</transcript>`,
+      ...(workdir
+        ? [
+            "The agent's workspace is your working directory. Read files there only when a line needs it.",
+          ]
+        : []),
+      `Return one verdict per rubric line, using the line numbers above as "index".`,
+    ].join("\n\n");
+    return {
+      model: AnthropicJudge.MODEL,
+      system: workdir
+        ? AnthropicJudge.SYSTEM + AnthropicJudge.WORKSPACE_NOTE
+        : AnthropicJudge.SYSTEM,
+      prompt,
+      tools: workdir ? AnthropicJudge.WORKSPACE_TOOLS : [],
+      ...(workdir ? { workdir } : {}),
+      transcript: s,
+    };
+  }
+
+  private async send(
+    input: Evals.Judge.Input,
+    request: Evals.Judge.Request,
+  ): Promise<Omit<Evals.Judge.Result, "request">> {
     const workdir = input.workdir;
     // Keeps file lookups inside the workspace; tools other than the read-only ones aren't loaded at all.
     const guard = workdir && createWorkdirGuard(workdir, { network: false });
     const stream = query({
-      prompt: AnthropicJudge.buildPrompt(input),
+      prompt: request.prompt,
       options: {
-        model: AnthropicJudge.MODEL,
+        model: request.model,
         effort: "medium",
-        systemPrompt: workdir
-          ? AnthropicJudge.SYSTEM + AnthropicJudge.WORKSPACE_NOTE
-          : AnthropicJudge.SYSTEM,
+        systemPrompt: request.system,
         outputFormat: {
           type: "json_schema",
           schema: AnthropicJudge.VERDICT_JSON_SCHEMA,
@@ -80,7 +130,7 @@ Look up what you need and stop; don't review the project beyond the rubric.`;
           : AnthropicJudge.MAX_TURNS,
         // A pure grading call: no settings, MCP servers or saved session, and no tools beyond
         // read-only file access to the workspace when the case opted in.
-        tools: workdir ? AnthropicJudge.WORKSPACE_TOOLS : [],
+        tools: [...request.tools],
         ...(guard
           ? {
               permissionMode: "default" as const,
@@ -142,28 +192,5 @@ Look up what you need and stop; don't review the project beyond the rubric.`;
       target: "draft-7",
     });
     return rest;
-  }
-
-  private static buildPrompt(input: Evals.Judge.Input): string {
-    let transcript = JSON.stringify(input.transcript);
-    const truncated = transcript.length > AnthropicJudge.MAX_TRANSCRIPT_CHARS;
-    if (truncated)
-      transcript = transcript.slice(0, AnthropicJudge.MAX_TRANSCRIPT_CHARS);
-    return [
-      `<rubric>\n${input.rubric.map((line, i) => `${i}. ${line}`).join("\n")}\n</rubric>`,
-      `<final_message>\n${input.finalMessage || "(empty)"}\n</final_message>`,
-      ...(input.diff !== undefined
-        ? [
-            `<workspace_diff>\n${input.diff || "(no changes)"}\n</workspace_diff>`,
-          ]
-        : []),
-      `<transcript${truncated ? ' truncated="true"' : ""}>\n${transcript}\n</transcript>`,
-      ...(input.workdir
-        ? [
-            "The agent's workspace is your working directory. Read files there only when a line needs it.",
-          ]
-        : []),
-      `Return one verdict per rubric line, using the line numbers above as "index".`,
-    ].join("\n\n");
   }
 }

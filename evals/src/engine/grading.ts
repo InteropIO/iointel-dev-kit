@@ -1,6 +1,7 @@
 // The judge step of a run: grades the agent's work against the case's rubric, line by line,
 // and scores it as the share of lines that passed. Lines marked "[report-only]" are graded and
 // reported but never count towards the score or the run's pass/fail.
+import { JudgeError } from "../judge/judge-error.js";
 import type { Evals } from "../shared/contracts.js";
 import type { Grading } from "../shared/types.js";
 
@@ -57,10 +58,13 @@ export async function gradeRun(
         ? { score: counted.filter((l) => l.pass).length / counted.length }
         : {}),
       costUsd: result.costUsd,
+      ...(result.request ? { request: result.request } : {}),
     };
   } catch (err) {
     return {
       costUsd: 0,
+      // Kept on errors too, so a refusal or bad verdict can be debugged from what was sent.
+      ...(err instanceof JudgeError ? { request: err.request } : {}),
       failedCheck: {
         name: "judge",
         pass: false,

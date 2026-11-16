@@ -70,6 +70,8 @@ export interface Grading {
   readonly score?: number;
   readonly costUsd: number | null;
   readonly failedCheck?: Evals.Checks.Result;
+  /** What the judge was sent, when the grader reports it (also on judge errors). */
+  readonly request?: Evals.Judge.Request;
 }
 
 /** What a run's transcript file adds to its RunRecord, for the per-case report. */
