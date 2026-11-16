@@ -2,9 +2,7 @@
   "id": "code-mode-approve-payment",
   "note": "HUMAN_PROMPTS.md row 17, run as a task: the prompt adds an explicit go-ahead so the agent implements instead of only explaining. Template has no Code Mode yet, so this covers setup + an async approval interceptor on the acme submit_payment tool.",
   "kind": "task",
-  "targets": [
-    "claude-code/claude-sonnet-5-5"
-  ],
+  "targets": ["claude-code/claude-sonnet-5-5"],
   "maxTurns": 60,
   "timeoutMs": 900000,
   "input": {
@@ -17,20 +15,14 @@
   "output": {
     "deterministic": {
       "flow": {
-        "mustRead": [
-          "references/code-mode.md"
-        ],
-        "mustFetch": [
-          "docs-ai.interop.io"
-        ]
+        "mustRead": ["references/code-mode.md"],
+        "mustFetch": ["docs-ai.interop.io"]
       },
-      "commands": [
-        "npm install",
-        "npm run build"
-      ]
+      "commands": ["npm install", "npm run build"]
     },
     "judge": {
       "threshold": 0.5,
+      "workspaceAccess": true,
       "rubric": [
         "Enables Code Mode exactly once for this assistant, in the AI Web configuration io.Assist uses (aiWebConfig in app/src/App.tsx), not in the acme MCP server",
         "Uses the browser entry point and points the WASM location at a URL the app serves, delivered from the installed @interopio/code-mode package through a repeatable step or an exact-version URL",

@@ -50,7 +50,7 @@ export class UnitRunner {
       );
       const outcome = await runChecks(unit, agent, workspace, this.runCommand);
       const grading = outcome.checks.every((x) => x.pass)
-        ? await this.grade(unit, agent, outcome.diff)
+        ? await this.grade(unit, agent, outcome.diff, workspace.workdir)
         : UnitRunner.NOT_GRADED;
       const transcriptFile = await this.results.writeTranscript(
         unit,
@@ -72,15 +72,25 @@ export class UnitRunner {
     }
   }
 
-  /** Only cases with a rubric are graded, and only when the deterministic checks passed. */
+  /**
+   * Only cases with a rubric are graded, and only when the deterministic checks passed.
+   * Grading runs before cleanup, so a case with judge.workspaceAccess can hand the judge the live workdir.
+   */
   private async grade(
     unit: RunUnit,
     agent: Evals.Agent.RunResult,
     diff: string | undefined,
+    workdir: string,
   ): Promise<Grading> {
     const judge = judgeOf(unit.case);
     if (!judge || !this.deps.judge) return UnitRunner.NOT_GRADED;
-    return gradeRun(this.deps.judge, judge.rubric, agent, diff);
+    return gradeRun(
+      this.deps.judge,
+      judge.rubric,
+      agent,
+      diff,
+      judge.workspaceAccess ? workdir : undefined,
+    );
   }
 
   /** An adapter that throws is turned into an errored result, so the run is still recorded. */

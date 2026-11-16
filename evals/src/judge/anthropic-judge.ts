@@ -2,12 +2,15 @@ import os from "node:os";
 import { query, type SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 import { claudeAuthProblem, claudeEnv } from "../adapters/claude-auth.js";
+import { createWorkdirGuard } from "../adapters/claude-guard.js";
 import type { Evals } from "../shared/contracts.js";
 
 /**
  * Grades rubric lines with a fixed Opus 5.5 model, so scores stay comparable across runs and targets.
- * Runs through Claude Code (the Agent SDK) with no tools, so it uses the same credentials as the
- * Claude Code adapter: an API key when set, otherwise the local Claude Code login.
+ * Runs through Claude Code (the Agent SDK), so it uses the same credentials as the Claude Code
+ * adapter: an API key when set, otherwise the local Claude Code login. By default it has no tools.
+ * When the input has a workdir (the case set judge.workspaceAccess), it gets read-only file tools
+ * scoped to that folder, to verify lines the diff alone can't show.
  * Stateless, so the process shares one instance: use AnthropicJudge.getInstance().
  */
 export class AnthropicJudge implements Evals.Judge.Grader {
@@ -15,6 +18,10 @@ export class AnthropicJudge implements Evals.Judge.Grader {
   private static readonly MODEL = "claude-opus-5-5";
   // Structured output is returned through a tool call, which can take a retry.
   private static readonly MAX_TURNS = 3;
+  // With workspace access, each file lookup is a turn of its own.
+  private static readonly MAX_TURNS_WITH_WORKSPACE = 20;
+  // Read-only: the judge may look, never run or change anything.
+  private static readonly WORKSPACE_TOOLS = ["Read", "Grep", "Glob"];
   // Keeps a pathological transcript from exceeding the context window; the judge is told when it happens.
   private static readonly MAX_TRANSCRIPT_CHARS = 1_500_000;
   private static readonly VERDICT_SCHEMA = z.object({
@@ -35,6 +42,11 @@ export class AnthropicJudge implements Evals.Judge.Grader {
 Grade each rubric line independently as pass or fail, using the agent's final message, the workspace diff when given, and the transcript as evidence of what it actually did.
 A line passes only if the evidence clearly satisfies it. Do not give credit for intent, for claims the transcript or diff contradicts, or for things the rubric does not ask for.
 Give a one-line reason for every verdict, citing the evidence.`;
+  private static readonly WORKSPACE_NOTE = `
+You can also read the agent's finished workspace (your working directory) with Read, Grep and Glob.
+The diff is what the agent changed; the workspace is the whole project after the run, including code it left alone and installed packages.
+Use the files only to verify a rubric line the diff, final message and transcript can't settle, such as code that must still exist, something that must appear exactly once, or what an installed package's types declare.
+Look up what you need and stop; don't review the project beyond the rubric.`;
 
   private constructor() {}
 
@@ -48,24 +60,47 @@ Give a one-line reason for every verdict, citing the evidence.`;
   }
 
   public async grade(input: Evals.Judge.Input): Promise<Evals.Judge.Result> {
+    const workdir = input.workdir;
+    // Keeps file lookups inside the workspace; tools other than the read-only ones aren't loaded at all.
+    const guard = workdir && createWorkdirGuard(workdir, { network: false });
     const stream = query({
       prompt: AnthropicJudge.buildPrompt(input),
       options: {
         model: AnthropicJudge.MODEL,
         effort: "medium",
-        systemPrompt: AnthropicJudge.SYSTEM,
+        systemPrompt: workdir
+          ? AnthropicJudge.SYSTEM + AnthropicJudge.WORKSPACE_NOTE
+          : AnthropicJudge.SYSTEM,
         outputFormat: {
           type: "json_schema",
           schema: AnthropicJudge.VERDICT_JSON_SCHEMA,
         },
-        maxTurns: AnthropicJudge.MAX_TURNS,
-        // A pure grading call: no tools, settings, MCP servers or saved session.
-        tools: [],
+        maxTurns: workdir
+          ? AnthropicJudge.MAX_TURNS_WITH_WORKSPACE
+          : AnthropicJudge.MAX_TURNS,
+        // A pure grading call: no settings, MCP servers or saved session, and no tools beyond
+        // read-only file access to the workspace when the case opted in.
+        tools: workdir ? AnthropicJudge.WORKSPACE_TOOLS : [],
+        ...(guard
+          ? {
+              permissionMode: "default" as const,
+              canUseTool: async (
+                toolName: string,
+                toolInput: Record<string, unknown>,
+              ) =>
+                AnthropicJudge.WORKSPACE_TOOLS.includes(toolName)
+                  ? guard(toolName, toolInput)
+                  : {
+                      behavior: "deny" as const,
+                      message: "the judge may only read files",
+                    },
+            }
+          : {}),
         settingSources: [],
         mcpServers: {},
         strictMcpConfig: true,
         persistSession: false,
-        cwd: os.tmpdir(),
+        cwd: workdir ?? os.tmpdir(),
         env: claudeEnv(),
       },
     });
@@ -123,6 +158,11 @@ Give a one-line reason for every verdict, citing the evidence.`;
           ]
         : []),
       `<transcript${truncated ? ' truncated="true"' : ""}>\n${transcript}\n</transcript>`,
+      ...(input.workdir
+        ? [
+            "The agent's workspace is your working directory. Read files there only when a line needs it.",
+          ]
+        : []),
       `Return one verdict per rubric line, using the line numbers above as "index".`,
     ].join("\n\n");
   }

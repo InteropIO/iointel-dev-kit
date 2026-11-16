@@ -70,6 +70,7 @@ const judge = z
       .array(z.string().trim().min(1, "rubric items must not be empty"))
       .min(1, "judge.rubric must list at least one item"),
     threshold: share.optional(),
+    workspaceAccess: z.boolean().optional(),
   })
   .strict();
 

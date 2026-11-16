@@ -194,8 +194,11 @@ Every run gets a fresh temp folder, seeded from the template, with the skill cop
 |---|---|---|
 | `rubric` | | One expectation per item. A `[report-only]` prefix means graded and reported, but never counted |
 | `threshold` | `1` | Share of counted items a run must pass |
+| `workspaceAccess` | `false` | Also let the judge read the finished workspace (read-only: `Read`, `Grep`, `Glob`, kept inside the workspace) |
 
 The judge sees the final message, the transcript and the **git diff** of everything the agent changed (lockfiles and the skill folder left out).
+
+**`workspaceAccess`.** The diff only shows what changed, so it can't settle lines about code the agent left alone ("leaves the server-side validation intact"), things that must appear "exactly once", or what an installed package's types declare. With `workspaceAccess: true` the judge can look those up in the workspace, which is still on disk while it grades. The diff stays the main evidence of what the agent did. Grading takes more turns, so it costs more and varies a little more between runs: turn it on only for cases whose rubric needs it. See [docs/judge-governance.md](docs/judge-governance.md).
 
 **Matchers.** Anywhere a check takes text, a plain string is a case-sensitive substring, and `/pattern/flags` is a regex. The `g` and `y` flags are ignored.
 

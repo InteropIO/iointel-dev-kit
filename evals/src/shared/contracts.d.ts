@@ -104,6 +104,11 @@ export declare namespace Evals {
       readonly transcript: readonly unknown[];
       /** Workspace diff, for answer and task cases. */
       readonly diff?: string;
+      /**
+       * The run's workspace, still on disk while grading. Set only when the case opts in with
+       * judge.workspaceAccess: the judge may then read files there to verify lines the diff can't show.
+       */
+      readonly workdir?: string;
     }
 
     interface Line {
@@ -224,6 +229,12 @@ export declare namespace Evals {
       readonly rubric: readonly string[];
       /** Share of counted rubric items a run must pass, 0..1. Default 1. */
       readonly threshold?: number;
+      /**
+       * Let the judge read the finished workspace (read-only: Read, Grep, Glob) as well as the diff.
+       * For lines about unchanged or surrounding code ("left intact", "exactly once", "already enables").
+       * Costs more per grade. Default false.
+       */
+      readonly workspaceAccess?: boolean;
     }
 
     interface Common {

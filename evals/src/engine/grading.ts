@@ -35,6 +35,7 @@ export async function gradeRun(
   rubric: readonly string[],
   agent: Evals.Agent.RunResult,
   diff: string | undefined,
+  workdir?: string,
 ): Promise<Grading> {
   const parsed = rubricLines(rubric);
   try {
@@ -44,6 +45,7 @@ export async function gradeRun(
       finalMessage: agent.finalMessage,
       transcript: agent.transcript,
       ...(diff !== undefined ? { diff } : {}),
+      ...(workdir !== undefined ? { workdir } : {}),
     });
     const lines = result.lines.map((line, i) =>
       parsed[i]?.reportOnly ? { ...line, reportOnly: true } : line,

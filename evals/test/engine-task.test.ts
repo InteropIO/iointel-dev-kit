@@ -97,6 +97,45 @@ describe("task cases", () => {
     expect(judge.calls[0]!.diff).toContain("+export const tool = 1;");
     expect(judge.calls[0]!.diff).toContain('"@interopio/mcp-web"');
     expect(judge.calls[0]!.diff).not.toContain(SKILL_INSTALL);
+    expect(judge.calls[0]!.workdir).toBeUndefined();
+  });
+
+  it("gives the judge the live workspace only when the case sets judge.workspaceAccess", async () => {
+    const env = await makeEnv();
+    await env.writeLocalTemplate("react-app", { "package.json": PACKAGE_JSON });
+    await env.writeCase(
+      task("add-tool", {
+        output: {
+          deterministic: { files: ["src/tool.ts"] },
+          judge: { rubric: ["Registers the tool"], workspaceAccess: true },
+        },
+      }),
+    );
+    const inner = fakeJudge();
+    let toolFileExisted = false;
+    const judge: Evals.Judge.Grader = {
+      checkReady: () => undefined,
+      async grade(input) {
+        // Grading must happen before cleanup, so the agent's files are still there to read.
+        toolFileExisted = await access(
+          path.join(input.workdir!, "src", "tool.ts"),
+        ).then(
+          () => true,
+          () => false,
+        );
+        return inner.grade(input);
+      },
+    };
+
+    const report = await runEval(
+      env.options(),
+      env.deps({ adapters: { fake: implementTask }, judge }),
+    );
+
+    expect(report.cases[0]!.pass).toBe(true);
+    expect(inner.calls[0]!.workdir).toBeDefined();
+    expect(inner.calls[0]!.diff).toContain("+export const tool = 1;");
+    expect(toolFileExisted).toBe(true);
   });
 
   it("writes a per-case report with checks, judge verdicts, flow, final message and diff", async () => {
