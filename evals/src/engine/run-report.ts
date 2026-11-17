@@ -50,6 +50,11 @@ function totals(
     costUnknown: records.some((r) => !r.skipped && r.costUsd === null),
     costByTarget,
     runs: records.filter((r) => !r.skipped).length,
+    runsPassed: records.filter((r) => r.withSkill && !r.skipped && r.pass)
+      .length,
+    runsFailed: records.filter((r) => r.withSkill && !r.skipped && !r.pass)
+      .length,
+    runsWithoutSkill: records.filter((r) => !r.withSkill && !r.skipped).length,
     skipped: records.filter((r) => r.skipped).length,
     casesPassed: cases.filter((c) => c.pass === true).length,
     casesFailed: cases.filter((c) => c.pass === false).length,

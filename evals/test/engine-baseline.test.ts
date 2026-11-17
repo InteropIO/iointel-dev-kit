@@ -182,7 +182,12 @@ describe("comparison and approve", () => {
       kind: "answer",
       targets: ["fake/m"],
       input: { prompt: "p" },
-      output: { judge: { rubric: ["one", "two"], threshold: 0.5 } },
+      output: {
+        judge: {
+          rubric: [{ assertion: "one" }, { assertion: "two" }],
+          threshold: 0.5,
+        },
+      },
     });
     let failing = new Set(["two"]);
     const deps = env.deps({

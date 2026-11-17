@@ -1,3 +1,4 @@
+import { failedCritical } from "../engine/grading.js";
 import type { Evals } from "../shared/contracts.js";
 
 const pct = (v: number | null) =>
@@ -48,7 +49,7 @@ export function renderConsoleSummary(report: Evals.Report.RunReport): string {
 
   const { totals } = report;
   out.push(
-    `Cases: ${totals.casesPassed} passed, ${totals.casesFailed} failed · runs: ${totals.runs}, skipped: ${totals.skipped} · cost: ${usd(totals.costUsd, totals.costUnknown)}`,
+    `Cases: ${totals.casesPassed} passed, ${totals.casesFailed} failed · runs: ${totals.runsPassed} passed, ${totals.runsFailed} failed${totals.runsWithoutSkill ? `, ${totals.runsWithoutSkill} without skill` : ""}, ${totals.skipped} skipped · cost: ${usd(totals.costUsd, totals.costUnknown)}`,
   );
   const byTarget = Object.entries(totals.costByTarget).map(
     ([t, v]) => `${t} $${v.toFixed(2)}`,
@@ -128,20 +129,38 @@ function notes(
     (cmp.flowDiff.added.length || cmp.flowDiff.removed.length)
   )
     parts.push("flow changed");
-  const reportOnlyFailed = c.runs.some((r) =>
-    r.judge?.some((l) => l.reportOnly && !l.pass),
+  if (c.runs.some((r) => failedCritical(r.judge)))
+    parts.push("critical line failed");
+  const reportFailed = c.runs.some((r) =>
+    r.judge?.some((l) => l.type === "report" && !l.pass),
   );
-  if (reportOnlyFailed) parts.push("report-only lines failed");
+  if (reportFailed) parts.push("report lines failed");
   if (c.runs.some((r) => r.judgeTranscriptTrimmed))
     parts.push("judge transcript trimmed");
-  if (c.withoutSkill)
-    parts.push(`without skill: pass ${pct(c.withoutSkill.passRate)}`);
+  if (c.withoutSkill) parts.push(withoutSkillNote(c.effort, c.withoutSkill));
   const stops = new Set(
     c.runs.flatMap((r) =>
       r.stopReason && r.stopReason !== "done" ? [r.stopReason] : [],
     ),
   );
   if (stops.size) parts.push([...stops].join("/"));
+  return parts.join(", ");
+}
+
+/** "without skill: pass 0%, turns 14 vs 6, failed cmds 3 vs 0", skill-removed side first. */
+function withoutSkillNote(
+  withSkill: Evals.Report.Effort,
+  without: NonNullable<Evals.Report.CaseReport["withoutSkill"]>,
+): string {
+  const num = (v: number | null) =>
+    v === null ? "-" : String(Math.round(v * 10) / 10);
+  const parts = [`without skill: pass ${pct(without.passRate)}`];
+  const pairs: [string, number | null, number | null][] = [
+    ["turns", without.effort.turns, withSkill.turns],
+    ["failed cmds", without.effort.failedCommands, withSkill.failedCommands],
+  ];
+  for (const [label, a, b] of pairs)
+    if (a !== null || b !== null) parts.push(`${label} ${num(a)} vs ${num(b)}`);
   return parts.join(", ");
 }
 

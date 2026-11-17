@@ -26,7 +26,7 @@ const run: Evals.Report.RunRecord = {
   ],
   judge: [
     { text: "Enables Code Mode", pass: false, reason: "empty diff" },
-    { text: "Picks a version", pass: true, reason: "npm view", reportOnly: true },
+    { text: "Picks a version", pass: true, reason: "npm view", type: "report" },
   ],
   rubricScore: 0,
   stopReason: "done",
@@ -60,6 +60,7 @@ const report: Evals.Report.RunReport = {
       costUsd: 0.5660585,
       costUnknown: false,
       oddRuns: [],
+      effort: { turns: 12.345, failedCommands: 1, costUsd: 0.5660585 },
       runs: [run],
     },
   ],
@@ -87,6 +88,9 @@ const report: Evals.Report.RunReport = {
     costUnknown: false,
     costByTarget: { [run.target]: 0.5660585 },
     runs: 1,
+    runsPassed: 0,
+    runsFailed: 1,
+    runsWithoutSkill: 0,
     skipped: 0,
     casesPassed: 0,
     casesFailed: 1,
@@ -104,7 +108,7 @@ describe("summary.json", () => {
     expect(summary.totals).toEqual({
       verdict: "fail",
       cases: { passed: 0, failed: 1, skipped: 0 },
-      runs: { ran: 1, skipped: 0 },
+      runs: { ran: 1, passed: 0, failed: 1, skipped: 0 },
       cost: {
         usd: 0.5661,
         incomplete: false,
@@ -128,6 +132,7 @@ describe("summary.json", () => {
         before: { pass: 1, trigger: 1, rubric: 1 },
         flow: { added: 1, removed: 1 },
       },
+      effort: { turns: 12.3, failedCommands: 1, costUsd: 0.5661 },
       files: { report: "reports/add.md", flow: "flows/add.md" },
     });
     expect(summary.removed).toEqual([
@@ -157,7 +162,7 @@ describe("summary.json", () => {
             criterion: "Picks a version",
             pass: true,
             reason: "npm view",
-            reportOnly: true,
+            type: "report",
           },
         ],
       },

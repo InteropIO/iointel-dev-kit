@@ -22,6 +22,7 @@ cp .env.example .env          # sets EVAL_SKILL_DIR; Claude keys optional (see b
 npm run eval -- --kind trigger --repeat 1   # a quick first run
 npm run eval                                # the full suite
 npm run eval:approve                        # make the latest run the baseline, then commit baseline.json
+npm run eval:calibrate                      # check the judge against human labels (see "Judge calibration")
 ```
 
 | Key | Needed for |
@@ -106,7 +107,7 @@ Checks stop at the first failure, so a run that didn't trigger the skill, or who
 ```mermaid
 flowchart TD
     load["Load and validate all case files<br/>(any invalid file stops the run)"] --> filter["Apply --kind / --case / --target"]
-    filter --> expand["Expand: case × target × repeat<br/>(+ skill-removed runs with --baseline)"]
+    filter --> expand["Expand: case × target × repeat<br/>(+ skill-removed runs with --without-skill)"]
     expand --> preflight["Preflight: adapters exist, credentials available,<br/>judge available if any case has output.judge"]
     preflight --> pool["Run units in a pool of --concurrency (default 4)<br/>stop starting new ones at --max-cost"]
     pool --> agg["Aggregate per case × target:<br/>pass rate, trigger rate, cost, odd flows"]
@@ -144,9 +145,9 @@ Every case has the same three parts: settings at the top level, `input` (what th
     },
     "judge": {
       "rubric": [
-        "Uses an asynchronous interceptors.onToolCall to pause submit_payment until it is approved",
-        "Keeps server-side authorization and validation of submit_payment, beyond the approval prompt",
-        "Makes no file changes: the workspace diff is empty"
+        { "assertion": "Uses an asynchronous interceptors.onToolCall to pause submit_payment until it is approved" },
+        { "type": "critical", "assertion": "Keeps server-side authorization and validation of submit_payment, beyond the approval prompt" },
+        { "type": "report", "assertion": "Shows the payment details in the approval prompt" }
       ],
       "threshold": 1
     }
@@ -192,7 +193,7 @@ Every run gets a fresh temp folder, seeded from the template, with the skill cop
 
 | Field | Default | Meaning |
 |---|---|---|
-| `rubric` | | One expectation per item. A `[report-only]` prefix means graded and reported, but never counted |
+| `rubric` | | One item per expectation: `{ "assertion": "...", "type"?: "critical" \| "report" }`. See [Rubric scores](#rubric-scores) |
 | `threshold` | `1` | Share of counted items a run must pass |
 | `workspaceAccess` | `false` | Also let the judge read the finished workspace (read-only: `Read`, `Grep`, `Glob`, kept inside the workspace) |
 
@@ -245,10 +246,10 @@ A run passes when the skill triggered (or didn't) as expected. The case passes a
     },
     "judge": {
       "rubric": [
-        "Recommends @interopio/mcp-web for a browser app",
-        "Explains that io.Assist discovers the registered tools",
-        "Does not invent APIs",
-        "[report-only] Mentions the Angular variant"
+        { "assertion": "Recommends @interopio/mcp-web for a browser app" },
+        { "assertion": "Explains that io.Assist discovers the registered tools" },
+        { "assertion": "Does not invent APIs" },
+        { "type": "report", "assertion": "Mentions the Angular variant" }
       ]
     }
   }
@@ -284,8 +285,8 @@ The checks run in this order, and the run fails at the first one that fails:
     },
     "judge": {
       "rubric": [
-        "Registers the tool when the app starts",
-        "Uses the existing io.Connect client instead of creating a new one"
+        { "assertion": "Registers the tool when the app starts" },
+        { "assertion": "Uses the existing io.Connect client instead of creating a new one" }
       ]
     }
   }
@@ -416,9 +417,34 @@ flowchart LR
 The judge grades every rubric line pass or fail. Each graded run also gets a **rubric score**: the share of its lines that passed, from 0 to 1. A run that passed 3 of 4 lines scores 75%.
 
 - **Threshold:** a run passes the judge step when its score reaches `output.judge.threshold`. It defaults to `1`, meaning every rubric item must pass. Use a lower value, e.g. `0.75`, when one miss shouldn't fail the run. Small rounding is allowed, so `0.6667` accepts 2 of 3.
-- **Report-only lines:** start a line with `[report-only]` to have it graded and reported without counting towards the score or pass/fail. Use it for lines you're still tuning. The judge sees the line without the marker. A case with a failed report-only line gets a "report-only lines failed" note.
+- **Line types:** each rubric item is `{ "assertion": "...", "type"?: ... }`. The judge only ever sees the assertion, so every type is graded the same way; the type decides how the verdict counts:
+
+  | `type` | Counted in the score | Failing it |
+  |---|---|---|
+  | *(none)* | yes | lowers the score; the run fails only if the score drops below the threshold |
+  | `"critical"` | yes | **fails the run whatever the score**. For lines that must never be averaged away, like "fails closed" |
+  | `"report"` | no | never affects the run. For lines you're still tuning; a case with a failed one gets a "report lines failed" note |
+
+  A run that fails a critical line gets a "critical line failed" note, which explains a failure when the score alone looks fine. Reports mark the lines `[critical]` and `[report]`.
 - **Per case:** the console's `rubric` column shows the mean score over the graded runs and how many were graded, e.g. `83% (3)`. Runs that failed a deterministic check never reach the judge, so they don't count. `-` means no run was graded.
 - **Compared with the baseline:** score changes are listed with the other comparison changes ("rubric 50% → 100%"), but on their own they never mark a case regressed or improved.
+
+### Judge calibration
+
+The rubric score is only as good as the judge. **Calibration** measures it: a person labels every rubric line of a few finished runs pass or fail, without looking at the judge's verdict, and `npm run eval:calibrate` counts where they disagree. It reports agreement, the **false-pass rate** (the judge passed what a person failed) and the false-fail rate against targets, plus the worst lines.
+
+```
+evals/calibration/<case>__<target>__<run>__<run-id>/   (committed)
+├── evidence.json   what the judge grades, frozen from the run
+├── evidence.md     the same as the judge reads it, to label from (generated)
+├── labels.json     your verdict per line: pass true/false, and the evidence
+├── verdicts.json   the judge's verdicts from the run (left out of seeded items)
+└── workspace/      the run's files minus node_modules, for workspaceAccess cases
+```
+
+The labels never reach the judge. They test it, so we know which lines it can grade alone. Without `--replay` the comparison uses the verdicts recorded in the run and costs nothing. With `--replay N` the current judge grades each item N times, which tests a judge change and finds lines that flip. The full report goes to `results/calibration-<time>.md`.
+
+The whole process, from seeding near-misses to deciding what to do with each disagreement, is in [docs/judge-governance.md §5.1](docs/judge-governance.md).
 
 ---
 
@@ -432,7 +458,7 @@ The judge grades every rubric line pass or fail. Each graded run also gets a **r
 
 - If every run of a case was skipped by the cost cap, the case shows as `SKIPPED`, not failed.
 - A judge error (refusal, API failure or unparseable verdict) fails that run but keeps the agent's transcript and cost.
-- The process exits **0** whenever the run completed, whatever the results; reporting is all it does for now. It exits **1** only when a run can't start: invalid cases, missing credentials, or a bad flag.
+- The process exits **0** whenever the run completed, whatever the results; reporting is all it does for now. It exits **1** only when a run can't start: invalid cases, missing credentials, or a bad flag. `eval:calibrate` is the exception: it exits **1** when the judge misses a calibration target.
 
 ---
 
@@ -446,17 +472,22 @@ npm run eval -- [options]
   --repeat N                   runs per case (default 3; a case's own repeat wins)
   --concurrency N              runs at once (default 4)
   --max-cost USD               stop starting new runs once this much has been spent
-  --baseline                   also run every case WITHOUT the skill, to show what it adds
+  --without-skill              also run every case WITHOUT the skill, to show what it adds
   --keep-workdirs              keep temp workspaces for debugging
 
 npm run eval:approve -- [--run ID]   promote the latest (or given) run to baseline.json
+npm run eval:calibrate -- add --case ID [--run ID] [--target ID] [--number N]
+                                     freeze a run's graded runs as calibration items to label
+npm run eval:calibrate -- [--item TEXT] [--replay N]
+                                     compare the judge with the labels; --replay re-grades with
+                                     the current judge N times (costs judge calls); exits 1 below target
 npm test                             engine tests (no network, no keys, no cost)
 npm run test:contract                real adapters and judge (needs credentials; costs money or subscription usage)
 npm run typecheck                    tsc, plus a separate check of shared/contracts.d.ts
 npm run format                       prettier
 ```
 
-**`--baseline`** reruns every unit with the skill removed and reports the difference next to each case ("without skill: pass 20%"). It answers "does the skill actually help, or did the model already know this?". Runs without the skill never affect pass or fail.
+**`--without-skill`** reruns every unit with the skill removed and reports the difference next to each case ("without skill: pass 20%"). It answers "does the skill actually help, or did the model already know this?". Runs without the skill never affect pass or fail.
 
 ### What a run writes
 
@@ -481,7 +512,7 @@ evals/results/<run-id>/            (gitignored)
 {
   "version": 2,
   "run":    { "id", "startedAt", "finishedAt", "durationSec", "options", "comparedTo", "resultsPath" },
-  "totals": { "verdict": "fail", "cases": { "passed", "failed", "skipped" }, "runs": { "ran", "skipped" },
+  "totals": { "verdict": "fail", "cases": { "passed", "failed", "skipped" }, "runs": { "ran", "passed", "failed", "withoutSkill", "skipped" },
               "cost": { "usd", "incomplete", "byTarget" } },
   "cases": [{
     "id", "kind", "target", "verdict": "pass" | "fail" | "skipped",
@@ -497,17 +528,17 @@ evals/results/<run-id>/            (gitignored)
       "run": 1, "verdict", "stopReason", "turns", "costUsd",
       "trigger": { "triggered", "via" },
       "checks": { "passed", "failed", "results": [{ "name", "pass", "detail" }] },
-      "judge":  { "score", "results": [{ "criterion", "pass", "reason", "reportOnly" }] },
+      "judge":  { "score", "results": [{ "criterion", "pass", "reason", "type" }] },   // type only for critical and report lines
       "files":  { "transcript", "workdir" },
       "flow":   [ /* steps, always last */ ]
     }],
-    "withoutSkill": { "ran", "scores": { "pass", "trigger" }, "runs": [] }   // --baseline only
+    "withoutSkill": { "ran", "scores": { "pass", "trigger" }, "runs": [] }   // --without-skill only
   }],
   "removed": [{ "id", "target", "before": { "pass", "trigger", "rubric" } }]   // in the reference, not in this run
 }
 ```
 
-Costs are rounded to 4 decimals and scores to 3. `change` is absent when there is nothing to compare with. Runs saved before this format (no `version`) are still read when they are the comparison reference.
+**`totals.cases` counts cases and `totals.runs` counts runs.** A case repeated 3 times with 2 passing runs shows as 1 failed case (task and answer cases need every run to pass) and as `runs: { ran: 3, passed: 2, failed: 1 }`. `passed` and `failed` count the with-skill runs. With `--without-skill`, the skill-removed runs are counted in `withoutSkill`, so `ran = passed + failed + withoutSkill`. Costs are rounded to 4 decimals and scores to 3. `change` is absent when there is nothing to compare with. Runs saved before this format (no `version`) are still read when they are the comparison reference.
 
 **Start with `reports/<case>.md`** to see what happened in a case. It links each run to its transcript file for the raw events, and graded runs to their `judge/` file ("What the judge saw"). Diffs over 20,000 characters are cut in the report; the transcript has the full diff.
 
@@ -519,7 +550,7 @@ mcp-web-tool-trigger      claude-code/claude-sonnet-5-5  trigger  PASS    100% (
 mcp-web-tool-trigger      codex/gpt-5.5                  trigger  FAIL    33% (3)   33%      -         $0.15  odd flow, regressed
 mcp-web-for-browser-apps  claude-code/claude-sonnet-5-5  answer   FAIL    67% (3)   100%     89% (3)   $0.62
 
-Cases: 1 passed, 2 failed · runs: 9, skipped: 0 · cost: $0.98
+Cases: 1 passed, 2 failed · runs: 6 passed, 3 failed, 0 skipped · cost: $0.98
 Comparison against committed baseline (2026-11-02T10-00-00-000Z):
   REGRESSED mcp-web-tool-trigger [codex/gpt-5.5] pass 100% → 33%, trigger 100% → 33%
 Odd flows among repeats (see flows/<case>.md):
@@ -535,6 +566,7 @@ evals/
 ├── cases/                    your JSON cases
 ├── templates/                local starting projects (input.template.local)
 ├── baseline.json             approved reference (committed, once you approve a run)
+├── calibration/              judge calibration items: frozen runs with human labels (committed)
 ├── src/
 │   ├── cli.ts                argument parsing, wires real adapters/judge/workspace into an EvalEngine
 │   ├── shared/
@@ -561,6 +593,7 @@ evals/
 │   ├── checks/               matcher.ts, checks.ts, command-runner.ts
 │   ├── judge/                anthropic-judge.ts (Opus 5.5 through the Agent SDK; read-only workspace tools with workspaceAccess), compact-transcript.ts, judge-error.ts
 │   ├── workspace/            workspace.ts (temp folder + git start state + diff)
+│   ├── calibration/          store.ts, add-items.ts (freeze runs), calibrate.ts (recorded or replayed), score.ts, evidence-markdown.ts, calibration-report.ts
 │   └── report/               summary-file.ts, baseline.ts, console.ts, flow-markdown.ts, case-markdown.ts, judge-input-markdown.ts
 └── test/
     ├── engine-*.test.ts      engine behaviour through EvalEngine.run with fake adapters and judge

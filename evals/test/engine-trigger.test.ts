@@ -109,6 +109,15 @@ describe("trigger cases", () => {
     expect(adapter.calls).toHaveLength(6);
     for (const c of report.cases)
       expect(c).toMatchObject({ ran: 3, pass: true, triggerRate: 2 / 3 });
+    // Cases pass at 2 of 3, but the run totals still show the one failed run per case.
+    expect(report.totals).toMatchObject({
+      runs: 6,
+      runsPassed: 4,
+      runsFailed: 2,
+      runsWithoutSkill: 0,
+      casesPassed: 2,
+      casesFailed: 0,
+    });
   });
 
   it("fails below the threshold, and a per-case threshold and repeat override the defaults", async () => {

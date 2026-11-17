@@ -5,6 +5,7 @@
   "scripts": {
     "eval": "tsx src/cli.ts run",
     "eval:approve": "tsx src/cli.ts approve",
+    "eval:calibrate": "tsx src/cli.ts calibrate",
     "test": "vitest run",
     "test:contract": "vitest run --config vitest.contract.config.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.contracts.json",

@@ -9,7 +9,7 @@ import {
   SKILL_INSTALL,
 } from "./helpers.js";
 
-describe("--baseline (skill removed)", () => {
+describe("--without-skill (skill removed)", () => {
   it("adds a skill-removed run per unit, without the skill installed, and reports it apart", async () => {
     const env = await makeEnv();
     await env.writeCase({
@@ -47,6 +47,55 @@ describe("--baseline (skill removed)", () => {
       triggerRate: 0,
     });
     expect(c.withoutSkill!.runs.every((r) => !r.withSkill)).toBe(true);
+    // Skill-removed runs are counted apart, so passed + failed + withoutSkill = ran.
+    expect(report.totals).toMatchObject({
+      runs: 4,
+      runsPassed: 2,
+      runsFailed: 0,
+      runsWithoutSkill: 2,
+    });
+  });
+
+  it("reports mean turns, failed agent commands and cost on both sides", async () => {
+    const env = await makeEnv();
+    await env.writeCase({
+      id: "effort",
+      kind: "answer",
+      targets: ["fake/m"],
+      input: { prompt: "p" },
+      output: {},
+    });
+    const adapter = fakeAdapter(async (input, n) => {
+      const installed = await access(
+        path.join(input.workdir, SKILL_INSTALL),
+      ).then(
+        () => true,
+        () => false,
+      );
+      if (installed) return { turns: 2, costUsd: 0.1 };
+      return {
+        skillTriggered: false,
+        turns: 8 + n,
+        costUsd: 0.4,
+        flow: [
+          { kind: "command", command: "npm i x", exitCode: 1 },
+          { kind: "command", command: "npm i y", exitCode: 0 },
+          { kind: "command", command: "slow", exitCode: null },
+        ],
+      };
+    });
+
+    const report = await runEval(
+      env.options({ repeat: 2, withoutSkill: true }),
+      env.deps({ adapters: { fake: adapter } }),
+    );
+
+    const c = report.cases[0]!;
+    expect(c.effort).toEqual({ turns: 2, failedCommands: 0, costUsd: 0.1 });
+    expect(c.withoutSkill!.effort.failedCommands).toBe(1);
+    expect(c.withoutSkill!.effort.costUsd).toBeCloseTo(0.4);
+    // Repeats are interleaved with and without the skill, so only the mean range is fixed.
+    expect(c.withoutSkill!.effort.turns).toBeGreaterThan(8);
   });
 
   it("ignores the trigger expectation for skill-removed runs", async () => {
@@ -154,7 +203,7 @@ describe("cost cap, concurrency and cost reporting", () => {
       kind: "answer",
       targets: ["fake/m", "nocost/m"],
       input: { prompt: "p" },
-      output: { judge: { rubric: ["line"] } },
+      output: { judge: { rubric: [{ assertion: "line" }] } },
     });
     const fake = fakeAdapter(() => ({ costUsd: 0.25 }));
     const nocost = fakeAdapter(() => ({ costUsd: null }), "nocost");

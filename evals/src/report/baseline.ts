@@ -155,7 +155,7 @@ export function isFiltered(options: Evals.Engine.Filters): boolean {
   return !!(options.kind || options.caseId || options.target);
 }
 
-async function listRunIds(resultsDir: string): Promise<string[]> {
+export async function listRunIds(resultsDir: string): Promise<string[]> {
   const entries = await readdir(resultsDir, { withFileTypes: true }).catch(
     () => [],
   );

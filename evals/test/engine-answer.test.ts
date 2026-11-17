@@ -147,7 +147,9 @@ describe("judge input file", () => {
   it("saves exactly what the judge was sent and links it from the report", async () => {
     const env = await makeEnv();
     await env.writeCase(
-      answer("graded", { output: { judge: { rubric: ["Line"] } } }),
+      answer("graded", {
+        output: { judge: { rubric: [{ assertion: "Line" }] } },
+      }),
     );
     const inner = fakeJudge();
     const judge: Evals.Judge.Grader = {
@@ -187,12 +189,17 @@ describe("judge input file", () => {
   it("still saves it when the judge fails", async () => {
     const env = await makeEnv();
     await env.writeCase(
-      answer("refused", { output: { judge: { rubric: ["Line"] } } }),
+      answer("refused", {
+        output: { judge: { rubric: [{ assertion: "Line" }] } },
+      }),
     );
     const judge: Evals.Judge.Grader = {
       checkReady: () => undefined,
       grade: async () => {
-        throw new JudgeError("judge refused to grade this output", request(false));
+        throw new JudgeError(
+          "judge refused to grade this output",
+          request(false),
+        );
       },
     };
 
@@ -217,7 +224,12 @@ describe("judge", () => {
     await env.writeCase(
       answer("graded", {
         output: {
-          judge: { rubric: ["Recommends mcp-web", "Explains discovery"] },
+          judge: {
+            rubric: [
+              { assertion: "Recommends mcp-web" },
+              { assertion: "Explains discovery" },
+            ],
+          },
         },
       }),
     );
@@ -253,7 +265,7 @@ describe("judge", () => {
       answer("cheap-fail", {
         output: {
           deterministic: { mustInclude: ["mcp-web"] },
-          judge: { rubric: ["anything"] },
+          judge: { rubric: [{ assertion: "anything" }] },
         },
       }),
     );
@@ -272,7 +284,16 @@ describe("judge", () => {
     const env = await makeEnv();
     await env.writeCase(
       answer("scored", {
-        output: { judge: { rubric: ["one", "two", "three", "four"] } },
+        output: {
+          judge: {
+            rubric: [
+              { assertion: "one" },
+              { assertion: "two" },
+              { assertion: "three" },
+              { assertion: "four" },
+            ],
+          },
+        },
       }),
     );
     // Run 1 misses "four", run 2 misses "three" and "four".
@@ -298,7 +319,14 @@ describe("judge", () => {
     await env.writeCase(
       answer("lenient", {
         output: {
-          judge: { rubric: ["one", "two", "three"], threshold: 0.6667 },
+          judge: {
+            rubric: [
+              { assertion: "one" },
+              { assertion: "two" },
+              { assertion: "three" },
+            ],
+            threshold: 0.6667,
+          },
         },
       }),
     );
@@ -313,13 +341,60 @@ describe("judge", () => {
     expect(report.cases[0]!.pass).toBe(true);
   });
 
-  it("grades report-only lines without counting them", async () => {
+  it("fails a run that fails a critical line, even when the score meets the threshold", async () => {
+    const env = await makeEnv();
+    await env.writeCase(
+      answer("critical", {
+        output: {
+          judge: {
+            rubric: [
+              { type: "critical", assertion: "Fails closed" },
+              { assertion: "two" },
+              { assertion: "three" },
+            ],
+            threshold: 0.5,
+          },
+        },
+      }),
+    );
+    const judge = fakeJudge((line) => line === "Fails closed");
+
+    const report = await runEval(
+      env.options(),
+      env.deps({ adapters: { fake: fakeAdapter() }, judge }),
+    );
+
+    const run = report.cases[0]!.runs[0]!;
+    expect(judge.calls[0]!.rubric).toEqual(["Fails closed", "two", "three"]);
+    expect(run.rubricScore).toBeCloseTo(2 / 3);
+    expect(run.judge![0]).toMatchObject({ type: "critical", pass: false });
+    expect(run.pass).toBe(false);
+  });
+
+  it("rejects a rubric item written as a plain string, naming the object shape", async () => {
+    const env = await makeEnv();
+    await env.writeCase(
+      answer("old-shape", { output: { judge: { rubric: ["a line"] } } }),
+    );
+
+    await expect(
+      runEval(
+        env.options(),
+        env.deps({ adapters: { fake: fakeAdapter() }, judge: fakeJudge() }),
+      ),
+    ).rejects.toThrow(/rubric items are objects/);
+  });
+
+  it('grades "report" lines without counting them', async () => {
     const env = await makeEnv();
     await env.writeCase(
       answer("tuning", {
         output: {
           judge: {
-            rubric: ["Recommends mcp-web", "[report-only] Mentions Angular"],
+            rubric: [
+              { assertion: "Recommends mcp-web" },
+              { type: "report", assertion: "Mentions Angular" },
+            ],
           },
         },
       }),
@@ -342,18 +417,20 @@ describe("judge", () => {
         text: "Mentions Angular",
         pass: false,
         reason: "missed",
-        reportOnly: true,
+        type: "report",
       },
     ]);
     expect(run.rubricScore).toBe(1);
     expect(report.cases[0]!.pass).toBe(true);
   });
 
-  it("has no score when every line is report-only", async () => {
+  it('has no score when every line is "report"', async () => {
     const env = await makeEnv();
     await env.writeCase(
       answer("all-info", {
-        output: { judge: { rubric: ["[report-only] anything"] } },
+        output: {
+          judge: { rubric: [{ type: "report", assertion: "anything" }] },
+        },
       }),
     );
 
@@ -374,7 +451,7 @@ describe("judge", () => {
     const env = await makeEnv();
     await env.writeCase(
       answer("bad-threshold", {
-        output: { judge: { rubric: ["x"], threshold: 1.5 } },
+        output: { judge: { rubric: [{ assertion: "x" }], threshold: 1.5 } },
       }),
     );
 
@@ -389,7 +466,9 @@ describe("judge", () => {
   it("must be configured when a case has a rubric", async () => {
     const env = await makeEnv();
     await env.writeCase(
-      answer("needs-judge", { output: { judge: { rubric: ["x"] } } }),
+      answer("needs-judge", {
+        output: { judge: { rubric: [{ assertion: "x" }] } },
+      }),
     );
 
     await expect(

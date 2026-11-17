@@ -18,7 +18,7 @@ describe("run outcome", () => {
       kind: "answer",
       targets: ["fake/m"],
       input: { prompt: "p" },
-      output: { judge: { rubric: ["x"] } },
+      output: { judge: { rubric: [{ assertion: "x" }] } },
     });
     const judge: Evals.Judge.Grader = {
       checkReady: () => undefined,
@@ -52,7 +52,7 @@ describe("run outcome", () => {
       kind: "answer",
       targets: ["fake/m"],
       input: { prompt: "p" },
-      output: { judge: { rubric: ["x"] } },
+      output: { judge: { rubric: [{ assertion: "x" }] } },
     });
     await env.writeCase({
       id: "slow",

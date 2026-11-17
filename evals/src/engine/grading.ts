@@ -1,16 +1,19 @@
 // The judge step of a run: grades the agent's work against the case's rubric, line by line,
-// and scores it as the share of lines that passed. Lines marked "[report-only]" are graded and
-// reported but never count towards the score or the run's pass/fail.
+// and scores it as the share of counted lines that passed. Each rubric item has an optional type:
+//   (none)     a standard line: counted in the score
+//   "critical" counted in the score, and failing it fails the run whatever the score
+//   "report"   graded and reported, but never counted and never fails the run
 import { JudgeError } from "../judge/judge-error.js";
 import type { Evals } from "../shared/contracts.js";
 import type { Grading } from "../shared/types.js";
 
 /** The case's judge checks, or undefined when it has none (trigger cases never do). */
-export function judgeOf(c: Evals.Cases.Case): Evals.Cases.JudgeChecks | undefined {
+export function judgeOf(
+  c: Evals.Cases.Case,
+): Evals.Cases.JudgeChecks | undefined {
   return c.kind === "trigger" ? undefined : c.output.judge;
 }
 
-const REPORT_ONLY = /^\[report-only\]\s*/i;
 // Floating-point slack, so 2/3 meets a threshold written as 0.6667 the way people expect.
 const EPSILON = 1e-4;
 
@@ -19,12 +22,23 @@ export function rubricThresholdOf(c: Evals.Cases.Case): number {
   return judgeOf(c)?.threshold ?? 1;
 }
 
-/** Whether a graded run meets the case's rubric threshold. Ungraded runs and report-only rubrics pass. */
+/**
+ * Whether a graded run meets the case's rubric: its score reaches the threshold and no critical
+ * line failed. Ungraded runs and rubrics of only "report" lines pass.
+ */
 export function meetsRubric(c: Evals.Cases.Case, grading: Grading): boolean {
   return (
-    grading.score === undefined ||
-    grading.score >= rubricThresholdOf(c) - EPSILON
+    !failedCritical(grading.lines) &&
+    (grading.score === undefined ||
+      grading.score >= rubricThresholdOf(c) - EPSILON)
   );
+}
+
+/** Whether any critical line failed. */
+export function failedCritical(
+  lines: readonly Evals.Judge.Line[] | undefined,
+): boolean {
+  return !!lines?.some((l) => l.type === "critical" && !l.pass);
 }
 
 /**
@@ -33,25 +47,25 @@ export function meetsRubric(c: Evals.Cases.Case, grading: Grading): boolean {
  */
 export async function gradeRun(
   judge: Evals.Judge.Grader,
-  rubric: readonly string[],
+  rubric: readonly Evals.Cases.RubricItem[],
   agent: Evals.Agent.RunResult,
   diff: string | undefined,
   workdir?: string,
 ): Promise<Grading> {
-  const parsed = rubricLines(rubric);
   try {
-    // The judge sees the lines without their markers, so report-only lines are graded the same way.
+    // The judge sees only the assertions, never the types, so every line is graded the same way.
     const result = await judge.grade({
-      rubric: parsed.map((l) => l.text),
+      rubric: rubric.map((item) => item.assertion),
       finalMessage: agent.finalMessage,
       transcript: agent.transcript,
       ...(diff !== undefined ? { diff } : {}),
       ...(workdir !== undefined ? { workdir } : {}),
     });
-    const lines = result.lines.map((line, i) =>
-      parsed[i]?.reportOnly ? { ...line, reportOnly: true } : line,
-    );
-    const counted = lines.filter((l) => !l.reportOnly);
+    const lines = result.lines.map((line, i) => {
+      const type = rubric[i]?.type;
+      return type ? { ...line, type } : line;
+    });
+    const counted = lines.filter((l) => l.type !== "report");
     return {
       lines,
       ...(counted.length
@@ -72,17 +86,4 @@ export async function gradeRun(
       },
     };
   }
-}
-
-/** One line per rubric item, with "[report-only]" removed. */
-function rubricLines(
-  rubric: readonly string[],
-): { text: string; reportOnly: boolean }[] {
-  return rubric
-    .map((l) => l.trim())
-    .map((l) => ({
-      text: l.replace(REPORT_ONLY, "").trim(),
-      reportOnly: REPORT_ONLY.test(l),
-    }))
-    .filter((l) => l.text);
 }

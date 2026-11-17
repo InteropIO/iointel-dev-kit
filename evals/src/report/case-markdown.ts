@@ -70,7 +70,7 @@ function renderRun(
     out.push(`**Judge** (rubric score ${pct(run.rubricScore)})`, "");
     for (const line of run.judge)
       out.push(
-        `- ${mark(line.pass)} ${line.reportOnly ? "_[report-only]_ " : ""}${line.text}`,
+        `- ${mark(line.pass)} ${line.type === "critical" ? "**[critical]** " : line.type === "report" ? "_[report]_ " : ""}${line.text}`,
         `  - ${inline(line.reason)}`,
       );
     out.push("");

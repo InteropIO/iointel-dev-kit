@@ -60,6 +60,7 @@ function caseReport(
     costUsd: records.reduce((sum, r) => sum + (r.costUsd ?? 0), 0),
     costUnknown: records.some((r) => !r.skipped && r.costUsd === null),
     oddRuns: odd.map((i) => ran[i]!.index),
+    effort: effortOf(ran),
     runs: withSkill,
     ...(options.withoutSkill
       ? { withoutSkill: withoutSkillSummary(records) }
@@ -67,7 +68,7 @@ function caseReport(
   };
 }
 
-/** The --baseline side: the same case with the skill removed, to show what the skill adds. */
+/** The --without-skill side: the same case with the skill removed, to show what the skill adds. */
 function withoutSkillSummary(records: RunRecord[]) {
   const without = records.filter((r) => !r.withSkill);
   const ran = without.filter((r) => !r.skipped);
@@ -75,18 +76,46 @@ function withoutSkillSummary(records: RunRecord[]) {
     ran: ran.length,
     passRate: rate(ran, (r) => r.pass),
     triggerRate: rate(ran, (r) => r.triggered),
+    effort: effortOf(ran),
     runs: without,
   };
 }
 
+/** Mean effort per run over the runs that ran; each field only over the runs that reported it. */
+function effortOf(ran: RunRecord[]): Evals.Report.Effort {
+  return {
+    turns: mean(ran.flatMap((r) => (r.flow ? [r.flow.turns] : []))),
+    failedCommands: mean(
+      ran.flatMap((r) =>
+        r.flow
+          ? [
+              r.flow.steps.filter(
+                (s) =>
+                  s.kind === "command" &&
+                  s.exitCode !== null &&
+                  s.exitCode !== 0,
+              ).length,
+            ]
+          : [],
+      ),
+    ),
+    costUsd: mean(ran.flatMap((r) => (r.costUsd === null ? [] : [r.costUsd]))),
+  };
+}
+
+function mean(values: number[]): number | null {
+  return values.length
+    ? values.reduce((sum, v) => sum + v, 0) / values.length
+    : null;
+}
+
 /** Mean rubric score of the runs the judge graded, or null when it graded none. */
 function meanRubricScore(records: RunRecord[]): number | null {
-  const scores = records.flatMap((r) =>
-    r.rubricScore === undefined ? [] : [r.rubricScore],
+  return mean(
+    records.flatMap((r) =>
+      r.rubricScore === undefined ? [] : [r.rubricScore],
+    ),
   );
-  return scores.length
-    ? scores.reduce((sum, s) => sum + s, 0) / scores.length
-    : null;
 }
 
 /** Share of records matching the predicate, or null when there are none. */

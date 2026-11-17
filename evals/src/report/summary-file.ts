@@ -36,7 +36,15 @@ export function toSummaryFile(report: RunReport): Summary {
         failed: totals.casesFailed,
         skipped: report.cases.length - totals.casesPassed - totals.casesFailed,
       },
-      runs: { ran: totals.runs, skipped: totals.skipped },
+      runs: {
+        ran: totals.runs,
+        passed: totals.runsPassed,
+        failed: totals.runsFailed,
+        ...(totals.runsWithoutSkill
+          ? { withoutSkill: totals.runsWithoutSkill }
+          : {}),
+        skipped: totals.skipped,
+      },
       cost: {
         usd: usd(totals.costUsd),
         incomplete: totals.costUnknown,
@@ -105,6 +113,7 @@ function toCase(
         }
       : {}),
     oddRuns: c.oddRuns.map((i) => i + 1),
+    effort: roundEffort(c.effort),
     files: {
       report: `reports/${c.caseId}.md`,
       flow: `flows/${c.caseId}.md`,
@@ -118,6 +127,7 @@ function toCase(
               pass: share(c.withoutSkill.passRate),
               trigger: share(c.withoutSkill.triggerRate),
             },
+            effort: roundEffort(c.withoutSkill.effort),
             runs: c.withoutSkill.runs.map(toRun),
           },
         }
@@ -152,7 +162,7 @@ function toRun(r: Evals.Report.RunRecord): Evals.Summary.Run {
               criterion: l.text,
               pass: l.pass,
               reason: l.reason,
-              ...(l.reportOnly ? { reportOnly: true as const } : {}),
+              ...(l.type ? { type: l.type } : {}),
             })),
           },
         }
@@ -217,3 +227,10 @@ const key = (caseId: string, target: string) => `${caseId}|${target}`;
 const usd = (n: number) => Math.round(n * 10_000) / 10_000;
 const share = (n: number | null) =>
   n === null ? null : Math.round(n * 1000) / 1000;
+const tenth = (n: number | null) =>
+  n === null ? null : Math.round(n * 10) / 10;
+const roundEffort = (e: Evals.Report.Effort): Evals.Report.Effort => ({
+  turns: tenth(e.turns),
+  failedCommands: tenth(e.failedCommands),
+  costUsd: e.costUsd === null ? null : usd(e.costUsd),
+});

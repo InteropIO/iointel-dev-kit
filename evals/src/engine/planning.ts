@@ -1,5 +1,5 @@
 // Step 1 of a run: decide what to run. Loads the cases, applies the filters, and expands every
-// case into one unit per target, per repeat (and per skill-removed repeat with --baseline).
+// case into one unit per target, per repeat (and per skill-removed repeat with --without-skill).
 import { loadCases } from "../cases/loader.js";
 import type { Evals } from "../shared/contracts.js";
 import type { ParsedTarget, RunUnit } from "../shared/types.js";

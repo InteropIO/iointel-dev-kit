@@ -115,8 +115,8 @@ export declare namespace Evals {
       readonly text: string;
       readonly pass: boolean;
       readonly reason: string;
-      /** Marked "[report-only]" in the rubric: graded and reported, but never affects pass/fail or the score. */
-      readonly reportOnly?: boolean;
+      /** The rubric item's type; absent for a standard line (see Cases.RubricType). */
+      readonly type?: Cases.RubricType;
     }
 
     /** How the raw transcript was turned into what the judge reads (see src/judge/compact-transcript.ts). */
@@ -251,10 +251,23 @@ export declare namespace Evals {
       readonly commands: readonly string[];
     }
 
+    /**
+     * How a rubric line counts. Absent: a standard line, counted in the score.
+     * "critical": counted in the score, and failing it fails the run whatever the score.
+     * "report": graded and reported, never counted and never fails the run.
+     */
+    type RubricType = "critical" | "report";
+
+    interface RubricItem {
+      readonly type?: RubricType;
+      /** The claim the judge grades pass or fail. It's all the judge sees of the item. */
+      readonly assertion: string;
+    }
+
     /** Checks graded by the judge model: the final message for answer cases, plus the diff for task cases. */
     interface JudgeChecks {
-      /** One expectation per item. A "[report-only]" prefix means graded and reported, never counted. */
-      readonly rubric: readonly string[];
+      /** One expectation per item. */
+      readonly rubric: readonly RubricItem[];
       /** Share of counted rubric items a run must pass, 0..1. Default 1. */
       readonly threshold?: number;
       /**
@@ -331,7 +344,7 @@ export declare namespace Evals {
       readonly repeat?: number;
       readonly concurrency?: number;
       readonly maxCostUsd?: number;
-      /** --baseline: also run every unit with the skill removed. */
+      /** --without-skill: also run every unit with the skill removed. */
       readonly withoutSkill?: boolean;
     }
 
@@ -357,7 +370,7 @@ export declare namespace Evals {
       readonly target: string;
       /** 0-based repeat index. */
       readonly index: number;
-      /** false for the skill-removed runs added by --baseline. */
+      /** false for the skill-removed runs added by --without-skill. */
       readonly withSkill: boolean;
       readonly skipped: boolean;
       readonly skipReason?: string;
@@ -366,7 +379,7 @@ export declare namespace Evals {
       readonly triggerDetection?: Flow.TriggerDetection;
       readonly checks: readonly Checks.Result[];
       readonly judge?: readonly Judge.Line[];
-      /** Share of the judged, non-report-only rubric lines that passed, 0..1. Absent when not judged. */
+      /** Share of the judged, counted (non-"report") rubric lines that passed, 0..1. Absent when not judged. */
       readonly rubricScore?: number;
       readonly stopReason?: Agent.StopReason;
       readonly error?: string;
@@ -405,14 +418,28 @@ export declare namespace Evals {
       readonly costUnknown: boolean;
       /** Repeat indices whose flow differs from the majority. */
       readonly oddRuns: readonly number[];
+      readonly effort: Effort;
       readonly runs: readonly RunRecord[];
-      /** Present when --baseline was used. */
+      /** Present when --without-skill was used. */
       readonly withoutSkill?: {
         readonly ran: number;
         readonly passRate: number | null;
         readonly triggerRate: number | null;
+        readonly effort: Effort;
         readonly runs: readonly RunRecord[];
       };
+    }
+
+    /**
+     * What a run cost the agent, averaged over the runs that ran: compared with and without the
+     * skill, it shows whether the skill makes the agent work less. Each field is null when no run
+     * reported it. Turns are counted per tool (Codex counts tool items), so compare within a target.
+     */
+    interface Effort {
+      readonly turns: number | null;
+      /** The agent's own shell commands that exited non-zero; not the case's `commands` checks. */
+      readonly failedCommands: number | null;
+      readonly costUsd: number | null;
     }
 
     type ComparisonStatus =
@@ -456,6 +483,11 @@ export declare namespace Evals {
         readonly costUnknown: boolean;
         readonly costByTarget: Readonly<Record<string, number>>;
         readonly runs: number;
+        /** With-skill runs that passed / failed. runs = runsPassed + runsFailed + runsWithoutSkill. */
+        readonly runsPassed: number;
+        readonly runsFailed: number;
+        /** Skill-removed runs added by --without-skill; they never affect pass or fail. */
+        readonly runsWithoutSkill: number;
         readonly skipped: number;
         readonly casesPassed: number;
         readonly casesFailed: number;
@@ -497,7 +529,17 @@ export declare namespace Evals {
           readonly failed: number;
           readonly skipped: number;
         };
-        readonly runs: { readonly ran: number; readonly skipped: number };
+        /**
+         * ran = passed + failed + withoutSkill. passed/failed count the with-skill runs, which decide
+         * the verdict; withoutSkill (only with --without-skill) counts the skill-removed runs.
+         */
+        readonly runs: {
+          readonly ran: number;
+          readonly passed: number;
+          readonly failed: number;
+          readonly withoutSkill?: number;
+          readonly skipped: number;
+        };
         readonly cost: {
           readonly usd: number;
           /** true when some run's cost was not reported, so usd is a lower bound. */
@@ -540,13 +582,16 @@ export declare namespace Evals {
       };
       /** 1-based run numbers whose flow differs from the majority. */
       readonly oddRuns: readonly number[];
+      /** Mean turns, failed agent commands and cost per run. */
+      readonly effort: Report.Effort;
       /** Relative to the run's results folder. */
       readonly files: { readonly report: string; readonly flow: string };
       readonly runs: readonly Run[];
-      /** Present when --baseline was used: the same case with the skill removed. */
+      /** Present when --without-skill was used: the same case with the skill removed. */
       readonly withoutSkill?: {
         readonly ran: number;
         readonly scores: Pick<Scores, "pass" | "trigger">;
+        readonly effort: Report.Effort;
         readonly runs: readonly Run[];
       };
     }
@@ -570,13 +615,13 @@ export declare namespace Evals {
         readonly results: readonly Checks.Result[];
       };
       readonly judge?: {
-        /** Share of graded, non-report-only lines that passed. */
+        /** Share of graded, counted (non-"report") lines that passed. */
         readonly score: number | null;
         readonly results: readonly {
           readonly criterion: string;
           readonly pass: boolean;
           readonly reason: string;
-          readonly reportOnly?: true;
+          readonly type?: Cases.RubricType;
         }[];
       };
       readonly files: {
@@ -631,6 +676,196 @@ export declare namespace Evals {
       /** Defaults to the latest run. */
       readonly runId?: string;
       readonly now?: () => Date;
+    }
+  }
+
+  /**
+   * The judge calibration set (evals/calibration/, docs/judge-governance.md §5.1): graded runs
+   * frozen with a human's verdict per rubric line, to measure how often the judge agrees.
+   */
+  namespace Calibration {
+    /** evidence.json: what the judge grades, frozen from one graded run. */
+    interface Evidence {
+      readonly version: 1;
+      readonly source: {
+        readonly runId: string;
+        readonly caseId: string;
+        readonly target: string;
+        /** 1-based, as numbered in summary.json. */
+        readonly run: number;
+      };
+      /** Why the item exists, e.g. the mistake planted in a seeded copy. */
+      readonly note?: string;
+      readonly rubric: readonly string[];
+      /** Lines of type "report" in the case when the item was added. */
+      readonly reportOnly: readonly string[];
+      /** Lines of type "critical" in the case when the item was added. */
+      readonly critical: readonly string[];
+      readonly finalMessage: string;
+      readonly diff?: string;
+      readonly transcript: readonly unknown[];
+      /** The case had judge.workspaceAccess: replay needs the item's workspace/ folder. */
+      readonly workspaceAccess: boolean;
+    }
+
+    /** One human verdict in labels.json; pass is null until labelled. */
+    interface Label {
+      readonly line: string;
+      readonly pass: boolean | null;
+      readonly evidence: string;
+    }
+
+    interface Labels {
+      readonly labelledBy: string;
+      readonly labels: readonly Label[];
+    }
+
+    /** verdicts.json: the judge's verdicts from the original run. */
+    interface RecordedVerdicts {
+      readonly runId: string;
+      readonly lines: readonly {
+        readonly line: string;
+        readonly pass: boolean;
+        readonly reason: string;
+      }[];
+    }
+
+    interface Item {
+      /** The folder name. */
+      readonly id: string;
+      readonly dir: string;
+      readonly evidence: Evidence;
+      readonly labels: Labels;
+      /** Absent for seeded items, which only replay can grade. */
+      readonly recorded?: RecordedVerdicts;
+    }
+
+    interface AddOptions {
+      readonly resultsDir: string;
+      readonly casesDir: string;
+      readonly calibrationDir: string;
+      readonly caseId: string;
+      /** Defaults to the latest run. */
+      readonly runId?: string;
+      readonly target?: string;
+      /** Only this run number (1-based). */
+      readonly run?: number;
+    }
+
+    interface Added {
+      readonly id: string;
+      /** False when the item already existed: it is left alone, so labels are never overwritten. */
+      readonly created: boolean;
+      /** The case uses workspaceAccess but the run's workspace wasn't kept. */
+      readonly workspaceMissing?: true;
+    }
+
+    /** One grading of an item: the original run's verdicts, or one replay. */
+    interface Grading {
+      /** "run 2 (<run-id>)" or "replay 1". */
+      readonly source: string;
+      /** Verdict per rubric line text. */
+      readonly lines: ReadonlyMap<
+        string,
+        { readonly pass: boolean; readonly reason: string }
+      >;
+      readonly error?: string;
+    }
+
+    interface ItemGradings {
+      readonly id: string;
+      readonly rubric: readonly string[];
+      readonly reportOnly: readonly string[];
+      readonly critical: readonly string[];
+      readonly labels: readonly Label[];
+      readonly gradings: readonly Grading[];
+      /** Why the item has no gradings, e.g. a seeded item without --replay. */
+      readonly skipped?: string;
+    }
+
+    type Outcome = "agree" | "false pass" | "false fail";
+
+    interface Disagreement {
+      readonly item: string;
+      readonly line: string;
+      readonly source: string;
+      readonly outcome: Exclude<Outcome, "agree">;
+      readonly judgeReason: string;
+      readonly humanEvidence: string;
+    }
+
+    interface LineStats {
+      readonly line: string;
+      readonly reportOnly: boolean;
+      readonly critical: boolean;
+      readonly verdicts: number;
+      readonly falsePasses: number;
+      readonly falseFails: number;
+      /** Items where repeated gradings of the same input disagreed with each other. */
+      readonly flips: number;
+    }
+
+    interface Targets {
+      readonly minAgreement: number;
+      readonly maxFalsePassRate: number;
+      readonly maxFalseFailRate: number;
+    }
+
+    interface Score {
+      readonly items: number;
+      readonly gradings: number;
+      readonly verdicts: number;
+      readonly agree: number;
+      readonly falsePasses: number;
+      readonly falseFails: number;
+      /** Verdicts labelled pass / fail: the denominators of the two rates. */
+      readonly humanPass: number;
+      readonly humanFail: number;
+      readonly agreement: number | null;
+      /** False passes ÷ verdicts the human failed; null when no line is labelled fail. */
+      readonly falsePassRate: number | null;
+      readonly falseFailRate: number | null;
+      readonly unlabelled: number;
+      /** The judge returned no verdict for a labelled line. */
+      readonly missing: number;
+      readonly flips: number;
+      /** Worst first. */
+      readonly lines: readonly LineStats[];
+      readonly disagreements: readonly Disagreement[];
+      readonly skipped: readonly {
+        readonly item: string;
+        readonly reason: string;
+      }[];
+      readonly errors: readonly {
+        readonly item: string;
+        readonly source: string;
+        readonly error: string;
+      }[];
+      /** Labels whose line isn't in the item's rubric (a reworded line, or a typo). */
+      readonly strayLabels: readonly {
+        readonly item: string;
+        readonly line: string;
+      }[];
+      /** Against the targets; "incomplete" when a rate can't be measured yet. */
+      readonly status: "pass" | "fail" | "incomplete";
+      readonly problems: readonly string[];
+    }
+
+    interface Options {
+      readonly calibrationDir: string;
+      /** Only items whose id contains this text. */
+      readonly filter?: string;
+      /** Grade each item this many times with the judge, instead of using the recorded verdicts. */
+      readonly replay?: number;
+      readonly judge?: Judge.Grader;
+      readonly concurrency?: number;
+      readonly log?: (line: string) => void;
+    }
+
+    interface Run {
+      readonly score: Score;
+      readonly mode: "recorded" | "replay";
+      readonly costUsd: number;
     }
   }
 }

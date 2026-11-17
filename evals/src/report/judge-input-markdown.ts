@@ -39,7 +39,7 @@ export function renderJudgeInput(
 }
 
 /** A code fence longer than any backtick run inside, so the content can't close it early. */
-function fenced(text: string): string {
+export function fenced(text: string): string {
   const longest = Math.max(
     0,
     ...(text.match(/`+/g) ?? []).map((run) => run.length),

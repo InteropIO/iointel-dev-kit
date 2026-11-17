@@ -1,0 +1,60 @@
+{
+  "runId": "2026-11-16T13-14-58-413Z",
+  "lines": [
+    {
+      "line": "Enables Code Mode exactly once for this assistant, in the AI Web configuration io.Assist uses (aiWebConfig in app/src/App.tsx), not in the acme MCP server",
+      "pass": true,
+      "reason": "The diff adds a single `codeMode` entry inside `staticConfig.aiWebConfig` in app/src/App.tsx, and mcp-server is untouched."
+    },
+    {
+      "line": "Uses the browser entry point and points the WASM location at a URL the app serves, delivered from the installed @interopio/code-mode package through a repeatable step or an exact-version URL",
+      "pass": true,
+      "reason": "It imports `IoCodeModeFactory` from `@interopio/code-mode/browser` and sets `wasmLocation` to `/quickjs/emscripten-module.wasm`. scripts/copy-wasm.mjs copies the file from the installed package and runs before both start and build."
+    },
+    {
+      "line": "Adds an asynchronous interceptors.onToolCall on that Code Mode configuration that awaits the user's decision before submit_payment runs",
+      "pass": true,
+      "reason": "`onToolCall` is async and awaits `approvalUi.request(...)` before returning allowed or denied for submit_payment."
+    },
+    {
+      "line": "Matches submit_payment by the tool identifier the host actually passes to the interceptor (verified in docs or installed types), not a guessed name",
+      "pass": true,
+      "reason": "It matches on `tool.name === \"submit_payment\"`. The configuration docs (#13) state that AI Web passes plain, unprefixed MCP names in `tool.name`."
+    },
+    {
+      "line": "Shows the payment details from the call input (client, amount, currency, beneficiary) in the approval prompt",
+      "pass": true,
+      "reason": "PaymentApprovalDialog shows clientId, amount, currency and beneficiary taken from the call input."
+    },
+    {
+      "line": "Fails closed: a declined, dismissed or failed approval denies the call, and approval is never assumed or auto-granted",
+      "pass": true,
+      "reason": "Deny returns `allowed: false`. The promise resolves only on an explicit click, so an unresolved request runs into the timeout and is never auto-approved. There is no default-allow path."
+    },
+    {
+      "line": "Lets every other tool call through unchanged and does not add a toolFilter or rewrite the payment input",
+      "pass": true,
+      "reason": "Non-payment tools return `{ allowed: true, input }` unchanged. There is no toolFilter, and the payment input is passed through as-is."
+    },
+    {
+      "line": "Leaves submit_payment's server-side validation in mcp-server intact",
+      "pass": true,
+      "reason": "The diff makes no changes under mcp-server, so its validation code is still there."
+    },
+    {
+      "line": "Explains in the final message that the interceptor only gates calls made through Code Mode, so the server must still authorize and validate payments",
+      "pass": true,
+      "reason": "Borderline pass: the final message says the hook 'protects the assistant UI only', that 'anything calling acme-mcp directly skips it', and to enforce approval in the MCP server too. The server step is framed conditionally ('If you need a hard guarantee')."
+    },
+    {
+      "line": "Uses the io.Connect modals dialogs that the app already enables instead of window.confirm",
+      "pass": false,
+      "reason": "The agent built a custom React overlay (paymentApproval.tsx) instead of the io.Connect modals dialogs already enabled in connectConfig."
+    },
+    {
+      "line": "Chooses the @interopio/code-mode version from the npm registry and the installed host's range, not from a docs example",
+      "pass": true,
+      "reason": "It ran `npm view @interopio/code-mode version` (1.0.1) and checked AI Web 1.4.0's declared range `^1.0.1` before installing."
+    }
+  ]
+}

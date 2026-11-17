@@ -67,7 +67,7 @@ describe("task cases", () => {
             },
             commands: ["npm run build"],
           },
-          judge: { rubric: ["Registers the tool"] },
+          judge: { rubric: [{ assertion: "Registers the tool" }] },
         },
       }),
     );
@@ -107,7 +107,10 @@ describe("task cases", () => {
       task("add-tool", {
         output: {
           deterministic: { files: ["src/tool.ts"] },
-          judge: { rubric: ["Registers the tool"], workspaceAccess: true },
+          judge: {
+            rubric: [{ assertion: "Registers the tool" }],
+            workspaceAccess: true,
+          },
         },
       }),
     );
@@ -146,7 +149,10 @@ describe("task cases", () => {
         output: {
           deterministic: { files: ["src/tool.ts"] },
           judge: {
-            rubric: ["Registers the tool", "[report-only] Reuses the client"],
+            rubric: [
+              { assertion: "Registers the tool" },
+              { type: "report", assertion: "Reuses the client" },
+            ],
           },
         },
       }),
@@ -169,7 +175,7 @@ describe("task cases", () => {
     expect(md).toContain("## fake/m: PASS");
     expect(md).toContain("- ✅ file src/tool.ts");
     expect(md).toContain("**Judge** (rubric score 100%)");
-    expect(md).toContain("- ❌ _[report-only]_ Reuses the client");
+    expect(md).toContain("- ❌ _[report]_ Reuses the client");
     expect(md).toContain("  - missed");
     expect(md).toContain("1. skill-loaded io-intelligence");
     expect(md).toContain("> Added the tool.");
@@ -185,7 +191,10 @@ describe("task cases", () => {
         output: {
           deterministic: { files: ["src/tool.ts"] },
           judge: {
-            rubric: ["Registers the tool", "Reuses the client"],
+            rubric: [
+              { assertion: "Registers the tool" },
+              { assertion: "Reuses the client" },
+            ],
             threshold: 0.5,
           },
         },
@@ -214,7 +223,7 @@ describe("task cases", () => {
             files: ["src/missing.ts"],
             commands: ["npm run build"],
           },
-          judge: { rubric: ["x"] },
+          judge: { rubric: [{ assertion: "x" }] },
         },
       }),
     );

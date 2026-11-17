@@ -21,9 +21,9 @@ Each case can have an `output.judge.rubric`: a list of separate requirements. Ea
 
 ```json
 "rubric": [
-  "Adds an asynchronous interceptors.onToolCall ... that awaits the user's decision before submit_payment runs",
-  "Fails closed: a declined, dismissed or failed approval denies the call, and approval is never assumed or auto-granted",
-  "[report-only] Uses the io.Connect modals dialogs that the app already enables instead of window.confirm"
+  { "assertion": "Adds an asynchronous interceptors.onToolCall ... that awaits the user's decision before submit_payment runs" },
+  { "assertion": "Fails closed: a declined, dismissed or failed approval denies the call, and approval is never assumed or auto-granted" },
+  { "type": "report", "assertion": "Uses the io.Connect modals dialogs that the app already enables instead of window.confirm" }
 ]
 ```
 
@@ -51,7 +51,7 @@ For every line it returns `pass: true/false` and a one-line `reason`.
 ### How a score is made (exists)
 
 ```
-score = lines passed ÷ lines counted        ([report-only] lines are not counted)
+score = lines passed ÷ lines counted        ("report" lines are not counted)
 run passes the judge step if score ≥ threshold   (threshold defaults to 1 = every line)
 ```
 
@@ -95,7 +95,7 @@ Two of these errors matter much more than the others:
 ### Process controls
 
 1. **A reason for every verdict.** Every verdict comes with a one-line reason in the report, so a human can check any of them.
-2. **`[report-only]` lines.** New or unproven lines can be graded and shown without affecting pass/fail.
+2. **Line types.** `"type": "report"` lines are graded and shown without affecting pass/fail, for new or unproven lines. `"type": "critical"` lines fail the run whenever they fail, whatever the score (5.5).
 3. **Score changes don't decide regressions.** A rubric score change against the baseline is reported, but on its own it never marks a case regressed or improved.
 4. **The baseline moves deliberately.** `npm run eval:approve` plus a commit, so baseline changes show up in review.
 5. **A contract test.** `test/contract/judge.test.ts` checks that one obviously satisfied line passes and one obviously unsatisfied line fails.
@@ -103,7 +103,7 @@ Two of these errors matter much more than the others:
 
 ### What this doesn't give us
 
-None of the above **measures** how often the judge is right. The contract test is a smoke test: it proves the judge isn't broken, not that it's accurate on hard cases. Today we **don't know** our false-pass rate.
+None of the above **measures** how often the judge is right. The contract test is a smoke test: it proves the judge isn't broken, not that it's accurate on hard cases. The tool to measure it exists (calibration, 5.1), but until items are labelled we **don't know** our false-pass rate.
 
 ---
 
@@ -111,79 +111,146 @@ None of the above **measures** how often the judge is right. The contract test i
 
 | # | Gap | Risk |
 |---|---|---|
-| 1 | No measured accuracy against human labels | We can't say how far to trust a "pass" |
-| 2 | No consistency check | Borderline lines may flip between runs without anyone noticing |
+| 1 | No measured accuracy against human labels | We can't say how far to trust a "pass". **Tooling in place** (5.1): `npm run eval:calibrate`; the set still needs labelled items |
+| 2 | ~~No consistency check~~ | **Addressed** by calibration replay (5.2), on the items in the set |
 | 3 | No standard for writing rubric lines | Vague lines produce noisy verdicts |
-| 4 | Nothing re-checks old verdicts when the judge model or prompt changes | A judge change could silently shift every score |
+| 4 | Nothing re-checks old verdicts when the judge model or prompt changes | A judge change could silently shift every score. **Tooling in place**: `--replay` re-grades the set with the current judge (5.1) |
 | 5 | All lines weigh the same | A critical safety line ("fails closed") can be outvoted by cosmetic lines at a 0.5 threshold |
 | 6 | ~~Very long transcripts were cut at 1.5M chars, keeping the start and losing the end~~ | **Addressed** by compact transcripts (5.8): the end of the run is now the last thing to lose detail, and trimming is flagged |
 | 7 | ~~The judge only sees the diff, so it can't verify unchanged code~~ | **Addressed** by opt-in `workspaceAccess` (5.7), for cases that turn it on |
 
 ---
 
-## 5. The plan (proposed)
+## 5. The plan
 
-### 5.1 Calibration set: measure the judge against humans
+### 5.1 Calibration: measure the judge against humans (tool exists, set is empty)
 
 This is the most important step, because it's the only one that produces a number.
 
-**The idea:** collect real graded runs, have a human decide the correct verdict for every line, then check how often the judge agrees.
+**The idea.** Take runs that already happened. A person decides the correct verdict for every rubric line, without looking at the judge's verdict. A script then counts where the person and the judge disagree. Those disagreements are judge errors, or lines too vague to grade.
 
-**Step by step:**
+In standard eval terms, the human verdicts are **golden labels**: answers you trust to be correct, used to test a grader. The judge is checked against them the way a thermometer is checked in ice water. The check doesn't change how the thermometer measures. It tells you whether to believe it.
 
-1. **Collect examples.** Take 20–50 real runs from `evals/results/`. Choose a mix:
-   - clearly good runs
-   - clearly bad runs
-   - **near-misses**, the important ones: guessed tool name, approval that defaults to allow, `window.confirm` instead of modals, a version copied from a docs example
-   
-   If real near-misses are rare, make them by editing a good run's diff.
-2. **Label them.** For every rubric line, a human writes the correct verdict and a short reason. Two people label the trickiest ones. If they disagree, the line itself is unclear and needs rewording (see 5.3).
-3. **Store them** as fixtures, for example:
+**What the labels are not.**
+
+- **They never reach the judge.** It has no memory. Every grading is a fresh call with only the rubric and the run's evidence (see `judge/*.md`). The labels are for us: they decide which lines the judge may grade alone.
+- **They're not the baseline.** `baseline.json` (`npm run eval:approve`) tracks how the **agent** changes over time. Calibration labels check the **judge**.
+- **You don't label every run.** You label a line once, on a few runs. Every eval run after that is graded by the judge alone.
+
+**The unit is one verdict:** one rubric line on one run. `approve-payment` has 11 lines, so one graded run gives 11 verdicts to label.
+
+#### Step by step
+
+1. **Add runs to the set.** Pick a finished eval run and a case:
 
    ```
-   evals/judge-calibration/
-     approve-payment-guessed-tool-name.json
+   npm run eval:calibrate -- add --case code-mode-approve-payment --run 2026-11-16T13-14-58-413Z
    ```
+
+   Every judge-graded run of that case becomes an **item**: a folder in `evals/calibration/`. Runs that failed before grading (a broken build, say) have no verdicts and are skipped. `--number N` takes only run N, and `--run` defaults to the latest run. An existing item is never overwritten, so labels are safe.
+
+   ```
+   evals/calibration/<case>__<target>__<run>__<run-id>/
+     evidence.json   what the judge grades: rubric, final message, diff, raw transcript
+     evidence.md     the same, as the judge reads it (generated, read-only)
+     labels.json     your verdicts, pass: null until you fill them in
+     verdicts.json   the judge's verdicts from the original run
+     workspace/      the run's files, for cases with workspaceAccess
+   ```
+
+   **Workspace cases.** For a case with `workspaceAccess`, the run's workspace is copied in without `node_modules` and `.git`. It must still exist, so run the eval with `--keep-workdirs` first. Without it, the item works for the free comparison (step 4) but replay skips it. Lines about installed packages lose their evidence when `node_modules` is left out; a replay of such a line is graded from `package.json` and the transcript only.
+
+2. **Add near-misses ("seeded" items).** If every run did the job well, every correct answer is "pass", and a judge that always passes would score 100%. The false-pass rate can only be measured on lines a human failed. So copy an item folder, plant one mistake in `evidence.json`, and delete `verdicts.json` (the original verdicts no longer apply). Say what you changed in `note`:
+
+   | Seeded mistake (edit the diff and final message) | Line that must now fail |
+   |---|---|
+   | The `catch` lets the payment through | "Fails closed: a declined, dismissed or failed approval denies the call…" |
+   | The matcher is renamed to `"acme.submitPayment"` | "Matches submit_payment by the tool identifier the host actually passes…" |
+   | The amount check is gone from `mcp-server` (in `workspace/`) | "Leaves submit_payment's server-side validation in mcp-server intact" |
+   | The final message says the interceptor "fully secures payments" | "Explains … the server must still authorize and validate payments" |
+
+   These are the near-misses the judge is most likely to wave through.
+
+3. **Label, blind.** Open `evidence.md` (and `workspace/` if the case has one). For every line in `labels.json`, set `pass` to `true` or `false` and write the evidence in one sentence. **Don't open `verdicts.json` until you're done**: once you've seen the judge's answer, you tend to agree with it, and the calibration only measures that.
+
    ```json
-   {
-     "rubric": ["...same lines as the case..."],
-     "finalMessage": "...",
-     "diff": "...",
-     "transcriptFile": "approve-payment-guessed-tool-name.transcript.json",
-     "labels": [
-       { "index": 3, "pass": false, "why": "Tool name hard-coded; no docs or types lookup in transcript" }
-     ]
-   }
+   { "line": "Fails closed: a declined, dismissed or failed approval denies the call...",
+     "pass": true,
+     "evidence": "App.tsx: the catch returns { allow: false }; dismiss resolves false" }
    ```
-4. **Run the judge on all fixtures** with a script (e.g. `npm run judge:calibrate`) and compare each verdict with its label.
-5. **Report four numbers:**
 
-   | Number | Meaning | Target (example) |
+   **If you can't decide a line, or two people label it differently, the line is the problem.** Reword it (5.3) before going further. Expect 1–2 minutes per verdict.
+
+4. **Compare.**
+
+   ```
+   npm run eval:calibrate                 # against the recorded verdicts: free
+   npm run eval:calibrate -- --replay 3   # send each item to the current judge 3 times: costs judge calls
+   ```
+
+   - **Recorded** compares your labels with what the judge said in the original run. No calls, no cost.
+   - **Replay** grades the frozen evidence again with today's judge code: its prompt, compaction and model. It's how a judge change gets tested, and the only way to grade seeded items. Repeating also measures consistency (5.2).
+
+   `--item TEXT` limits either one to items whose folder name contains TEXT. The console prints the numbers, and the full report, with every disagreement and both reasons, goes to `results/calibration-<time>.md`.
+
+5. **Read the numbers.** Each verdict lands in one of four boxes:
+
+   |  | Human: pass | Human: fail |
    |---|---|---|
-   | **Agreement** | share of lines where judge = human | ≥ 90% |
-   | **False-pass rate** | judge passed, human failed ÷ all lines the human failed | **≤ 5%** |
-   | **False-fail rate** | judge failed, human passed ÷ all lines the human passed | ≤ 10% |
-   | **Worst lines** | the specific rubric lines the judge gets wrong most often | fix or reword them |
+   | **Judge: pass** | agree | **false pass** |
+   | **Judge: fail** | false fail | agree |
 
-   **Worked example.** 200 labelled line-verdicts. Humans said 150 pass and 50 fail.
-   - Judge passed 4 of the 50 the humans failed → **false-pass rate 8%** → too high, investigate.
-   - Judge failed 6 of the 150 the humans passed → false-fail rate 4% → fine.
-   - Agreement = (200 − 4 − 6) ÷ 200 = **95%**.
+   | Number | Meaning | Target |
+   |---|---|---|
+   | **Agreement** | verdicts where judge = human | ≥ 90% |
+   | **False-pass rate** | judge passed ÷ all verdicts the human failed | **≤ 5%** |
+   | **False-fail rate** | judge failed ÷ all verdicts the human passed | ≤ 10% |
+   | **Flips** (replay only) | lines that got different verdicts on the same input | 0 |
+   | **Lines** | the same counts per rubric line, worst first | fix the worst |
 
-   High agreement can still hide a bad false-pass rate. That's why the two rates are reported separately.
+   **Worked example.** 200 labelled verdicts: humans said 150 pass and 50 fail. The judge passed 4 of the 50, a false-pass rate of 8%, which is too high. It failed 6 of the 150, a false-fail rate of 4%, which is fine. Agreement is (200 − 4 − 6) ÷ 200 = **95%**. High agreement can hide a bad false-pass rate, which is why the rates are reported separately.
 
-6. **Re-run the calibration whenever** the judge model, the judge prompt or the verdict format changes, and before trusting a new rubric style. If the numbers drop below the targets, the change doesn't ship.
+   The result is **PASS**, **FAIL** (a target missed, so the command exits 1) or **INCOMPLETE**: nothing is labelled yet, or no line is labelled fail, so the false-pass rate can't be measured. Add seeded items to fix the second case. Unlabelled lines (`pass: null`) aren't counted.
 
-### 5.2 Consistency check
+6. **Find the cause of every disagreement.**
 
-Grade the same run 3 times. For each line:
+   | Cause | Example | Fix |
+   |---|---|---|
+   | **Judge error** | It believed the final message ("I matched the real tool id") instead of checking | Tighten the judge's system prompt or model, then replay |
+   | **Line defect** | "A URL the app serves … through a repeatable step" can be read two ways | Reword the line (5.3), relabel it, replay |
+   | **Missing evidence** | The proof is in unchanged code the judge can't see | Turn on `workspaceAccess` (5.7), or move the check into code |
+   | **Label error** | The person missed something and the judge was right | Correct the label |
 
-- the same verdict all 3 times → stable
-- the verdicts differ → **unstable line**
+   A line that **flips** is almost always a line defect.
 
-An unstable line is almost always a **wording** problem, not a judge problem: the line can be read two ways. Reword it (5.3). This can run as an option on calibration fixtures (e.g. `--repeat 3`) without any extra labelling.
+7. **Decide.** The targets apply to the set as a whole. On top of them, a line with **any** false pass or flip doesn't count towards a score: it goes back to `"type": "report"` until it's reworded and passes calibration again. A judge can be 95% right overall and still be wrong on the one line that guards the payment.
 
-### 5.3 Rules for writing rubric lines
+#### Keeping it current
+
+The items are committed, so the set becomes a regression test for the judge. Run it again:
+
+| When | What to do |
+|---|---|
+| The judge model, its system prompt or the transcript compaction changes | `--replay 3`. The change ships only if the result is still PASS |
+| A rubric line is reworded | Update the line in the items' `evidence.json` and `labels.json`, check the label still holds, replay. A label whose line isn't in the rubric is reported as a **stray label** |
+| A new case or line | Add 1–3 of its runs, and one seeded item if the line guards something important |
+| A review finds a judge error in a real run (5.6) | Add that run, so the mistake is tested from then on |
+| Ordinary eval runs | Nothing |
+
+Over time the set grows out of the mistakes the judge actually makes.
+
+**Size.** Start with 2–3 cases and 60–100 labelled verdicts, including at least 10 the human failed. Items hold the raw transcript, so each one is about 250 KB.
+
+### 5.2 Consistency check (exists, through calibration replay)
+
+Grade the same input several times. For each line:
+
+- the same verdict every time → stable
+- the verdicts differ → **unstable line**, reported as a **flip**
+
+`npm run eval:calibrate -- --replay 3` does this on every calibration item without extra labelling: unlabelled lines still show their flips. An unstable line is almost always a **wording** problem, not a judge problem: the line can be read two ways. Reword it (5.3).
+
+### 5.3 Rules for writing rubric lines (exists, through the eval-grading skill)
 
 Agents apply these rules through the `eval-grading` skill (`.claude/skills/eval-grading/SKILL.md`), which also covers routing checks and reviewing verdicts. **Change a rule there and here together.**
 
@@ -203,41 +270,39 @@ Rule of thumb: **if two engineers could disagree about whether a line passed, th
 
 The last rule exists because the judge doesn't see the case's prompt (see [5.9](#59-decision-the-judge-doesnt-see-the-prompt-for-now)). A line that only makes sense next to the request ("the details", "the question", "what the user asked for") has to name what it means.
 
-### 5.4 Lifecycle of a rubric line
+### 5.4 Lifecycle of a rubric line (proposed)
 
 ```
-new line ──► [report-only] ──► spot-check verdicts on 3–5 runs ──► counted line
+new line ──► "report" ──► spot-check verdicts on 3–5 runs ──► counted line
                   │                         │
                   │                    verdicts wrong?
                   │                         ▼
                   └──────────────── reword the line
 ```
 
-1. Every new line starts with `[report-only]`. The flag exists already; this makes using it a rule.
+1. Every new line starts as `"type": "report"`. The type exists already; this makes using it a rule.
 2. A human reads its verdicts and reasons on a few runs.
 3. If the verdicts are right, remove the prefix. If not, reword the line and repeat.
-4. Optionally, add one calibration fixture for the line's most likely near-miss.
+4. Optionally, add a seeded calibration item for the line's most likely near-miss (5.1, step 2).
 
-### 5.5 Critical lines
+### 5.5 Critical lines (exists)
 
-Some lines are about safety or correctness and must never be averaged away. Proposal: a `[critical]` prefix, like `[report-only]`:
+Some lines are about safety or correctness and must never be averaged away. Mark them `"type": "critical"`:
 
 ```json
-"[critical] Fails closed: a declined, dismissed or failed approval denies the call"
+{ "type": "critical", "assertion": "Fails closed: a declined, dismissed or failed approval denies the call" }
 ```
 
-A run that fails a `[critical]` line fails the judge step **whatever the score**. Other lines keep using the threshold.
+A run that fails a critical line fails the judge step **whatever the score**. Critical lines still count in the score like any other line, and other lines keep using the threshold. The judge never sees the type, so a critical line is graded exactly like a standard one; only the consequence differs. That makes a false pass on a critical line the most expensive mistake the judge can make, so critical lines are the first to calibrate (5.1).
 
-### 5.6 Human review when scores change
+### 5.6 Human review when scores change (proposed)
 
 When a case's rubric score changes against the baseline:
 
 1. Open the case report and read the **reasons** for the lines that changed.
 2. Decide whether each change is a real agent change or a judge error.
 3. Only then run `npm run eval:approve`.
-4. If it was a judge error, turn the run into a calibration fixture (5.1) so it's tested from then on.
-
-Over time this grows the calibration set out of the mistakes the judge actually makes.
+4. If it was a judge error, add the run to the calibration set (`npm run eval:calibrate -- add`, 5.1) so it's tested from then on.
 
 ### 5.7 Workspace access (exists)
 
@@ -277,7 +342,7 @@ Then the judge also gets **read-only** access to the finished workspace:
 
 - **More expensive and slower.** Each lookup is another model turn. The cost shows in the report's `cost` column as usual.
 - **A bit less consistent.** The judge may look at different files on different runs. Calibration and consistency checks (5.1, 5.2) matter more for these cases.
-- **Harder to replay.** A calibration fixture for such a case needs the relevant workspace files saved alongside the diff and transcript, not just those two.
+- **Harder to replay.** A calibration item for such a case needs the workspace too: it is copied in without `node_modules`, and only if the eval ran with `--keep-workdirs` (5.1, step 1).
 - **Distraction.** With the whole project visible, the judge could grade the template's code rather than the agent's. The instructions tell it the diff is the agent's work, and the rubric decides what's checked.
 
 **When to turn it on.**
@@ -400,18 +465,18 @@ The saved `judge/` files (5.8) make this cheap: they're the exact inputs to repl
 
 | Question | Answer today | Answer after the plan |
 |---|---|---|
-| How accurate is the judge? | Unknown | Agreement and false-pass rate, measured on labelled fixtures |
-| Is it consistent? | Unknown | Unstable lines found and reworded |
-| Are our rubric lines good? | Depends on the author | Written to rules, proven as `[report-only]` first |
-| Can a critical failure hide? | Yes, behind a low threshold | No, `[critical]` lines always fail the run |
-| What if we change the judge? | Nothing re-checks it | Calibration must pass before the change ships |
+| How accurate is the judge? | Unknown until items are labelled; `npm run eval:calibrate` measures it (5.1) | Agreement and false-pass rate, measured on labelled items |
+| Is it consistent? | Measurable: `--replay 3` reports flips (5.2) | Unstable lines found and reworded |
+| Are our rubric lines good? | Depends on the author | Written to rules, proven as `"report"` lines first |
+| Can a critical failure hide? | **No, for lines marked `"type": "critical"`** (5.5): failing one fails the run | Same |
+| What if we change the judge? | `--replay` re-grades the set with the new judge | Calibration must pass before the change ships |
 | Who checks surprising verdicts? | Whoever notices | A defined step before every baseline approval |
 | Can it verify code the agent didn't change? | **Yes, for cases that opt in** with `workspaceAccess` (5.7) | Same, used wherever the rubric needs it |
 | Can a long run lose its evidence? | **No longer silently**: the transcript is compacted, the end is kept, trimming is flagged (5.8) | Same |
-| Can we see what the judge saw? | **Yes**: `judge/<run>.md` per graded run, also on failure | Same; these files become calibration fixtures (5.1) |
+| Can we see what the judge saw? | **Yes**: `judge/<run>.md` per graded run, also on failure | Same; `evidence.md` in each calibration item shows the same view for labelling |
 | Does the judge see the user's request? | **No, on purpose**: avoids bias; lines must be self-contained (5.9) | Decided by measuring false passes with and without it |
 
-**Start with 5.1.** The calibration set turns "we think the judge is right" into "the judge agrees with humans 95% of the time and wrongly passes 3% of lines that should fail". The other steps make that number better and keep it from slipping.
+**Next: fill the calibration set (5.1).** The tool exists; the labelling is the work. The calibration set turns "we think the judge is right" into "the judge agrees with humans 95% of the time and wrongly passes 3% of lines that should fail". The other steps make that number better and keep it from slipping.
 
 ---
 

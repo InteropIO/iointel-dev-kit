@@ -67,7 +67,23 @@ const deterministicCommon = {
 const judge = z
   .object({
     rubric: z
-      .array(z.string().trim().min(1, "rubric items must not be empty"))
+      .array(
+        z
+          .object(
+            {
+              type: z.enum(["critical", "report"]).optional(),
+              assertion: z
+                .string()
+                .trim()
+                .min(1, "rubric assertions must not be empty"),
+            },
+            {
+              error:
+                'rubric items are objects: { "assertion": "...", "type"?: "critical" | "report" }',
+            },
+          )
+          .strict(),
+      )
       .min(1, "judge.rubric must list at least one item"),
     threshold: share.optional(),
     workspaceAccess: z.boolean().optional(),
