@@ -229,6 +229,17 @@ The judge sees the final message, the transcript and the **git diff** of everyth
 
 A run passes when the skill triggered (or didn't) as expected. The case passes at **≥ 2 of 3** runs by default, because triggering naturally varies from run to run.
 
+**Acting on trigger results.** Whether the skill loads is decided by the `description` in its `SKILL.md` frontmatter, so that is where most trigger fixes go:
+
+| Signal | What you see | Fix |
+|---|---|---|
+| Under-triggering | Positive cases fail; `trigger` below threshold; paraphrased prompts miss while literal ones hit | Add the words users actually type to the description: package names, product names, the task ("scaffold", "diagnose") |
+| Over-triggering | Negative cases (`expectSkill: false`) fail; the skill loads for general coding prompts | Narrow the description to io.Connect / io.Intelligence work, and say what it is not for |
+| Unstable | Triggers on some repeats only; `odd flow` in the notes | Usually a description that only half-matches the prompt; treat it as under-triggering, then rerun with more repeats |
+| Triggers but fails | `trigger` 100%, answer or task checks fail | Not a description problem: fix the skill's instructions or references |
+
+Add a paraphrase of every prompt that failed as a new positive case, and a near-miss prompt (similar words, different product) as a new negative case, before changing the description, so the fix is measured in both directions. A Codex trigger means the agent read `SKILL.md` (see [Targets and adapters](#targets-and-adapters)), so compare trigger rates within one tool.
+
 ### `answer`: is the answer right?
 
 ```json
@@ -487,7 +498,7 @@ npm run typecheck                    tsc, plus a separate check of shared/contra
 npm run format                       prettier
 ```
 
-**`--without-skill`** reruns every unit with the skill removed and reports the difference next to each case ("without skill: pass 20%"). It answers "does the skill actually help, or did the model already know this?". Runs without the skill never affect pass or fail.
+**`--without-skill`** reruns every unit with the skill removed and reports the difference next to each case ("without skill: pass 20%, turns 14 vs 6, failed cmds 3 vs 0", the skill-removed side first). It answers "does the skill actually help, or did the model already know this?". A skill can help even when both sides pass: fewer turns, fewer failed commands (wrong package names, broken installs) and lower cost mean the agent got there more directly. Each case's `effort` in `summary.json` holds these means for both sides. Failed commands are the agent's own shell commands that exited non-zero, not the case's `commands` checks. Turns are counted differently per tool (Codex counts tool calls), so compare effort within one target only. Runs without the skill never affect pass or fail.
 
 ### What a run writes
 
@@ -523,6 +534,7 @@ evals/results/<run-id>/            (gitignored)
     "ran", "skipped", "network", "costUsd",
     "change": { "status": "regressed", "before": { "pass", "trigger", "rubric" }, "flow": { "added": 17, "removed": 4 } },  // step counts; steps in flows/<case>.md
     "oddRuns": [2],                                      // 1-based run numbers
+    "effort": { "turns", "failedCommands", "costUsd" },  // means per run; null when no run reported it
     "files": { "report": "reports/<case>.md", "flow": "flows/<case>.md" },
     "runs": [{
       "run": 1, "verdict", "stopReason", "turns", "costUsd",
@@ -532,7 +544,7 @@ evals/results/<run-id>/            (gitignored)
       "files":  { "transcript", "workdir" },
       "flow":   [ /* steps, always last */ ]
     }],
-    "withoutSkill": { "ran", "scores": { "pass", "trigger" }, "runs": [] }   // --without-skill only
+    "withoutSkill": { "ran", "scores": { "pass", "trigger" }, "effort": { … }, "runs": [] }   // --without-skill only
   }],
   "removed": [{ "id", "target", "before": { "pass", "trigger", "rubric" } }]   // in the reference, not in this run
 }
