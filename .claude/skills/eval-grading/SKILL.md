@@ -31,7 +31,10 @@ Pick the branch:
 3. **Write the rubric lines** and apply every [line rule](#line-rules) to every line. Done when each line passes all rules.
 4. **Set the judge options:**
    - `threshold`: leave at the default `1` (every counted line must pass). Lower it only when the user asks, and record why in `note`. A line that must never fail stays a separate concern: a low threshold can average a critical miss away, so keep critical behaviours in deterministic checks where possible.
-   - `[report-only]` prefix: put it on every **new** line. It's graded and shown, but not counted until its verdicts are proven (step 6).
+   - Line `type`: every rubric item is `{ "assertion": "...", "type"?: "critical" | "report" }`.
+     - `"report"` on every **new** line: graded and shown, but not counted until its verdicts are proven (step 6).
+     - `"critical"` on a proven line that guards safety or correctness (fails closed, keeps validation): failing it fails the run whatever the score. This is how a critical behaviour survives a threshold below 1.
+     - No type: a standard line, counted in the score.
    - `workspaceAccess: true`: turn it on for task cases with a line about code the agent didn't change. Signal words: *intact, unchanged, still, exactly once, only, already, installed version, installed types*. Without it the judge only has the diff and must trust the agent's word. Answer cases have no project to read, so leave it off there.
    
    Trigger cases take no judge at all.
@@ -40,7 +43,7 @@ Pick the branch:
    npx tsx -e 'import("./src/cases/loader.ts").then(m => m.loadCases("cases")).then(c => console.log("ok", c.length)).catch(e => { console.error(e.message); process.exit(1) })'
    ```
    Done when it prints `ok`.
-6. **Prove the new lines.** Runs cost money, so ask the user before running `npm run eval -- --case <id>`. After a run, review the verdicts of every `[report-only]` line ([Reviewing verdicts](#reviewing-verdicts)). Remove the prefix only from lines whose verdicts were right on every run you checked. Reword the others and keep them report-only.
+6. **Prove the new lines.** Runs cost money, so ask the user before running `npm run eval -- --case <id>`. After a run, review the verdicts of every `"report"` line ([Reviewing verdicts](#reviewing-verdicts)). Remove `"type": "report"` only from lines whose verdicts were right on every run you checked. Reword the others and keep them as report lines.
 
 ## Line rules
 
@@ -62,7 +65,7 @@ The test for every line: **two engineers reading the same run would give the sam
 
 The verdict is a claim, and you check it the way you'd check any claim: against the evidence.
 
-1. **Find the verdicts to check**, in `evals/results/<run-id>/`: every failed line, every `[report-only]` line, and every case whose rubric score changed against the baseline (console notes, or `change` in `summary.json`). Done when you have a list of (case, run, line) to check.
+1. **Find the verdicts to check**, in `evals/results/<run-id>/`: every failed line, every `"report"` line, and every case whose rubric score changed against the baseline (console notes, or `change` in `summary.json`). Done when you have a list of (case, run, line) to check.
 2. **Check each one against the evidence the judge had.** Open `reports/<case>.md` for the verdict and reason, then the run's `judge/<case>__<target>__<n>.md` for exactly what the judge was sent. Settle the line yourself from the diff, the transcript entries (`#n`) and, if needed, the transcript in `transcripts/`. Classify:
    - **correct**: the evidence supports the verdict
    - **false pass**: passed, but the evidence doesn't show it (often: the judge trusted the final message)
@@ -72,6 +75,6 @@ The verdict is a claim, and you check it the way you'd check any claim: against 
    Done when every listed verdict has a class and a one-line reason that cites the evidence.
 3. **Act on each class.**
    - Line defect → rewrite it with the [line rules](#line-rules). If its evidence lives in unchanged code, turn on `workspaceAccess`.
-   - False pass or false fail on a sound line → report it as a judge error, with the run and the evidence. It belongs in the calibration set (`judge-governance.md` §5.1).
+   - False pass or false fail on a sound line → report it as a judge error, with the run and the evidence, and propose adding the run to the calibration set: `npm run eval:calibrate -- add --case <id> --run <run-id> --number <n>` (`judge-governance.md` §5.1). The labels are the user's to write.
    - Run notes "judge transcript trimmed" → the judge saw less detail than usual. Weigh its verdicts on that run with extra care.
 4. **Report** to the user: a table of case, line, verdict, class and reason, then the proposed rewrites. The baseline moves only on the user's word: `npm run eval:approve` runs when they ask for it.

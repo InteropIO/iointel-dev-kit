@@ -51,7 +51,7 @@ Each case runs several times, because results vary between runs. The engine prin
 31. As a skill author, I want Codex triggering detected from a read of the skill's `SKILL.md`, and that detection method recorded in the results, so that a Codex trigger rate isn't mistaken for the same kind of signal as Claude's.
 32. As a skill author, I want the agent stopped from writing or running commands outside its temp folder, so that a confused agent can't damage my repo or machine.
 33. As a skill author, I want the Claude target contained by a permission guard and the Codex target by Codex's own workspace-write sandbox, so that containment works natively on Windows.
-34. As a skill author, I want a `--baseline` flag that reruns cases with the skill removed and reports the difference, so that I can show the skill adds value and catch changes that make it worse than no skill.
+34. As a skill author, I want a `--without-skill` flag that reruns cases with the skill removed and reports the difference, so that I can show the skill adds value and catch changes that make it worse than no skill.
 35. As a skill author, I want to filter a run by case kind, case id or target, so that I can iterate quickly on one area.
 36. As a skill author, I want to set repeat count and concurrency from the command line, so that I can trade speed against confidence and stay within rate limits.
 37. As a skill author, I want a cost cap in USD that stops the run once it's reached, so that a mistake can't run up a large bill.
@@ -94,7 +94,7 @@ Each case runs several times, because results vary between runs. The engine prin
 **Modules**
 - **Case loader:** discovers case JSON files, validates them against the case schema (Zod), applies defaults, and expands each case × target × repeat into run units. Fails the whole run immediately on any invalid case.
 - **Engine (the single test seam):** `runEval(options, deps) → RunReport`, where `deps` supplies the adapters (keyed by tool name) and the judge, plus optional clock and filesystem. It handles filtering, scheduling with concurrency, workspace preparation, adapter calls, checks, judging, aggregation, the cost cap, the baseline comparison and writing results. Everything outside the process comes in through `deps`.
-- **Workspace manager:** creates a fresh temp folder per run unit and seeds it from the case's `input.template` (an official template through the skill's own template materializer, a local template folder, or empty). It installs the working copy of the skill where the target's tool discovers it, removes it for `--baseline` runs, and records the starting state so a diff can be produced at the end.
+- **Workspace manager:** creates a fresh temp folder per run unit and seeds it from the case's `input.template` (an official template through the skill's own template materializer, a local template folder, or empty). It installs the working copy of the skill where the target's tool discovers it, removes it for `--without-skill` runs, and records the starting state so a diff can be produced at the end.
 - **Agent adapters:** one per tool, all implementing the same interface:
 
   ```ts
@@ -136,14 +136,14 @@ Each case runs several times, because results vary between runs. The engine prin
 - **Flow comparer:** compares snapshots in two ways. **Within a run:** the repeats of each case × target are grouped by identical snapshots; runs outside the majority group are flagged as odd. **Against the baseline:** each case × target's snapshots are compared with the approved snapshots, and the differences are reported (steps added or removed, a different reference read, a command's exit code changed, a different order). Flow differences never fail a case.
 - **Flow checks (optional, per case):** `mustRead`, `mustNotRead`, `mustRun` and `mustFetch` (fetched URLs, web searches and download commands) match against the flow snapshot (string or regex). A failed flow check fails the run like any other deterministic check.
 - **Checkers (deterministic):** answer-case must/must-not include (string or regex) against the final message. Task-case stages, run in order and stopping at the first failure: expected files → `package.json` dependency expectations → command list (non-zero exit fails) → judge review.
-- **Judge:** `grade(rubric, output, transcript) → { lines: [{ text, pass, reason }] }`. Fixed to Opus 5.5. Each rubric line gets pass or fail with a one-line reason. The engine scores a run as the share of lines that passed (0..1), leaving out lines marked `[report-only]`, which are graded and reported but never count. For task cases, the output is the final message plus the workspace diff.
+- **Judge:** `grade(rubric, output, transcript) → { lines: [{ text, pass, reason }] }`. Fixed to Opus 5.5. Each rubric line gets pass or fail with a one-line reason. The engine scores a run as the share of lines that passed (0..1), leaving out lines of type `"report"`, which are graded and reported but never count. A failed line of type `"critical"` fails the run whatever the score. For task cases, the output is the final message plus the workspace diff.
 - **Reporter:**
   - A console summary table, including a short flow-difference summary (odd runs, and cases whose flow changed from the baseline).
   - A timestamped results folder (gitignored) with a summary JSON, plus the full transcript and flow snapshot for each run unit.
   - One markdown flow file per case, showing every run and target side by side as numbered steps, with odd runs and baseline differences highlighted.
   - A diff against the committed baseline, falling back to the most recent local run.
 - **Baseline:** the committed baseline holds both case results and the approved flow snapshots for each case × target. `eval:approve` promotes both together.
-- **CLI:** `eval` with `--kind`, `--case`, `--target`, `--repeat` (default 3), `--concurrency` (default 4), `--baseline`, `--max-cost`; plus `eval:approve`, which promotes the latest run to the committed baseline. `--target` filters cases by their declared targets and never overrides them. The process always exits 0 (report only).
+- **CLI:** `eval` with `--kind`, `--case`, `--target`, `--repeat` (default 3), `--concurrency` (default 4), `--without-skill`, `--max-cost`; plus `eval:approve`, which promotes the latest run to the committed baseline. `--target` filters cases by their declared targets and never overrides them. The process always exits 0 (report only).
 
 **Case schema (decision shape)**
 
@@ -175,7 +175,7 @@ output:                         # what is checked afterwards
     packageJson: { dependencies: { <name>: <range or "*"> } }
     commands: [string]
   judge:                        # answer and task only
-    rubric: [string]            # one expectation per item; "[report-only]" prefix = graded, never counted
+    rubric: [{ assertion, type? }]  # one expectation per item; type "report" = graded, never counted; "critical" = failing it fails the run
     threshold: number           # share of counted items a run must pass, (0, 1], default 1
 ```
 
@@ -184,7 +184,7 @@ output:                         # what is checked afterwards
 - Answer and task cases pass only if every run passes. A run passes when the trigger expectation holds, every deterministic check passes (including any flow checks), and its rubric score reaches the case's rubric threshold (default 1: every counted line passes).
 - The case report shows the mean rubric score of the graded runs, and the comparison shows score changes against the reference. Score changes alone never mark a case regressed or improved.
 - Flow differences (odd runs, changes from the baseline flow) are reported only and never affect pass or fail.
-- `--baseline` runs are reported as a difference against the with-skill runs; they never affect whether a case passes.
+- `--without-skill` runs are reported as a difference against the with-skill runs; they never affect whether a case passes.
 
 **Cost and limits**
 - Cost is collected from each adapter. The engine stops starting new run units once `--max-cost` is reached, and marks the units it skipped in the report.
@@ -207,7 +207,7 @@ output:                         # what is checked afterwards
   - must and must-not include, with strings and regexes;
   - task stages stopping at the first failure;
   - judge results combined into a case result;
-  - `--baseline` removing the skill and reporting the difference;
+  - `--without-skill` removing the skill and reporting the difference;
   - the cost cap stopping new units;
   - turn and time limits shown as stop reasons;
   - the baseline diff, the fallback to the latest run, and `eval:approve`;
