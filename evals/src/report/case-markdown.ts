@@ -8,6 +8,7 @@ const MAX_DIFF_CHARS = 20_000;
 const pct = (v: number | null | undefined) =>
   v === null || v === undefined ? "-" : `${Math.round(v * 100)}%`;
 const mark = (pass: boolean) => (pass ? "✅" : "❌");
+const checkMark = (c: Evals.Checks.Result) => (c.skipped ? "➖" : mark(c.pass));
 
 /**
  * One markdown file per case with everything a run gathered: the prompt, then for every target
@@ -61,7 +62,7 @@ function renderRun(
     out.push("**Checks**", "");
     for (const check of run.checks)
       out.push(
-        `- ${mark(check.pass)} ${check.name}${check.detail ? `: ${inline(check.detail)}` : ""}`,
+        `- ${checkMark(check)} ${check.name}${check.detail ? `: ${inline(check.detail)}` : ""}`,
       );
     out.push("");
   }

@@ -1,5 +1,5 @@
 // Turns the run records into one CaseReport per case and target, with its pass/fail verdict.
-import { findOddRuns } from "../flow/compare.js";
+import { describeOddRuns } from "../flow/compare.js";
 import type { Evals } from "../shared/contracts.js";
 import type { RunUnit } from "../shared/types.js";
 import { TRIGGER_THRESHOLD } from "./defaults.js";
@@ -40,7 +40,9 @@ function caseReport(
   const passRate = rate(ran, (r) => r.pass);
   const threshold =
     c.passThreshold ?? (c.kind === "trigger" ? TRIGGER_THRESHOLD : 1);
-  const { odd } = findOddRuns(ran.map((r) => r.flow?.steps ?? []));
+  const oddFlows = describeOddRuns(ran.map((r) => r.flow?.steps ?? [])).map(
+    (o) => ({ ...o, index: ran[o.index]!.index }),
+  );
 
   return {
     caseId: c.id,
@@ -59,7 +61,8 @@ function caseReport(
     rubricScore: meanRubricScore(ran),
     costUsd: records.reduce((sum, r) => sum + (r.costUsd ?? 0), 0),
     costUnknown: records.some((r) => !r.skipped && r.costUsd === null),
-    oddRuns: odd.map((i) => ran[i]!.index),
+    oddRuns: oddFlows.map((o) => o.index),
+    oddFlows,
     effort: effortOf(ran),
     runs: withSkill,
     ...(options.withoutSkill

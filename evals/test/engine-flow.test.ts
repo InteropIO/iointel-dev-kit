@@ -42,6 +42,13 @@ describe("flow snapshots", () => {
     const c = report.cases[0]!;
     expect(c.pass).toBe(true);
     expect(c.oddRuns).toEqual([1]);
+    expect(c.oddFlows).toEqual([
+      {
+        index: 1,
+        added: ["read <skill>/references/custom-ai-web.md"],
+        removed: ["read <skill>/references/mcp-integration.md"],
+      },
+    ]);
     expect(c.runs[0]!.flow).toEqual({
       steps: usual,
       stopReason: "done",
@@ -54,6 +61,13 @@ describe("flow snapshots", () => {
     );
     expect(md).toContain("### Run 2 ✅ ⚠️ odd flow");
     expect(md).toContain("3. read <skill>/references/custom-ai-web.md");
+    expect(md).toContain(
+      "**What's odd** (compared with the usual flow, runs 1 and 3):",
+    );
+    expect(md).toContain(
+      "- missing: `read <skill>/references/mcp-integration.md`",
+    );
+    expect(md).toContain("- extra: `read <skill>/references/custom-ai-web.md`");
   });
 
   it("does not flag anything when all repeats took the same route", async () => {

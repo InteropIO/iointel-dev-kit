@@ -17,7 +17,7 @@ import { EvalEngine, EvalSetupError } from "./engine/index.js";
 import { AnthropicJudge } from "./judge/anthropic-judge.js";
 import { approveRun } from "./report/baseline.js";
 import { renderConsoleSummary } from "./report/console.js";
-import { resolveSkill } from "./workspace/skill.js";
+import { listSkillFiles, resolveSkill } from "./workspace/skill.js";
 import { resolveWorkdirRoot } from "./workspace/workdir-root.js";
 import { GitWorkspaceManager } from "./workspace/workspace.js";
 import type { Evals } from "./shared/contracts.js";
@@ -56,7 +56,7 @@ Options:
 Calibration options:
   --run ID                     The results run to take items from (default: the latest)
   --number N                   Only run N of the case (as numbered in summary.json)
-  --item TEXT                  Only items whose folder name contains TEXT
+  --item TEXT                  Only items whose path (case-id/run-id/target__n) contains TEXT
   --replay N                   Grade each item N times with the current judge (costs judge
                                calls); without it, the verdicts recorded in the run are used`;
 
@@ -119,6 +119,7 @@ async function main(argv: string[]) {
       codex: CodexAdapter.getInstance(),
     },
     skillName: skill.name,
+    skillFiles: await listSkillFiles(skill.dir),
     judge: AnthropicJudge.getInstance(),
     workspace: new GitWorkspaceManager({
       skillDir: skill.dir,
@@ -203,11 +204,13 @@ ${USAGE}`,
     log: (line) => console.log(line),
   });
   console.log(renderCalibrationConsole(run));
-  if (run.score.items) {
-    const at = new Date().toISOString().replace(/[:.]/g, "-");
-    const file = path.join(paths.results, `calibration-${at}.md`);
-    await mkdir(paths.results, { recursive: true });
-    await writeFile(file, renderCalibrationMarkdown(run, at));
+  const at = new Date().toISOString().replace(/[:.]/g, "-");
+  // One report per <case-id>/<results-run-id> folder, kept beside the items it scores.
+  for (const group of run.groups) {
+    const reportsDir = path.join(paths.calibration, group.id, "reports");
+    const file = path.join(reportsDir, `calibration-${at}.md`);
+    await mkdir(reportsDir, { recursive: true });
+    await writeFile(file, renderCalibrationMarkdown(run, group, at));
     console.log(`Report: ${path.relative(process.cwd(), file)}`);
   }
   // A gate, unlike eval runs: a judge below the targets exits 1.

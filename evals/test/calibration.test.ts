@@ -11,7 +11,11 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { addItems } from "../src/calibration/add-items.js";
 import { calibrate } from "../src/calibration/calibrate.js";
-import { scoreCalibration } from "../src/calibration/score.js";
+import {
+  cohenKappa,
+  scoreCalibration,
+  wilson,
+} from "../src/calibration/score.js";
 import type { Evals } from "../src/shared/contracts.js";
 
 const LINES = ["Fails closed", "Shows the amount", "Leaves validation intact"];
@@ -114,6 +118,90 @@ describe("scoreCalibration", () => {
     expect(score.falsePassRate).toBeNull();
     expect(score.problems.join(" ")).toContain("seeded items");
     expect(score.strayLabels).toEqual([{ item: "a", line: "Old wording" }]);
+  });
+
+  it("is incomplete, not pass, when the values meet the targets but the 95% range doesn't", () => {
+    const score = scoreCalibration(
+      Array.from({ length: 5 }, (_, i) => ({
+        id: `i${i}`,
+        rubric: LINES,
+        reportOnly: [],
+        critical: [],
+        labels: labels([false, true, true]),
+        gradings: [grading(`run ${i + 1}`, [false, true, true])],
+      })),
+    );
+    expect(score).toMatchObject({
+      agreement: 1,
+      falsePassRate: 0,
+      status: "incomplete",
+    });
+    // 0 false passes out of 5 human fails: the true rate could still be up to ~43%.
+    expect(score.falsePassRateCi!.high).toBeCloseTo(0.4345, 3);
+    expect(score.kappa).toBe(1);
+    expect(score.problems.join(" ")).toContain(
+      "95% range for the false-pass rate",
+    );
+  });
+
+  it("passes once there are enough labels for the range to clear the targets", () => {
+    const score = scoreCalibration(
+      Array.from({ length: 80 }, (_, i) => ({
+        id: `i${i}`,
+        rubric: LINES,
+        reportOnly: [],
+        critical: [],
+        labels: labels([false, true, true]),
+        gradings: [grading(`run ${i + 1}`, [false, true, true])],
+      })),
+    );
+    expect(score.falsePassRateCi!.high).toBeLessThan(0.05);
+    expect(score.status).toBe("pass");
+  });
+});
+
+describe("wilson", () => {
+  it("gives a sensible range at 0 of n and in the middle", () => {
+    expect(wilson(0, 10)!.low).toBe(0);
+    expect(wilson(0, 10)!.high).toBeCloseTo(0.2775, 3);
+    const mid = wilson(5, 10)!;
+    expect(mid.low).toBeCloseTo(0.2366, 3);
+    expect(mid.high).toBeCloseTo(0.7634, 3);
+    expect(wilson(0, 0)).toBeNull();
+  });
+});
+
+describe("cohenKappa", () => {
+  it("corrects agreement for chance", () => {
+    // 90% raw agreement, but most labels are pass: κ is only ~0.61.
+    const { kappa, kappaCi } = cohenKappa({
+      bothPass: 80,
+      judgePassOnly: 8,
+      humanPassOnly: 2,
+      bothFail: 10,
+    });
+    expect(kappa).toBeCloseTo(0.6106, 3);
+    expect(kappaCi!.low).toBeLessThan(kappa!);
+    expect(kappaCi!.high).toBeGreaterThan(kappa!);
+  });
+
+  it("is zero for a judge that always says pass, and null when undefined", () => {
+    expect(
+      cohenKappa({
+        bothPass: 90,
+        judgePassOnly: 10,
+        humanPassOnly: 0,
+        bothFail: 0,
+      }).kappa,
+    ).toBe(0);
+    expect(
+      cohenKappa({
+        bothPass: 10,
+        judgePassOnly: 0,
+        humanPassOnly: 0,
+        bothFail: 0,
+      }).kappa,
+    ).toBeNull();
   });
 });
 
@@ -220,7 +308,7 @@ describe("addItems", () => {
     const dirs = await makeRun();
     const added = await add(dirs);
 
-    const id = `pay__fake_m__1__${RUN_ID}`;
+    const id = `pay/${RUN_ID}/fake_m__1`;
     expect(added).toEqual([{ id, created: true }]); // run 2 failed before grading
     const dir = path.join(dirs.calibration, id);
     const evidence = await readJson(path.join(dir, "evidence.json"));
@@ -243,6 +331,15 @@ describe("addItems", () => {
     const md = await readFile(path.join(dir, "evidence.md"), "utf8");
     expect(md).toContain("0. Fails closed");
     expect(md).toContain("+onToolCall()");
+    expect(md).toMatch(/^## Rubric$/m);
+    expect(md).toMatch(/^## Final message$/m);
+    expect(md).toMatch(/^## Workspace diff$/m);
+    expect(md).toMatch(/^```diff$/m);
+    expect(md).toMatch(/^## Transcript$/m);
+    expect(md).toMatch(/^### #1 · /m);
+    expect(md).not.toMatch(
+      /<\/?(rubric|final_message|workspace_diff|transcript)\b/,
+    );
     expect(md).not.toContain("judge r0");
   });
 
@@ -320,6 +417,12 @@ describe("calibrate", () => {
       verdicts: 3,
       falsePasses: 1,
       status: "fail",
+    });
+    // Scored again per <case>/<results-run> folder, for the report kept there.
+    expect(run.groups).toHaveLength(1);
+    expect(run.groups[0]).toMatchObject({
+      id: `pay/${RUN_ID}`,
+      score: { verdicts: 3, falsePasses: 1, status: "fail" },
     });
   });
 

@@ -15,13 +15,14 @@ export async function runChecks(
   agent: Evals.Agent.RunResult,
   workspace: Evals.Workspace.Prepared,
   runCommand: Evals.Commands.Runner,
+  skillFiles: readonly string[] = [],
 ): Promise<CheckOutcome> {
   const c = unit.case;
   const checks: Evals.Checks.Result[] = [
     ...agentFinished(agent),
     ...skillTriggered(unit, agent),
     ...(c.kind === "answer" ? checkAnswerText(c, agent.finalMessage) : []),
-    ...checkFlow(c, agent.flow),
+    ...checkFlow(c, agent.flow, unit.withSkill ? [] : skillFiles),
   ];
   if (c.kind === "trigger") return { checks, diff: undefined };
   // Answer cases get the diff too, so the judge can grade "changes no files".

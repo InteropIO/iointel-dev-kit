@@ -1,6 +1,7 @@
 import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import { compileMatcher } from "./matcher.js";
+import { SKILL_PREFIX } from "../flow/normalize.js";
 import type { Evals } from "../shared/contracts.js";
 
 export function checkAnswerText(
@@ -32,12 +33,19 @@ export function checkAnswerText(
 const DOWNLOAD_COMMAND =
   /\b(curl|wget|iwr|irm|Invoke-WebRequest|Invoke-RestMethod)\b/i;
 
+/**
+ * Checks the run's flow. Pass `missingSkillFiles` for a run without the skill: checks whose
+ * matcher points at one of those files (a skill reference read, a skill script run) are skipped,
+ * since such a run can't read or run them and the comparison should rest on the other checks.
+ */
 export function checkFlow(
   c: Evals.Cases.Case,
   steps: readonly Evals.Flow.Step[],
+  missingSkillFiles: readonly string[] = [],
 ): Evals.Checks.Result[] {
   const flow = c.output.deterministic.flow;
   if (!flow) return [];
+  const onSkill = skillFileMatcher(missingSkillFiles);
   const reads = steps.flatMap((s) => (s.kind === "read" ? [s.path] : []));
   const runs = steps.flatMap((s) =>
     s.kind === "command"
@@ -54,24 +62,43 @@ export function checkFlow(
         : [],
   );
   const any = (items: string[], m: string) => items.some(compileMatcher(m));
+  // Fetches are URLs, never skill files, so mustFetch always runs.
+  const check = (
+    kind: "mustRead" | "mustNotRead" | "mustRun" | "mustFetch",
+    m: string,
+    pass: boolean,
+  ): Evals.Checks.Result => {
+    const name = `flow.${kind} ${m}`;
+    if (kind !== "mustFetch" && onSkill(m))
+      return {
+        name,
+        pass: true,
+        skipped: true,
+        detail:
+          "not checked: it points at the skill's own files, and this run has no skill",
+      };
+    return pass
+      ? { name, pass }
+      : { name, pass, detail: "violated by the run flow" };
+  };
   return [
-    ...flow.mustRead.map((m) => ({
-      name: `flow.mustRead ${m}`,
-      pass: any(reads, m),
-    })),
-    ...flow.mustNotRead.map((m) => ({
-      name: `flow.mustNotRead ${m}`,
-      pass: !any(reads, m),
-    })),
-    ...flow.mustRun.map((m) => ({
-      name: `flow.mustRun ${m}`,
-      pass: any(runs, m),
-    })),
-    ...flow.mustFetch.map((m) => ({
-      name: `flow.mustFetch ${m}`,
-      pass: any(fetches, m),
-    })),
-  ].map((r) => (r.pass ? r : { ...r, detail: "violated by the run flow" }));
+    ...flow.mustRead.map((m) => check("mustRead", m, any(reads, m))),
+    ...flow.mustNotRead.map((m) => check("mustNotRead", m, !any(reads, m))),
+    ...flow.mustRun.map((m) => check("mustRun", m, any(runs, m))),
+    ...flow.mustFetch.map((m) => check("mustFetch", m, any(fetches, m))),
+  ];
+}
+
+/**
+ * Whether a flow matcher points at the skill: it matches a skill file as the flow shows it
+ * ("<skill>/references/core.md"), or a skill script as a script step names it ("materialize-template").
+ */
+function skillFileMatcher(files: readonly string[]): (m: string) => boolean {
+  const targets = files.flatMap((f) => {
+    const script = /^scripts\/([^/]+?)(?:\.m?[jt]s)?$/.exec(f)?.[1];
+    return script ? [`${SKILL_PREFIX}/${f}`, script] : [`${SKILL_PREFIX}/${f}`];
+  });
+  return (m) => targets.some(compileMatcher(m));
 }
 
 /** Structural task checks: expected files, then package.json dependencies. Stops at the first failing stage. */

@@ -28,10 +28,11 @@
           "assertion": "Enables Code Mode exactly once for this assistant, in the AI Web configuration io.Assist uses (aiWebConfig in app/src/App.tsx), not in the acme MCP server"
         },
         {
-          "assertion": "Uses the browser entry point and points the WASM location at a URL the app serves, delivered from the installed @interopio/code-mode package through a repeatable step or an exact-version URL"
+          "assertion": "provides the wasm file from the installed @interopio/code-mode package either by copying it directly to the app's public directory or using an exact-version CDN URL",
+          "type": "critical"
         },
         {
-          "assertion": "Adds an asynchronous interceptors.onToolCall on that Code Mode configuration that awaits the user's decision before submit_payment runs"
+          "assertion": "Adds an asynchronous modal approval in interceptors.onToolCall configuration that awaits the user's decision before submit_payment runs"
         },
         {
           "assertion": "Matches submit_payment by the tool identifier the host actually passes to the interceptor (verified in docs or installed types), not a guessed name"

@@ -1,60 +1,60 @@
 {
-  "runId": "2026-11-16T13-14-58-413Z",
+  "runId": "2026-11-17T13-53-35-948Z",
   "lines": [
     {
       "line": "Enables Code Mode exactly once for this assistant, in the AI Web configuration io.Assist uses (aiWebConfig in app/src/App.tsx), not in the acme MCP server",
       "pass": true,
-      "reason": "The diff adds a single `codeMode` block inside `aiWebConfig` in `app/src/App.tsx`, and `mcp-server` is untouched."
+      "reason": "Diff adds a single `codeMode` entry to `aiWebConfig` in app/src/App.tsx. mcp-server is unchanged."
     },
     {
       "line": "Uses the browser entry point and points the WASM location at a URL the app serves, delivered from the installed @interopio/code-mode package through a repeatable step or an exact-version URL",
-      "pass": true,
-      "reason": "It imports `IoCodeModeFactory` from `@interopio/code-mode/browser` and sets `wasmLocation` to `/quickjs/emscripten-module.wasm`. `scripts/copy-wasm.mjs` copies the file from the installed package and runs on start and build."
+      "pass": false,
+      "reason": "The browser factory is used, but the WASM was copied once by hand (#40) and committed as a binary. There is no repeatable copy script and no exact-version URL; the user is only told to re-copy it manually."
     },
     {
       "line": "Adds an asynchronous interceptors.onToolCall on that Code Mode configuration that awaits the user's decision before submit_payment runs",
       "pass": true,
-      "reason": "`interceptors.onToolCall` is async and returns allow or deny only after the user answers the blocking confirm, so `submit_payment` cannot run first."
+      "reason": "`onToolCall` is an async function that gets the user's confirm result before returning `allowed`, so `submit_payment` cannot run first."
     },
     {
       "line": "Matches submit_payment by the tool identifier the host actually passes to the interceptor (verified in docs or installed types), not a guessed name",
       "pass": true,
-      "reason": "The agent fetched the configuration docs (#21), which say AI Web passes plain, unprefixed MCP names in `tool.name`. It matches `tool.name === \"submit_payment\"`."
+      "reason": "It matches `tool.name === \"submit_payment\"`; the docs fetched in #23 say AI Web passes plain, unprefixed names, and the types were checked in #45."
     },
     {
       "line": "Shows the payment details from the call input (client, amount, currency, beneficiary) in the approval prompt",
       "pass": true,
-      "reason": "The prompt shows the client ID, amount, currency and beneficiary taken from the call input."
+      "reason": "The prompt includes `JSON.stringify(input)`, which carries clientId, amount, currency and beneficiary."
     },
     {
       "line": "Fails closed: a declined, dismissed or failed approval denies the call, and approval is never assumed or auto-granted",
       "pass": true,
-      "reason": "A Cancel or dismissed confirm returns `{allowed:false}`. Approval needs an explicit OK, and an exception would reject rather than allow."
+      "reason": "Cancel or false returns `allowed: false` with a reason. Approval is only granted on an explicit confirm."
     },
     {
       "line": "Lets every other tool call through unchanged and does not add a toolFilter or rewrite the payment input",
       "pass": true,
-      "reason": "Other tools return `{allowed:true, input}`. There is no `toolFilter`, and the payment input is passed through unchanged."
+      "reason": "Other tools return `{allowed: true}`. There is no toolFilter and no input rewrite."
     },
     {
       "line": "Leaves submit_payment's server-side validation in mcp-server intact",
       "pass": true,
-      "reason": "The diff makes no changes to `mcp-server`."
+      "reason": "The diff does not touch mcp-server."
     },
     {
       "line": "Explains in the final message that the interceptor only gates calls made through Code Mode, so the server must still authorize and validate payments",
-      "pass": true,
-      "reason": "The final message says the interceptor isn't a security boundary and that authorization or approval must also be enforced server-side."
+      "pass": false,
+      "reason": "The final message says the server should still validate, but never says the interceptor only gates calls made through Code Mode, so a direct call would bypass it."
     },
     {
       "line": "Uses the io.Connect modals dialogs that the app already enables instead of window.confirm",
       "pass": false,
-      "reason": "It uses `window.confirm` even though io.Connect modals dialogs are already enabled in `connectConfig`."
+      "reason": "It uses `window.confirm` instead of the io.Connect modals dialogs that the app already enables."
     },
     {
       "line": "Chooses the @interopio/code-mode version from the npm registry and the installed host's range, not from a docs example",
       "pass": true,
-      "reason": "`npm view` returned 1.0.1 as the latest version, and the agent checked that AI Web 1.4.0 requires `@interopio/code-mode` `^1.0.1` (#46)."
+      "reason": "#31 and #35 checked the npm registry (1.0.1) and AI Web's dependency range (^1.0.1) before choosing ^1.0.1."
     }
   ]
 }

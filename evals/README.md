@@ -387,7 +387,7 @@ outcome: done · 23 turns · $0.41
 
 Two runs that took the same route produce **identical** snapshots, whatever temp folder they ran in, so differences are meaningful:
 
-- **Odd runs:** repeats are grouped by identical snapshots, and runs outside the largest group are flagged. For example, if two runs read `mcp-integration.md` and the third read `custom-ai-web.md`, the third is flagged, even when all three passed.
+- **Odd runs:** repeats are grouped by identical snapshots, and runs outside the largest group are flagged. For example, if two runs read `mcp-integration.md` and the third read `custom-ai-web.md`, the third is flagged, even when all three passed. Each odd run is compared with the usual flow step by step, and the report says what's odd: `missing: read <skill>/references/mcp-integration.md`, `extra: read <skill>/references/custom-ai-web.md`. Steps in a different order show as one missing and one extra; a command with a different exit code shows the same way.
 - **Baseline flow changes:** the case's usual flow is compared with the approved one, e.g. "no longer reads `core.md`" or "a build retry appeared".
 - **Flow checks:** once you've found a corner case, lock it in. A violated check fails the run:
 
@@ -442,18 +442,21 @@ The judge grades every rubric line pass or fail. Each graded run also gets a **r
 
 ### Judge calibration
 
-The rubric score is only as good as the judge. **Calibration** measures it: a person labels every rubric line of a few finished runs pass or fail, without looking at the judge's verdict, and `npm run eval:calibrate` counts where they disagree. It reports agreement, the **false-pass rate** (the judge passed what a person failed) and the false-fail rate against targets, plus the worst lines.
+The rubric score is only as good as the judge. **Calibration** measures it: a person labels every rubric line of a few finished runs pass or fail, without looking at the judge's verdict, and `npm run eval:calibrate` counts where they disagree. It reports agreement, the **false-pass rate** (the judge passed what a person failed) and the false-fail rate, each with a 95% range, plus Cohen's κ (agreement beyond chance) and the worst lines. A PASS needs the whole range to meet each target, so a small set reports INCOMPLETE rather than a lucky PASS.
 
 ```
-evals/calibration/<case>__<target>__<run>__<run-id>/   (committed)
-├── evidence.json   what the judge grades, frozen from the run
-├── evidence.md     the same as the judge reads it, to label from (generated)
-├── labels.json     your verdict per line: pass true/false, and the evidence
-├── verdicts.json   the judge's verdicts from the run (left out of seeded items)
-└── workspace/      the run's files minus node_modules, for workspaceAccess cases
+evals/calibration/<case-id>/<results-run-id>/   (committed)
+├── reports/
+│   └── calibration-<time>.md   one per eval:calibrate that scored this folder
+└── <target>__<n>/              one item: run n of the case on that target
+    ├── evidence.json   what the judge grades, frozen from the run
+    ├── evidence.md     the same as the judge reads it, to label from (generated)
+    ├── labels.json     your verdict per line: pass true/false, and the evidence
+    ├── verdicts.json   the judge's verdicts from the run (left out of seeded items)
+    └── workspace/      the run's files minus node_modules, for workspaceAccess cases
 ```
 
-The labels never reach the judge. They test it, so we know which lines it can grade alone. Without `--replay` the comparison uses the verdicts recorded in the run and costs nothing. With `--replay N` the current judge grades each item N times, which tests a judge change and finds lines that flip. The full report goes to `results/calibration-<time>.md`.
+The labels never reach the judge. They test it, so we know which lines it can grade alone. Without `--replay` the comparison uses the verdicts recorded in the run and costs nothing. With `--replay N` the current judge grades each item N times, which tests a judge change and finds lines that flip. The console shows the result over all items (the gate), and each `<case-id>/<results-run-id>/` folder gets its own report in `reports/`, scored over just its items.
 
 The whole process, from seeding near-misses to deciding what to do with each disagreement, is in [docs/judge-governance.md §5.1](docs/judge-governance.md).
 
@@ -498,7 +501,7 @@ npm run typecheck                    tsc, plus a separate check of shared/contra
 npm run format                       prettier
 ```
 
-**`--without-skill`** reruns every unit with the skill removed and reports the difference next to each case ("without skill: pass 20%, turns 14 vs 6, failed cmds 3 vs 0", the skill-removed side first). It answers "does the skill actually help, or did the model already know this?". A skill can help even when both sides pass: fewer turns, fewer failed commands (wrong package names, broken installs) and lower cost mean the agent got there more directly. Each case's `effort` in `summary.json` holds these means for both sides. Failed commands are the agent's own shell commands that exited non-zero, not the case's `commands` checks. Turns are counted differently per tool (Codex counts tool calls), so compare effort within one target only. Runs without the skill never affect pass or fail.
+**`--without-skill`** reruns every unit with the skill removed and reports the difference next to each case ("without skill: pass 20%, turns 14 vs 6, failed cmds 3 vs 0", the skill-removed side first). It answers "does the skill actually help, or did the model already know this?". A skill can help even when both sides pass: fewer turns, fewer failed commands (wrong package names, broken installs) and lower cost mean the agent got there more directly. Each case's `effort` in `summary.json` holds these means for both sides. Failed commands are the agent's own shell commands that exited non-zero, not the case's `commands` checks. Turns are counted differently per tool (Codex counts tool calls), so compare effort within one target only. Runs without the skill never affect pass or fail. In those runs, flow checks that point at the skill's own files (a `mustRead` or `mustNotRead` that matches a file in the skill folder, a `mustRun` that names one of its scripts) are skipped, marked ➖ in the report and `skipped: true` in `summary.json`, because a run without the skill could never satisfy them. Every other check still runs, `mustFetch` included, so both sides are judged on the same outcome.
 
 ### What a run writes
 
@@ -534,6 +537,7 @@ evals/results/<run-id>/            (gitignored)
     "ran", "skipped", "network", "costUsd",
     "change": { "status": "regressed", "before": { "pass", "trigger", "rubric" }, "flow": { "added": 17, "removed": 4 } },  // step counts; steps in flows/<case>.md
     "oddRuns": [2],                                      // 1-based run numbers
+    "oddFlows": [{ "run": 2, "added": [], "removed": ["read <skill>/references/mcp-integration.md"] }],  // odd runs only: steps vs the usual flow
     "effort": { "turns", "failedCommands", "costUsd" },  // means per run; null when no run reported it
     "files": { "report": "reports/<case>.md", "flow": "flows/<case>.md" },
     "runs": [{
@@ -566,7 +570,7 @@ Cases: 1 passed, 2 failed · runs: 6 passed, 3 failed, 0 skipped · cost: $0.98
 Comparison against committed baseline (2026-11-02T10-00-00-000Z):
   REGRESSED mcp-web-tool-trigger [codex/gpt-5.5] pass 100% → 33%, trigger 100% → 33%
 Odd flows among repeats (see flows/<case>.md):
-  mcp-web-tool-trigger [codex/gpt-5.5]: run 2
+  mcp-web-tool-trigger [codex/gpt-5.5] run 2: missing skill-loaded io-intelligence (via skill-md-read); missing read <skill>/references/mcp-integration.md
 ```
 
 ---

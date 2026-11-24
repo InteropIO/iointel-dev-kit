@@ -1,12 +1,15 @@
 // The calibration set on disk: one folder per item under evals/calibration/, each a graded run
-// frozen with a human's verdicts for its rubric lines (docs/judge-governance.md §5.1).
+// frozen with a human's verdicts for its rubric lines (docs/judge-governance.md §5.1). Items are
+// grouped by case, then by the results run they came from; an item's id is that relative path.
 //
-//   calibration/<item>/
-//     evidence.json   what the judge grades: rubric, final message, diff, raw transcript
-//     evidence.md     the same as the judge reads it, for labelling (regenerated, never edit)
-//     labels.json     the human verdict per line (pass: true/false, null while unlabelled)
-//     verdicts.json   the judge's verdicts from the original run (absent for seeded items)
-//     workspace/      the run's workspace minus node_modules and .git, for workspaceAccess cases
+//   calibration/<case-id>/<results-run-id>/
+//     reports/          calibration-<time>.md, one per eval:calibrate that scored this group
+//     <target>__<n>/    one item: run n of the case on that target
+//       evidence.json   what the judge grades: rubric, final message, diff, raw transcript
+//       evidence.md     the same as the judge reads it, for labelling (regenerated, never edit)
+//       labels.json     the human verdict per line (pass: true/false, null while unlabelled)
+//       verdicts.json   the judge's verdicts from the original run (absent for seeded items)
+//       workspace/      the run's workspace minus node_modules and .git, for workspaceAccess cases
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
@@ -68,7 +71,23 @@ export const FILES = {
   labels: "labels.json",
   verdicts: "verdicts.json",
   workspace: "workspace",
+  reports: "reports",
 } as const;
+
+/** An item's id: its folder relative to the calibration folder, always with "/" separators. */
+export function itemId(
+  caseId: string,
+  runId: string,
+  target: string,
+  run: number,
+): string {
+  return `${caseId}/${runId}/${target.replace(/[^\w.-]+/g, "_")}__${run}`;
+}
+
+/** The group an item belongs to, "<case-id>/<results-run-id>": where its reports go. */
+export function groupOf(id: string): string {
+  return id.split("/").slice(0, 2).join("/");
+}
 
 export class CalibrationError extends Error {
   public override readonly name = "CalibrationError";
@@ -79,15 +98,15 @@ export async function loadItems(
   calibrationDir: string,
   filter?: string,
 ): Promise<Evals.Calibration.Item[]> {
-  const entries = await readdir(calibrationDir, { withFileTypes: true }).catch(
-    () => [],
-  );
-  const ids = entries
-    .filter((e) => e.isDirectory() && (!filter || e.name.includes(filter)))
-    .map((e) => e.name)
-    .sort();
+  const ids: string[] = [];
+  for (const caseId of await subdirs(calibrationDir))
+    for (const runId of await subdirs(path.join(calibrationDir, caseId)))
+      for (const name of await subdirs(
+        path.join(calibrationDir, caseId, runId),
+      ))
+        if (name !== FILES.reports) ids.push(`${caseId}/${runId}/${name}`);
   const items: Evals.Calibration.Item[] = [];
-  for (const id of ids) {
+  for (const id of ids.filter((i) => !filter || i.includes(filter)).sort()) {
     const dir = path.join(calibrationDir, id);
     const evidence = await readFileWith(dir, FILES.evidence, evidenceSchema);
     if (!evidence) continue; // not an item folder
@@ -103,6 +122,11 @@ export async function loadItems(
     });
   }
   return items;
+}
+
+async function subdirs(dir: string): Promise<string[]> {
+  const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
+  return entries.filter((e) => e.isDirectory()).map((e) => e.name);
 }
 
 export async function writeJson(file: string, value: unknown): Promise<void> {
@@ -121,7 +145,7 @@ async function readFileWith<T>(
     if ((err as NodeJS.ErrnoException).code === "ENOENT") return undefined;
     throw err;
   }
-  const where = `${path.basename(dir)}/${name}`;
+  const where = path.relative(process.cwd(), path.join(dir, name));
   let json: unknown;
   try {
     json = JSON.parse(raw);

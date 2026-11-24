@@ -147,15 +147,17 @@ In standard eval terms, the human verdicts are **golden labels**: answers you tr
    npm run eval:calibrate -- add --case code-mode-approve-payment --run 2026-11-16T13-14-58-413Z
    ```
 
-   Every judge-graded run of that case becomes an **item**: a folder in `evals/calibration/`. Runs that failed before grading (a broken build, say) have no verdicts and are skipped. `--number N` takes only run N, and `--run` defaults to the latest run. An existing item is never overwritten, so labels are safe.
+   Every judge-graded run of that case becomes an **item**: a folder in `evals/calibration/<case-id>/<results-run-id>/`. Runs that failed before grading (a broken build, say) have no verdicts and are skipped. `--number N` takes only run N, and `--run` defaults to the latest run. An existing item is never overwritten, so labels are safe.
 
    ```
-   evals/calibration/<case>__<target>__<run>__<run-id>/
-     evidence.json   what the judge grades: rubric, final message, diff, raw transcript
-     evidence.md     the same, as the judge reads it (generated, read-only)
-     labels.json     your verdicts, pass: null until you fill them in
-     verdicts.json   the judge's verdicts from the original run
-     workspace/      the run's files, for cases with workspaceAccess
+   evals/calibration/<case-id>/<results-run-id>/
+     reports/          calibration-<time>.md, one per eval:calibrate that scored this folder
+     <target>__<n>/    one item: run n of the case on that target
+       evidence.json   what the judge grades: rubric, final message, diff, raw transcript
+       evidence.md     the same, as the judge reads it (generated, read-only)
+       labels.json     your verdicts, pass: null until you fill them in
+       verdicts.json   the judge's verdicts from the original run
+       workspace/      the run's files, for cases with workspaceAccess
    ```
 
    **Workspace cases.** For a case with `workspaceAccess`, the run's workspace is copied in without `node_modules` and `.git`. It must still exist, so run the eval with `--keep-workdirs` first. Without it, the item works for the free comparison (step 4) but replay skips it. Lines about installed packages lose their evidence when `node_modules` is left out; a replay of such a line is graded from `package.json` and the transcript only.
@@ -191,7 +193,7 @@ In standard eval terms, the human verdicts are **golden labels**: answers you tr
    - **Recorded** compares your labels with what the judge said in the original run. No calls, no cost.
    - **Replay** grades the frozen evidence again with today's judge code: its prompt, compaction and model. It's how a judge change gets tested, and the only way to grade seeded items. Repeating also measures consistency (5.2).
 
-   `--item TEXT` limits either one to items whose folder name contains TEXT. The console prints the numbers, and the full report, with every disagreement and both reasons, goes to `results/calibration-<time>.md`.
+   `--item TEXT` limits either one to items whose path (`<case-id>/<results-run-id>/<target>__<n>`) contains TEXT, so a case id or a results run id works too. The console prints the numbers over all items; that result is the gate. Each `<case-id>/<results-run-id>/` folder also gets a full report in its `reports/`, with every disagreement and both reasons, scored over just its items.
 
 5. **Read the numbers.** Each verdict lands in one of four boxes:
 
@@ -205,12 +207,18 @@ In standard eval terms, the human verdicts are **golden labels**: answers you tr
    | **Agreement** | verdicts where judge = human | ≥ 90% |
    | **False-pass rate** | judge passed ÷ all verdicts the human failed | **≤ 5%** |
    | **False-fail rate** | judge failed ÷ all verdicts the human passed | ≤ 10% |
+   | **Cohen's κ** | agreement beyond what chance would give, from −1 to 1 (0 = no better than chance) | reported only |
+   | **Base rate** | share of labelled verdicts that are pass | context for κ |
    | **Flips** (replay only) | lines that got different verdicts on the same input | 0 |
    | **Lines** | the same counts per rubric line, worst first | fix the worst |
 
-   **Worked example.** 200 labelled verdicts: humans said 150 pass and 50 fail. The judge passed 4 of the 50, a false-pass rate of 8%, which is too high. It failed 6 of the 150, a false-fail rate of 4%, which is fine. Agreement is (200 − 4 − 6) ÷ 200 = **95%**. High agreement can hide a bad false-pass rate, which is why the rates are reported separately.
+   **Each rate comes with a 95% range** (a Wilson interval), and κ with its own interval. With few labels a rate is a rough estimate: 0 false passes out of 5 fail-labelled verdicts still allows a true rate of up to 43%. The range says how far the real value could be from the one measured.
 
-   The result is **PASS**, **FAIL** (a target missed, so the command exits 1) or **INCOMPLETE**: nothing is labelled yet, or no line is labelled fail, so the false-pass rate can't be measured. Add seeded items to fix the second case. Unlabelled lines (`pass: null`) aren't counted.
+   **Worked example.** 200 labelled verdicts: humans said 150 pass and 50 fail. The judge passed 4 of the 50, a false-pass rate of 8% (range 3–19%), which is too high. It failed 6 of the 150, a false-fail rate of 4% (range 2–8%), which is fine. Agreement is (200 − 4 − 6) ÷ 200 = **95%** (range 91–97%). κ is 0.87: three quarters of the labels are pass, so a judge that always said pass would already agree 75% of the time, and κ only counts what it adds beyond that. High agreement can hide a bad false-pass rate, which is why the rates are reported separately.
+
+   The result is **PASS**, **FAIL** (a target missed, so the command exits 1) or **INCOMPLETE**. **PASS** needs the whole 95% range on the right side of each target, not just the measured value. **FAIL** means a measured value misses a target. **INCOMPLETE** means nothing is labelled yet, or no line is labelled fail (so the false-pass rate can't be measured; add seeded items), or the values meet the targets but there are too few labels for the range to clear them. To show a false-pass rate below 5% with no false passes at all takes about 75 fail-labelled verdicts, so seeded items carry most of that weight. Unlabelled lines (`pass: null`) aren't counted. κ isn't gated: it depends on the base rate, so there's no fixed target, but a low κ next to high agreement means the judge is mostly agreeing on the easy lines.
+
+   **The ranges are optimistic.** They treat every verdict as independent. They aren't: replays of one item, and the lines within one run, are related. Read `--replay 3` as three looks at the same evidence, not three times the evidence.
 
 6. **Find the cause of every disagreement.**
 

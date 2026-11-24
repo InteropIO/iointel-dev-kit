@@ -7,7 +7,7 @@ import { listRunIds } from "../report/baseline.js";
 import { SUMMARY_FILE } from "../report/summary-file.js";
 import type { Evals } from "../shared/contracts.js";
 import { writeEvidenceMarkdown } from "./evidence-markdown.js";
-import { CalibrationError, FILES, writeJson } from "./store.js";
+import { CalibrationError, FILES, itemId, writeJson } from "./store.js";
 
 // Left out of a saved workspace: large, rebuilt by npm install, or not the project's own files.
 const WORKSPACE_SKIP = new Set(["node_modules", ".git"]);
@@ -51,7 +51,7 @@ export async function addItems(
   await mkdir(options.calibrationDir, { recursive: true });
   const added: Evals.Calibration.Added[] = [];
   for (const { target, r } of graded) {
-    const id = `${options.caseId}__${target.replace(/[^\w.-]+/g, "_")}__${r.run}__${runId}`;
+    const id = itemId(options.caseId, runId, target, r.run);
     const dir = path.join(options.calibrationDir, id);
     if (await exists(dir)) {
       added.push({ id, created: false });
@@ -97,7 +97,7 @@ export async function addItems(
         reason: l.reason,
       })),
     };
-    await mkdir(dir);
+    await mkdir(dir, { recursive: true });
     await writeJson(path.join(dir, FILES.evidence), evidence);
     await writeEvidenceMarkdown(dir, evidence);
     await writeJson(path.join(dir, FILES.labels), labels);

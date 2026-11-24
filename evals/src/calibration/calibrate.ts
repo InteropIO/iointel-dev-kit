@@ -5,7 +5,7 @@ import path from "node:path";
 import { runPool } from "../engine/pool.js";
 import type { Evals } from "../shared/contracts.js";
 import { writeEvidenceMarkdown } from "./evidence-markdown.js";
-import { FILES, loadItems } from "./store.js";
+import { FILES, groupOf, loadItems } from "./store.js";
 import { scoreCalibration } from "./score.js";
 
 type Item = Evals.Calibration.Item;
@@ -20,6 +20,7 @@ export async function calibrate(
     await writeEvidenceMarkdown(item.dir, item.evidence);
   const replay = options.replay ?? 0;
   let costUsd = 0;
+  const groupCost = new Map<string, number>();
 
   const inputs = await runPool(
     items,
@@ -59,6 +60,8 @@ export async function calibrate(
             `replay ${n}`,
             (c) => {
               costUsd += c;
+              const group = groupOf(item.id);
+              groupCost.set(group, (groupCost.get(group) ?? 0) + c);
             },
           ),
         );
@@ -67,8 +70,15 @@ export async function calibrate(
     },
   );
 
+  // Each results run of a case is also scored on its own, for the report kept beside its items.
+  const groups = [...new Set(inputs.map((i) => groupOf(i.id)))].map((id) => ({
+    id,
+    score: scoreCalibration(inputs.filter((i) => groupOf(i.id) === id)),
+    costUsd: groupCost.get(id) ?? 0,
+  }));
   return {
     score: scoreCalibration(inputs),
+    groups,
     mode: replay ? "replay" : "recorded",
     costUsd,
   };

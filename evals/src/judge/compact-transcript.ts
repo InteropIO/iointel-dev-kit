@@ -11,7 +11,7 @@
 //      so the end of the run (final edits, build, the agent's own checks) stays intact.
 import type { Evals } from "../shared/contracts.js";
 
-type EntryKind =
+export type EntryKind =
   | "user"
   | "assistant"
   | "thinking"
@@ -56,6 +56,15 @@ export const DEFAULT_COMPACT_OPTIONS: CompactOptions = {
 export interface CompactTranscript {
   readonly text: string;
   readonly stats: Evals.Judge.TranscriptStats;
+  /** The entries `text` is made of, numbered from 1 in order. Absent when the last-resort cut
+   * shortened the rendered log as a whole, so the entries no longer match what is sent. */
+  readonly entries?: readonly TranscriptEntry[];
+}
+
+export interface TranscriptEntry {
+  readonly kind: EntryKind;
+  readonly label?: string;
+  readonly text: string;
 }
 
 export function compactTranscript(
@@ -105,6 +114,15 @@ export function compactTranscript(
 
   return {
     text,
+    ...(lastResort
+      ? {}
+      : {
+          entries: entries.map(({ kind, label, text }) => ({
+            kind,
+            ...(label ? { label } : {}),
+            text: text.trimEnd(),
+          })),
+        }),
     stats: {
       rawChars,
       sentChars: text.length,

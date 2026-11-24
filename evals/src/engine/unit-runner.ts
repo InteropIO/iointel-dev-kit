@@ -48,7 +48,13 @@ export class UnitRunner {
         workspace.workdir,
         skillInstallPath,
       );
-      const outcome = await runChecks(unit, agent, workspace, this.runCommand);
+      const outcome = await runChecks(
+        unit,
+        agent,
+        workspace,
+        this.runCommand,
+        this.deps.skillFiles,
+      );
       const grading = outcome.checks.every((x) => x.pass)
         ? await this.grade(unit, agent, outcome.diff, workspace.workdir)
         : UnitRunner.NOT_GRADED;

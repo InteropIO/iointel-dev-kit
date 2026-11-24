@@ -46,6 +46,16 @@ export declare namespace Evals {
       readonly odd: readonly number[];
     }
 
+    /** What an odd run did differently from the usual (majority) flow of its repeats. */
+    interface OddRun {
+      /** The run's 0-based repeat index. */
+      readonly index: number;
+      /** Steps the odd run took that the usual flow doesn't. */
+      readonly added: readonly string[];
+      /** Steps of the usual flow the odd run didn't take. */
+      readonly removed: readonly string[];
+    }
+
     /** Step-level difference between a reference flow and a current flow. */
     interface Diff {
       readonly added: readonly string[];
@@ -327,6 +337,11 @@ export declare namespace Evals {
       readonly name: string;
       readonly pass: boolean;
       readonly detail?: string;
+      /**
+       * Not checked, so it can't fail: a flow check on the skill's own files, in a run without
+       * the skill (--without-skill). pass is true so it doesn't decide the run.
+       */
+      readonly skipped?: true;
     }
   }
 
@@ -355,6 +370,11 @@ export declare namespace Evals {
       readonly adapters: Readonly<Record<string, Agent.Adapter>>;
       /** Name of the skill under test (SKILL.md frontmatter name): its install folder and what triggering means. */
       readonly skillName: string;
+      /**
+       * The skill folder's files, relative and with "/" (e.g. "references/core.md"). Skill-removed
+       * runs skip the flow checks that point at them. Without it, every flow check runs.
+       */
+      readonly skillFiles?: readonly string[];
       readonly judge?: Judge.Grader;
       readonly workspace: Workspace.Manager;
       readonly runCommand?: Commands.Runner;
@@ -418,6 +438,8 @@ export declare namespace Evals {
       readonly costUnknown: boolean;
       /** Repeat indices whose flow differs from the majority. */
       readonly oddRuns: readonly number[];
+      /** For each odd run, how its flow differs from the majority flow. */
+      readonly oddFlows: readonly Flow.OddRun[];
       readonly effort: Effort;
       readonly runs: readonly RunRecord[];
       /** Present when --without-skill was used. */
@@ -582,6 +604,12 @@ export declare namespace Evals {
       };
       /** 1-based run numbers whose flow differs from the majority. */
       readonly oddRuns: readonly number[];
+      /** What each odd run did differently: steps added to and missing from the usual flow. */
+      readonly oddFlows?: readonly {
+        readonly run: number;
+        readonly added: readonly string[];
+        readonly removed: readonly string[];
+      }[];
       /** Mean turns, failed agent commands and cost per run. */
       readonly effort: Report.Effort;
       /** Relative to the run's results folder. */
@@ -612,6 +640,8 @@ export declare namespace Evals {
       readonly checks: {
         readonly passed: number;
         readonly failed: number;
+        /** Present when some checks were skipped (skill-file flow checks in a run without the skill). */
+        readonly skipped?: number;
         readonly results: readonly Checks.Result[];
       };
       readonly judge?: {
@@ -731,7 +761,7 @@ export declare namespace Evals {
     }
 
     interface Item {
-      /** The folder name. */
+      /** The folder relative to the calibration folder: "<case-id>/<results-run-id>/<target>__<n>". */
       readonly id: string;
       readonly dir: string;
       readonly evidence: Evidence;
@@ -805,6 +835,11 @@ export declare namespace Evals {
       readonly flips: number;
     }
 
+    interface Interval {
+      readonly low: number;
+      readonly high: number;
+    }
+
     interface Targets {
       readonly minAgreement: number;
       readonly maxFalsePassRate: number;
@@ -825,6 +860,13 @@ export declare namespace Evals {
       /** False passes ÷ verdicts the human failed; null when no line is labelled fail. */
       readonly falsePassRate: number | null;
       readonly falseFailRate: number | null;
+      /** 95% Wilson intervals for the three rates; null when the rate is. */
+      readonly agreementCi: Interval | null;
+      readonly falsePassRateCi: Interval | null;
+      readonly falseFailRateCi: Interval | null;
+      /** Cohen's κ, judge vs human: agreement beyond chance. Null when undefined (no verdicts, or one answer only on both sides). */
+      readonly kappa: number | null;
+      readonly kappaCi: Interval | null;
       readonly unlabelled: number;
       /** The judge returned no verdict for a labelled line. */
       readonly missing: number;
@@ -863,8 +905,17 @@ export declare namespace Evals {
     }
 
     interface Run {
+      /** All the items together: the gate. */
       readonly score: Score;
+      /** The same, per "<case-id>/<results-run-id>" folder: each gets its own report there. */
+      readonly groups: readonly GroupScore[];
       readonly mode: "recorded" | "replay";
+      readonly costUsd: number;
+    }
+
+    interface GroupScore {
+      readonly id: string;
+      readonly score: Score;
       readonly costUsd: number;
     }
   }

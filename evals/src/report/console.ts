@@ -98,9 +98,10 @@ export function renderConsoleSummary(report: Evals.Report.RunReport): string {
   if (odd.length) {
     out.push("Odd flows among repeats (see flows/<case>.md):");
     for (const c of odd)
-      out.push(
-        `  ${c.caseId} [${c.target}]: run ${c.oddRuns.map((i) => i + 1).join(", ")}`,
-      );
+      for (const o of c.oddFlows)
+        out.push(
+          `  ${c.caseId} [${c.target}] run ${o.index + 1}: ${oddSummary(o)}`,
+        );
   }
   out.push(`Results: ${report.resultsPath}`);
   return out.join("\n");
@@ -171,4 +172,14 @@ function changedRate(r: {
   return (
     r.before !== null && r.after !== null && Math.abs(r.before - r.after) > 1e-9
   );
+}
+
+/** "missing read <skill>/references/core.md; extra fetch https://…" (first 3 differences, then "+N more"). */
+function oddSummary(o: Evals.Flow.OddRun): string {
+  const all = [
+    ...o.removed.map((s) => `missing ${s}`),
+    ...o.added.map((s) => `extra ${s}`),
+  ];
+  const more = all.length > 3 ? `; +${all.length - 3} more` : "";
+  return all.slice(0, 3).join("; ") + more;
 }

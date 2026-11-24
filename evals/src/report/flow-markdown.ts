@@ -21,20 +21,51 @@ export function renderFlowMarkdown(
       out.push("");
     }
     for (const run of report.runs)
-      out.push(...renderRun(run, report.oddRuns.includes(run.index)));
+      out.push(
+        ...renderRun(
+          run,
+          report.oddFlows.find((o) => o.index === run.index),
+          report.oddRuns.length ? usualRuns(report) : "",
+        ),
+      );
     for (const run of report.withoutSkill?.runs ?? [])
-      out.push(...renderRun(run, false));
+      out.push(...renderRun(run));
   }
   return out.join("\n");
 }
 
-function renderRun(run: Evals.Report.RunRecord, odd: boolean): string[] {
+/** "runs 1 and 3": the with-skill runs that took the usual flow. */
+function usualRuns(report: Evals.Report.CaseReport): string {
+  const usual = report.runs
+    .filter((r) => !r.skipped && !report.oddRuns.includes(r.index))
+    .map((r) => r.index + 1);
+  return usual.length === 1
+    ? `run ${usual[0]}`
+    : `runs ${usual.slice(0, -1).join(", ")} and ${usual.at(-1)}`;
+}
+
+/** "What's odd" for an odd run: the steps it added to and dropped from the usual flow. */
+function describeOddFlow(odd: Evals.Flow.OddRun, usual: string): string[] {
+  return [
+    `**What's odd** (compared with the usual flow, ${usual}):`,
+    "",
+    ...odd.removed.map((s) => `- missing: \`${s}\``),
+    ...odd.added.map((s) => `- extra: \`${s}\``),
+    "",
+  ];
+}
+
+function renderRun(
+  run: Evals.Report.RunRecord,
+  odd?: Evals.Flow.OddRun,
+  usual = "",
+): string[] {
   const label = [
     `### Run ${run.index + 1}${run.withSkill ? "" : " (without skill)"}`,
     run.skipped ? " (skipped)" : run.pass ? " ✅" : " ❌",
     odd ? " ⚠️ odd flow" : "",
   ].join("");
-  const lines = [label, ""];
+  const lines = [label, "", ...(odd ? describeOddFlow(odd, usual) : [])];
   if (run.skipped) return [...lines, `_${run.skipReason ?? "skipped"}_`, ""];
   if (!run.flow)
     return [

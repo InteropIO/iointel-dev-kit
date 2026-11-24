@@ -120,6 +120,71 @@ describe("--without-skill (skill removed)", () => {
     expect(report.cases[0]!.pass).toBe(false);
     expect(report.cases[0]!.withoutSkill!.passRate).toBe(1);
   });
+
+  it("skips flow checks on the skill's own files in skill-removed runs, and keeps the rest", async () => {
+    const env = await makeEnv();
+    await env.writeCase({
+      id: "flowy",
+      kind: "answer",
+      targets: ["fake/m"],
+      input: { prompt: "p" },
+      output: {
+        deterministic: {
+          mustInclude: ["mcp-web"],
+          flow: {
+            mustRead: ["references/code-mode.md", "package.json"],
+            mustNotRead: ["/custom-ai-web\\.md$/"],
+            mustRun: ["materialize-template"],
+            mustFetch: ["docs-ai.interop.io"],
+          },
+        },
+      },
+    });
+    // Without the skill the agent reads package.json and fetches the docs, and nothing from the skill.
+    const adapter = fakeAdapter(() => ({
+      skillTriggered: false,
+      finalMessage: "mcp-web",
+      flow: [
+        { kind: "read", path: "package.json" },
+        { kind: "fetch", url: "https://docs-ai.interop.io/x" },
+      ],
+    }));
+
+    const report = await runEval(
+      env.options({ withoutSkill: true }),
+      env.deps({
+        adapters: { fake: adapter },
+        skillFiles: [
+          "SKILL.md",
+          "references/code-mode.md",
+          "references/custom-ai-web.md",
+          "scripts/materialize-template.mjs",
+        ],
+      }),
+    );
+
+    const run = report.cases[0]!.withoutSkill!.runs[0]!;
+    expect(run.pass).toBe(true);
+    const skipped = run.checks.filter((c) => c.skipped).map((c) => c.name);
+    expect(skipped).toEqual([
+      "flow.mustRead references/code-mode.md",
+      "flow.mustNotRead /custom-ai-web\\.md$/",
+      "flow.mustRun materialize-template",
+    ]);
+    expect(run.checks.find((c) => c.name === "flow.mustRead package.json"))
+      .toMatchObject({ pass: true });
+    expect(
+      run.checks.find((c) => c.name === "flow.mustFetch docs-ai.interop.io"),
+    ).toMatchObject({ pass: true });
+    expect(run.checks.some((c) => c.skipped && !c.pass)).toBe(false);
+    // The with-skill run still has to read the skill file.
+    expect(report.cases[0]!.runs[0]!.checks).toContainEqual(
+      expect.objectContaining({
+        name: "flow.mustRead references/code-mode.md",
+        pass: false,
+      }),
+    );
+  });
 });
 
 describe("cost cap, concurrency and cost reporting", () => {

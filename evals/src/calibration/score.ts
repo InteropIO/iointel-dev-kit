@@ -110,6 +110,16 @@ export function scoreCalibration(
   const agreement = rate(agree, verdicts);
   const falsePassRate = rate(falsePasses, humanFail);
   const falseFailRate = rate(falseFails, humanPass);
+  const agreementCi = wilson(agree, verdicts);
+  const falsePassRateCi = wilson(falsePasses, humanFail);
+  const falseFailRateCi = wilson(falseFails, humanPass);
+  // Judge passed = human passed and judge agreed, plus false passes.
+  const { kappa, kappaCi } = cohenKappa({
+    bothPass: humanPass - falseFails,
+    judgePassOnly: falsePasses,
+    humanPassOnly: falseFails,
+    bothFail: humanFail - falsePasses,
+  });
 
   const problems: string[] = [];
   let measured = true;
@@ -139,6 +149,32 @@ export function scoreCalibration(
     (falsePassRate !== null && falsePassRate > targets.maxFalsePassRate) ||
     (falseFailRate !== null && falseFailRate > targets.maxFalseFailRate);
 
+  // The point values meet the targets, but with few labels the true value could still miss them:
+  // PASS needs the whole 95% range on the right side of each target.
+  let unsure = false;
+  if (!missedTarget && measured) {
+    const tooWide = (what: string, bound: number, target: string) => {
+      unsure = true;
+      problems.push(
+        `Too few labelled verdicts to be sure: the 95% range for the ${what} reaches ${pct(bound)} (target ${target}).`,
+      );
+    };
+    if (agreementCi && agreementCi.low < targets.minAgreement)
+      tooWide("agreement", agreementCi.low, `≥ ${pct(targets.minAgreement)}`);
+    if (falsePassRateCi && falsePassRateCi.high > targets.maxFalsePassRate)
+      tooWide(
+        "false-pass rate",
+        falsePassRateCi.high,
+        `≤ ${pct(targets.maxFalsePassRate)}`,
+      );
+    if (falseFailRateCi && falseFailRateCi.high > targets.maxFalseFailRate)
+      tooWide(
+        "false-fail rate",
+        falseFailRateCi.high,
+        `≤ ${pct(targets.maxFalseFailRate)}`,
+      );
+  }
+
   return {
     items: items.length,
     gradings,
@@ -151,6 +187,11 @@ export function scoreCalibration(
     agreement,
     falsePassRate,
     falseFailRate,
+    agreementCi,
+    falsePassRateCi,
+    falseFailRateCi,
+    kappa,
+    kappaCi,
     unlabelled,
     missing,
     flips,
@@ -164,10 +205,66 @@ export function scoreCalibration(
     skipped,
     errors,
     strayLabels,
-    status: missedTarget ? "fail" : measured ? "pass" : "incomplete",
+    status: missedTarget ? "fail" : measured && !unsure ? "pass" : "incomplete",
     problems,
+  };
+}
+
+type Interval = Evals.Calibration.Interval;
+const Z95 = 1.959964;
+
+/** Wilson score interval for k successes in n: stays inside 0–1 and behaves at 0 of n. Null when n is 0. */
+export function wilson(k: number, n: number, z = Z95): Interval | null {
+  if (!n) return null;
+  const p = k / n;
+  const z2 = z * z;
+  const centre = (p + z2 / (2 * n)) / (1 + z2 / n);
+  const half =
+    (z * Math.sqrt((p * (1 - p)) / n + z2 / (4 * n * n))) / (1 + z2 / n);
+  return { low: Math.max(0, centre - half), high: Math.min(1, centre + half) };
+}
+
+/**
+ * Cohen's κ between judge and human on pass/fail, with a large-sample 95% interval.
+ * Null when it's undefined: no verdicts, or both sides gave one answer only.
+ */
+export function cohenKappa(
+  t: {
+    bothPass: number;
+    judgePassOnly: number;
+    humanPassOnly: number;
+    bothFail: number;
+  },
+  z = Z95,
+): { kappa: number | null; kappaCi: Interval | null } {
+  const n = t.bothPass + t.judgePassOnly + t.humanPassOnly + t.bothFail;
+  if (!n) return { kappa: null, kappaCi: null };
+  const observed = (t.bothPass + t.bothFail) / n;
+  const judgePass = (t.bothPass + t.judgePassOnly) / n;
+  const humanPass = (t.bothPass + t.humanPassOnly) / n;
+  const chance = judgePass * humanPass + (1 - judgePass) * (1 - humanPass);
+  if (chance >= 1) return { kappa: null, kappaCi: null };
+  const kappa = (observed - chance) / (1 - chance);
+  const se = Math.sqrt((observed * (1 - observed)) / n) / (1 - chance);
+  return {
+    kappa,
+    kappaCi: {
+      low: Math.max(-1, kappa - z * se),
+      high: Math.min(1, kappa + z * se),
+    },
   };
 }
 
 export const pct = (v: number | null) =>
   v === null ? "-" : `${Math.round(v * 1000) / 10}%`;
+
+/** "88.1–98.2%", or "-" without an interval. */
+export const range = (ci: Interval | null) =>
+  ci
+    ? `${Math.round(ci.low * 1000) / 10}–${Math.round(ci.high * 1000) / 10}%`
+    : "-";
+
+export const kappaText = (k: number | null, ci: Interval | null) =>
+  k === null
+    ? "-"
+    : `${k.toFixed(2)}${ci ? ` (${ci.low.toFixed(2)} to ${ci.high.toFixed(2)})` : ""}`;

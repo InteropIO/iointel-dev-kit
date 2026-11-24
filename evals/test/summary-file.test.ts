@@ -60,6 +60,7 @@ const report: Evals.Report.RunReport = {
       costUsd: 0.5660585,
       costUnknown: false,
       oddRuns: [],
+      oddFlows: [],
       effort: { turns: 12.345, failedCommands: 1, costUsd: 0.5660585 },
       runs: [run],
     },

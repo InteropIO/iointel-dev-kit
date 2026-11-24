@@ -113,6 +113,15 @@ function toCase(
         }
       : {}),
     oddRuns: c.oddRuns.map((i) => i + 1),
+    ...(c.oddFlows.length
+      ? {
+          oddFlows: c.oddFlows.map((o) => ({
+            run: o.index + 1,
+            added: o.added,
+            removed: o.removed,
+          })),
+        }
+      : {}),
     effort: roundEffort(c.effort),
     files: {
       report: `reports/${c.caseId}.md`,
@@ -137,6 +146,7 @@ function toCase(
 
 function toRun(r: Evals.Report.RunRecord): Evals.Summary.Run {
   const failed = r.checks.filter((c) => !c.pass).length;
+  const skipped = r.checks.filter((c) => c.skipped).length;
   return {
     run: r.index + 1,
     verdict: r.skipped ? "skipped" : r.pass ? "pass" : "fail",
@@ -150,8 +160,9 @@ function toRun(r: Evals.Report.RunRecord): Evals.Summary.Run {
       ...(r.triggerDetection ? { via: r.triggerDetection } : {}),
     },
     checks: {
-      passed: r.checks.length - failed,
+      passed: r.checks.length - failed - skipped,
       failed,
+      ...(skipped ? { skipped } : {}),
       results: r.checks,
     },
     ...(r.judge

@@ -24,6 +24,18 @@ export function findOddRuns(
   return { majority, odd };
 }
 
+/**
+ * The odd runs among repeats, each with how it differs from the usual (majority) flow.
+ * `index` is the position in `flows`.
+ */
+export function describeOddRuns(
+  flows: readonly (readonly Evals.Flow.Step[])[],
+): Evals.Flow.OddRun[] {
+  const { majority, odd } = findOddRuns(flows);
+  const usual = flows[majority[0]!] ?? [];
+  return odd.map((i) => ({ index: i, ...diffFlows(usual, flows[i]!) }));
+}
+
 /** Step-level diff (longest common subsequence) between a baseline flow and a current flow. */
 export function diffFlows(
   baseline: readonly Evals.Flow.Step[],

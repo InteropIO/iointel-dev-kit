@@ -1,6 +1,6 @@
 // Which skill is under test: EVAL_SKILL_DIR (from evals/.env or the environment) names its folder,
 // and the `name` in its SKILL.md frontmatter is what the agent must load for a run to count as triggered.
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { EvalSetupError } from "../engine/index.js";
 
@@ -49,4 +49,15 @@ export function frontmatterName(content: string): string | undefined {
   const block = /^﻿?---\r?\n([\s\S]*?)\r?\n---/.exec(content)?.[1];
   const value = block && /^name:\s*(.+?)\s*$/m.exec(block)?.[1];
   return value ? value.replace(/^(["'])(.*)\1$/, "$2") : undefined;
+}
+
+/** The skill folder's files, relative and with "/" (e.g. "references/core.md"). */
+export async function listSkillFiles(dir: string): Promise<string[]> {
+  const entries = await readdir(dir, { recursive: true, withFileTypes: true });
+  return entries
+    .filter((e) => e.isFile())
+    .map((e) =>
+      path.relative(dir, path.join(e.parentPath, e.name)).replaceAll("\\", "/"),
+    )
+    .sort();
 }
