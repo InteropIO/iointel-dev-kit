@@ -1,5 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
+import { createInterface } from "node:readline";
 import {
   Codex,
   type ThreadEvent,
@@ -10,7 +11,10 @@ import { extractCodexFlow } from "../flow/codex-flow.js";
 import type { Evals } from "../shared/contracts.js";
 
 /**
- * Runs Codex through its SDK in a workspace-write sandbox limited to the workdir.
+ * Runs Codex through its SDK in a workspace-write sandbox limited to the workdir. In a container
+ * the container is the boundary instead: `codex exec` runs there with danger-full-access, started
+ * the way the SDK starts it (the SDK can't launch it in a container itself on Windows, where its
+ * executable override must be a real binary), and its JSON events are read the same way.
  * Codex reports tokens but not cost, and has no turn limit, so maxTurns is not enforced
  * (the timeout still is) and cost comes from CODEX_PRICE_* when set.
  * Stateless between runs, so the process shares one instance: use CodexAdapter.getInstance().
@@ -67,20 +71,8 @@ export class CodexAdapter implements Evals.Agent.Adapter {
   public async run(
     input: Evals.Agent.RunInput,
   ): Promise<Evals.Agent.RunResult> {
-    const codex = new Codex({
-      apiKey: process.env.OPENAI_API_KEY!,
-      env: await CodexAdapter.isolatedEnv(input.workdir),
-    });
-    const thread = codex.startThread({
-      ...(input.model ? { model: input.model } : {}),
-      workingDirectory: input.workdir,
-      skipGitRepoCheck: true,
-      sandboxMode: "workspace-write",
-      approvalPolicy: "never",
-      networkAccessEnabled: input.network,
-      webSearchMode: input.network ? "live" : "disabled",
-    });
-
+    const box =
+      input.box && input.box.isolation !== "host" ? input.box : undefined;
     const abort = new AbortController();
     let timedOut = false;
     const timer = setTimeout(() => {
@@ -96,9 +88,9 @@ export class CodexAdapter implements Evals.Agent.Adapter {
     let error: string | undefined;
 
     try {
-      const { events: stream } = await thread.runStreamed(input.prompt, {
-        signal: abort.signal,
-      });
+      const stream = box
+        ? CodexAdapter.boxEvents(box, input, abort.signal)
+        : await CodexAdapter.hostEvents(input, abort.signal);
       for await (const event of stream) {
         events.push(event);
         if (event.type === "item.completed") {
@@ -137,6 +129,85 @@ export class CodexAdapter implements Evals.Agent.Adapter {
       stopReason,
       ...(error ? { error } : {}),
     };
+  }
+
+  private static async hostEvents(
+    input: Evals.Agent.RunInput,
+    signal: AbortSignal,
+  ): Promise<AsyncGenerator<ThreadEvent>> {
+    const codex = new Codex({
+      apiKey: process.env.OPENAI_API_KEY!,
+      env: await CodexAdapter.isolatedEnv(input.workdir),
+    });
+    const thread = codex.startThread({
+      ...(input.model ? { model: input.model } : {}),
+      workingDirectory: input.workdir,
+      skipGitRepoCheck: true,
+      sandboxMode: "workspace-write",
+      approvalPolicy: "never",
+      networkAccessEnabled: input.network,
+      webSearchMode: input.network ? "live" : "disabled",
+    });
+    return (await thread.runStreamed(input.prompt, { signal })).events;
+  }
+
+  /** The `codex exec` arguments for a container run, in the order the SDK builds them. */
+  public static containerArgs(input: Evals.Agent.RunInput): string[] {
+    return [
+      "exec",
+      "--experimental-json",
+      ...(input.model ? ["--model", input.model] : []),
+      "--sandbox",
+      "danger-full-access",
+      "--cd",
+      input.workdir,
+      "--skip-git-repo-check",
+      "--config",
+      `web_search="${input.network ? "live" : "disabled"}"`,
+      "--config",
+      'approval_policy="never"',
+    ];
+  }
+
+  /** Runs `codex exec` in the box and yields its JSON events, like the SDK's own reader. */
+  private static async *boxEvents(
+    box: Evals.Sandbox.Box,
+    input: Evals.Agent.RunInput,
+    signal: AbortSignal,
+  ): AsyncGenerator<ThreadEvent> {
+    const child = box.spawn({
+      command: "codex",
+      args: CodexAdapter.containerArgs(input),
+      env: { CODEX_API_KEY: process.env.OPENAI_API_KEY },
+    });
+    const kill = () => child.kill();
+    signal.addEventListener("abort", kill, { once: true });
+    let stderr = "";
+    child.stderr!.on("data", (c: Buffer) => {
+      stderr = (stderr + c.toString()).slice(-10_000);
+    });
+    const exit = new Promise<number | null>((resolve) => {
+      child.once("error", (err) => {
+        stderr += String(err);
+        resolve(127);
+      });
+      child.once("close", (code) => resolve(code));
+    });
+    child.stdin!.on("error", () => {});
+    child.stdin!.end(input.prompt);
+    try {
+      for await (const line of createInterface({
+        input: child.stdout!,
+        crlfDelay: Infinity,
+      }))
+        if (line.trim()) yield JSON.parse(line) as ThreadEvent;
+      const code = await exit;
+      if (code !== 0 && !signal.aborted)
+        throw new Error(`Codex exited with code ${code}: ${stderr.trim()}`);
+    } finally {
+      signal.removeEventListener("abort", kill);
+      if (child.exitCode === null) child.kill();
+    }
   }
 
   /**

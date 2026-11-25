@@ -5,7 +5,9 @@ export const SKILL_PREFIX = "<skill>";
 
 /** The skill's name is its install folder's name: ".claude/skills/io-intelligence" → "io-intelligence". */
 export function skillNameOf(skillInstallPath: string): string {
-  return path.posix.basename(skillInstallPath.replaceAll("\\", "/").replace(/\/$/, ""));
+  return path.posix.basename(
+    skillInstallPath.replaceAll("\\", "/").replace(/\/$/, ""),
+  );
 }
 
 /**
@@ -20,7 +22,9 @@ export class FlowNormalizer {
   private readonly skillRel: string;
 
   public constructor(workdir: string, skillInstallPath: string) {
-    const fwd = path.resolve(workdir).replaceAll("\\", "/").replace(/\/$/, "");
+    // A POSIX workdir (a container's) stays as is: resolving it on Windows would add a drive letter.
+    const absolute = workdir.startsWith("/") ? workdir : path.resolve(workdir);
+    const fwd = absolute.replaceAll("\\", "/").replace(/\/$/, "");
     const variants = new Set([fwd]);
     const drive = /^([A-Za-z]):\/(.*)$/.exec(fwd);
     if (drive) variants.add(`/${drive[1]!.toLowerCase()}/${drive[2]}`); // Git Bash form, /c/Users/...

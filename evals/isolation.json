@@ -1,0 +1,24 @@
+{
+  "$comment": "Settings for --isolation container. See README.md, 'Container isolation'.",
+  "network": {
+    "always": [
+      "api.anthropic.com",
+      "platform.claude.com",
+      "console.anthropic.com",
+      "api.openai.com",
+      "registry.npmjs.org"
+    ],
+    "allow": [
+      "github.com",
+      "codeload.github.com",
+      "objects.githubusercontent.com",
+      "raw.githubusercontent.com",
+      "docs-ai.interop.io"
+    ]
+  },
+  "limits": {
+    "cpus": 2,
+    "memory": "4g",
+    "pids": 1024
+  }
+}

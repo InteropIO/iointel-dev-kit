@@ -7,7 +7,10 @@ export function buildRunReport(parts: ReportParts): Evals.Report.RunReport {
     runId: parts.runId,
     startedAt: parts.startedAt.toISOString(),
     finishedAt: parts.finishedAt.toISOString(),
-    options: echoOptions(parts.options, parts.concurrency),
+    options: {
+      ...echoOptions(parts.options, parts.concurrency),
+      isolation: parts.isolation,
+    },
     reference: {
       kind: parts.reference.kind,
       ...(parts.reference.runId ? { runId: parts.reference.runId } : {}),

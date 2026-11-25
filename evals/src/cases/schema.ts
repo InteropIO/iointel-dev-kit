@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { matcherError } from "../checks/matcher.js";
+import { hostPattern } from "../sandbox/isolation-config.js";
 import type { Evals } from "../shared/contracts.js";
 import type { Mutable, Same } from "../shared/types.js";
 
@@ -41,7 +42,18 @@ const common = {
   targets: z
     .array(targetId)
     .min(1, "targets is required and must list at least one target"),
-  network: z.boolean().default(true),
+  network: z
+    .union([
+      z.boolean(),
+      z
+        .object({
+          allow: z
+            .array(hostPattern)
+            .min(1, "network.allow must list at least one host"),
+        })
+        .strict(),
+    ])
+    .default(true),
   repeat: z.number().int().positive().optional(),
   /** Fraction of runs that must pass, 0..1. */
   passThreshold: share.optional(),

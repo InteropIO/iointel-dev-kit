@@ -40,11 +40,13 @@ export interface GitWorkspaceOptions {
   readonly skillDir: string;
   /** Folder that `input.template.local` names are relative to. */
   readonly localTemplatesDir: string;
-  /** Folder the per-run temp folders are created in; default the OS temp folder. */
+  /** Folder the per-run temp folders are created in; default the OS temp folder. Host sandbox only. */
   readonly workdirRoot?: string;
-  /** Keep temp folders after the run, for debugging. */
+  /** Keep temp folders after the run, for debugging. Host sandbox only. */
   readonly keep?: boolean;
   readonly materialize?: Evals.Workspace.TemplateMaterializer;
+  /** Where runs happen; default a HostSandbox built from workdirRoot and keep. */
+  readonly sandbox?: Evals.Sandbox.Provider;
 }
 
 /** One run of one case on one target: the engine's unit of scheduling. */
@@ -88,6 +90,7 @@ export interface ReportParts {
   readonly finishedAt: Date;
   readonly options: Evals.Engine.Options;
   readonly concurrency: number;
+  readonly isolation: Evals.Sandbox.Isolation;
   readonly reference: Evals.Baseline.Reference;
   readonly records: readonly Evals.Report.RunRecord[];
   readonly cases: readonly Evals.Report.CaseReport[];

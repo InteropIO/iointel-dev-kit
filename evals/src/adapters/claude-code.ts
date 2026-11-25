@@ -1,4 +1,9 @@
-import { query, type SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import {
+  query,
+  type SDKMessage,
+  type SpawnedProcess,
+  type SpawnOptions,
+} from "@anthropic-ai/claude-agent-sdk";
 import { extractClaudeFlow } from "../flow/claude-flow.js";
 import { claudeAuthProblem, claudeEnv } from "./claude-auth.js";
 import { createWorkdirGuard } from "./claude-guard.js";
@@ -7,6 +12,8 @@ import type { Evals } from "../shared/contracts.js";
 
 /**
  * Runs Claude Code through the Agent SDK, isolated to the workdir's project settings and skills.
+ * On the host, a permission guard keeps the agent in its workdir. In a container the container is
+ * the boundary: the SDK stays here and starts the `claude` CLI inside the box, without the guard.
  * Stateless between runs, so the process shares one instance: use ClaudeCodeAdapter.getInstance().
  */
 export class ClaudeCodeAdapter implements Evals.Agent.Adapter {
@@ -35,7 +42,11 @@ export class ClaudeCodeAdapter implements Evals.Agent.Adapter {
       timedOut = true;
       abort.abort();
     }, input.timeoutMs);
-    const guard = createWorkdirGuard(input.workdir, { network: input.network });
+    const box =
+      input.box && input.box.isolation !== "host" ? input.box : undefined;
+    const guard = box
+      ? undefined
+      : createWorkdirGuard(input.workdir, { network: input.network });
 
     const messages: SDKMessage[] = [];
     let finalMessage = "";
@@ -64,9 +75,12 @@ export class ClaudeCodeAdapter implements Evals.Agent.Adapter {
                   behavior: "allow",
                   updatedInput: answerQuestions(toolInput, input.reply),
                 }
-              : guard(toolName, toolInput),
+              : guard
+                ? guard(toolName, toolInput)
+                : { behavior: "allow" },
           abortController: abort,
           env: claudeEnv(),
+          ...(box ? ClaudeCodeAdapter.inBox(box) : {}),
         },
       });
       for await (const message of stream) {
@@ -106,6 +120,24 @@ export class ClaudeCodeAdapter implements Evals.Agent.Adapter {
       costUsd,
       stopReason,
       ...(error ? { error } : {}),
+    };
+  }
+
+  /**
+   * Starts the CLI in the box. The image's `claude` is a native binary, so the SDK passes only CLI
+   * arguments (no script path), and the box forwards credentials and SDK settings, not this machine's env.
+   */
+  private static inBox(box: Evals.Sandbox.Box) {
+    return {
+      pathToClaudeCodeExecutable: "claude",
+      // Box processes are spawned with piped stdio, so stdin and stdout are always set.
+      spawnClaudeCodeProcess: (options: SpawnOptions) =>
+        box.spawn({
+          command: "claude",
+          args: options.args,
+          ...(options.cwd ? { cwd: options.cwd } : {}),
+          env: options.env,
+        }) as SpawnedProcess,
     };
   }
 }

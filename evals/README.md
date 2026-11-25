@@ -163,7 +163,7 @@ Every case has the same three parts: settings at the top level, `input` (what th
 | `note` | | | Free text for humans (where the case came from, what it expects). JSON has no comments, so use this instead. Ignored by the engine |
 | `kind` | ✅ | | `trigger`, `answer` or `task` |
 | `targets` | ✅ | | Where the case runs: `claude-code/<model>`, `codex/<model>` |
-| `network` | | `true` | `false` blocks web access, to test the bundled references alone |
+| `network` | | `true` | `false` blocks web access, to test the bundled references alone. `{ "allow": ["example.com"] }` adds hosts to the allowlist (enforced in [container runs](#container-isolation); on the host it means `true`) |
 | `repeat` | | 3 (or `--repeat`) | Runs per target |
 | `passThreshold` | | ⅔ for trigger, 1 otherwise | Fraction of runs that must pass |
 | `maxTurns` / `timeoutMs` | | 15 / 3 min (task: 40 / 10 min) | Per-run limits |
@@ -343,7 +343,8 @@ classDiagram
 | Runs through | `@anthropic-ai/claude-agent-sdk` | `@openai/codex-sdk` |
 | Skill installed at | `.claude/skills/<skill name>` | `.agents/skills/<skill name>` |
 | Isolation | Loads only project settings from the temp folder: no user skills, plugins, `CLAUDE.md` or MCP servers | Runs with an empty, temporary home folder, so no user config or skills |
-| Containment | A permission guard (`canUseTool`) rejects file access and commands that point outside the workdir | Codex's own `workspace-write` sandbox |
+| Containment (host) | A permission guard (`canUseTool`) rejects file access and commands that point outside the workdir | Codex's own `workspace-write` sandbox |
+| Containment (`--isolation container`) | The container; the guard is off. The SDK starts `claude` in the container (`spawnClaudeCodeProcess`) | The container; `codex exec` runs there with `danger-full-access` |
 | Trigger detected by | A `Skill` tool call naming the skill under test | Any command that reads `<skill>/SKILL.md` (Codex has no explicit skill event) |
 | `network: false` | Removes `WebFetch`/`WebSearch` and blocks `curl`, `wget`, `iwr`, `git clone/fetch/pull` | Disables network access and web search |
 | Turn limit | Enforced | Not available in Codex; only the timeout applies |
@@ -353,7 +354,91 @@ classDiagram
 
 Each run records how triggering was detected, so a Codex trigger rate isn't mistaken for the same kind of signal as Claude's.
 
-> The Claude Code guard catches mistakes, not attacks. It's a heuristic over tool inputs, not an OS sandbox. That's enough for running your own cases against your own skill.
+> On the host, the Claude Code guard catches mistakes, not attacks. It's a heuristic over tool inputs, not an OS sandbox. For a real boundary, run with `--isolation container`.
+
+---
+
+## Container isolation
+
+`npm run eval -- --isolation container` runs every unit in its own fresh Docker container instead of a temp folder on your machine. It's opt-in: `host` stays the default until container mode is proven. It needs Docker Desktop (Windows, macOS) or Docker Engine (Linux CI).
+
+```mermaid
+flowchart LR
+    subgraph host["Your machine"]
+        engine["EvalEngine<br/>(SDKs, judge, reports)"]
+        snap["project-XXXX/work<br/>copy of the workdir"]
+    end
+    subgraph docker["Docker: one internal network per eval run"]
+        unit1["runner container<br/>(one per unit)"]
+        unit2["runner container"]
+        proxy["egress proxy<br/>allowlist per container"]
+    end
+    engine -->|"docker exec claude / codex,<br/>check commands"| unit1
+    unit1 -->|"tar copy, without node_modules"| snap
+    unit1 & unit2 -->|"HTTPS_PROXY"| proxy
+    proxy -->|"allowed hosts only"| internet(("internet"))
+```
+
+**What runs where.** Each unit gets a fresh container from the runner image. Inside it:
+
+- template setup;
+- the git starting commit;
+- the agent;
+- the case's `commands`;
+- the diff.
+
+The SDKs stay on your machine and start the agent's CLI inside the container through `docker exec`. When the unit finishes, the workdir is copied out (without `node_modules`) to the usual `project-XXXX/work` folder. The judge reads that copy, and so does `--keep-workdirs`. Then the container is removed.
+
+**Hardening.** Each runner container:
+
+- runs as the non-root `node` user, with `--cap-drop ALL` and `no-new-privileges`;
+- has a read-only root, with a writable home (a volume removed along with the container) and `/tmp`;
+- has the CPU, memory and PID limits from `isolation.json`;
+- doesn't see your files, `~/.claude` or your environment.
+
+Only credentials are passed in, by name, and so are the settings the SDK adds. Your host's own environment is never forwarded.
+
+**Network.** Containers sit on an internal Docker network whose only way out is the run's egress proxy, so tools that ignore proxy settings simply can't connect. The proxy allows hosts from `isolation.json` according to the case's `network` setting:
+
+| `network` | Allowed hosts |
+|---|---|
+| `true` (default) | `network.always` + `network.allow` |
+| `false` | `network.always` only (the model APIs and the npm registry) |
+| `{ "allow": ["example.com"] }` | `network.always` + `network.allow` + the case's hosts |
+
+There's no fully open setting. A blocked request fails at once with a 403 from the proxy. Every request is logged, and each run's hosts appear in the case report and `summary.json` (`network`). Hosts the proxy blocked are also printed in the progress lines. `mustFetch` still comes from the transcript, so flow results mean the same in both modes.
+
+**`isolation.json`**
+
+| Field | Meaning |
+|---|---|
+| `network.always` | Hosts every run may reach, `network: false` included |
+| `network.allow` | Extra hosts for `network: true` and `{ allow }` cases |
+| `limits.cpus` / `limits.memory` / `limits.pids` | Per-container limits (`--cpus`, `--memory` with no swap, `--pids-limit`) |
+
+Hosts are exact names (`github.com`) or subdomain wildcards (`*.example.com`, which doesn't match `example.com` itself).
+
+**Credentials.**
+
+- **Codex** needs `OPENAI_API_KEY`, as on the host.
+- **Claude Code** uses `CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`, which still uses your subscription) or `ANTHROPIC_API_KEY` from `evals/.env`.
+- **Fallback:** without either, your Claude Code login file is copied into each container. That's a stopgap. The copied login may refresh inside the container and leave the host copy stale.
+- **macOS:** the login is in the Keychain, so a token is required there. Env-var credentials are the intended end state.
+
+The agent can read its own credential inside the container.
+
+**The runner image.** `evals/docker/Dockerfile` is built locally the first time and tagged `iointel-evals-runner:<hash>`. It contains Node 24, git and the egress proxy, plus the Claude Code and Codex CLIs at the versions the installed SDKs expect. Changing the Dockerfile or the proxy, or upgrading an SDK, changes the hash and triggers a rebuild. There's no registry.
+
+**Lifecycle.**
+
+- Each eval run creates one internal network and one proxy container, both removed at the end.
+- `--concurrency` limits how many runner containers run at once.
+- A named volume, `iointel-evals-npm-cache`, shares npm's cache across runs to speed up `npm install`.
+- Everything is labelled `iointel-evals.run=<id>`. Ctrl-C removes the run's containers, and the next run's preflight removes anything left by a run whose process is gone.
+
+**Inspecting a kept workspace.** With `--keep-workdirs`, the report and the progress line print a command like `npm run eval:shell -- "<kept folder>"`. It copies the kept files into a fresh runner container behind the same proxy and opens `bash` there. Run `npm install` first, because `node_modules` isn't kept. The container goes away when you exit, and your kept folder isn't changed.
+
+**Baselines.** Host and container results are never compared with each other. A run's `isolation` is recorded in `summary.json`. A container run passes over a host `baseline.json` (and the reverse), and falls back to the previous run of the same isolation. Approving a container run writes `"isolation": "container"` into `baseline.json`.
 
 ---
 
@@ -488,15 +573,18 @@ npm run eval -- [options]
   --max-cost USD               stop starting new runs once this much has been spent
   --without-skill              also run every case WITHOUT the skill, to show what it adds
   --keep-workdirs              keep temp workspaces for debugging
+  --isolation host|container   where runs happen (default host); see "Container isolation"
 
 npm run eval:approve -- [--run ID]   promote the latest (or given) run to baseline.json
+npm run eval:shell -- DIR            open a kept container workspace in a fresh runner container
 npm run eval:calibrate -- add --case ID [--run ID] [--target ID] [--number N]
                                      freeze a run's graded runs as calibration items to label
 npm run eval:calibrate -- [--item TEXT] [--replay N]
                                      compare the judge with the labels; --replay re-grades with
                                      the current judge N times (costs judge calls); exits 1 below target
 npm test                             engine tests (no network, no keys, no cost)
-npm run test:contract                real adapters and judge (needs credentials; costs money or subscription usage)
+npm run test:contract                real adapters and judge (needs credentials; costs money or subscription usage),
+                                     and container isolation against real Docker (skipped when Docker isn't running)
 npm run typecheck                    tsc, plus a separate check of shared/contracts.d.ts
 npm run format                       prettier
 ```
@@ -582,6 +670,8 @@ evals/
 ├── cases/                    your JSON cases
 ├── templates/                local starting projects (input.template.local)
 ├── baseline.json             approved reference (committed, once you approve a run)
+├── isolation.json            allowlists and limits for --isolation container
+├── docker/                   runner image: Dockerfile and the egress proxy (proxy.mjs)
 ├── calibration/              judge calibration items: frozen runs with human labels (committed)
 ├── src/
 │   ├── cli.ts                argument parsing, wires real adapters/judge/workspace into an EvalEngine
@@ -608,7 +698,8 @@ evals/
 │   ├── flow/                 normalize.ts, claude-flow.ts, codex-flow.ts, compare.ts
 │   ├── checks/               matcher.ts, checks.ts, command-runner.ts
 │   ├── judge/                anthropic-judge.ts (Opus 5.5 through the Agent SDK; read-only workspace tools with workspaceAccess), compact-transcript.ts, judge-error.ts
-│   ├── workspace/            workspace.ts (temp folder + git start state + diff)
+│   ├── workspace/            workspace.ts (seeds a box: template, skill, git start state, diff; caches official templates per run)
+│   ├── sandbox/              host-sandbox.ts and container-sandbox.ts (where runs happen), docker-cli.ts, runner-image.ts, isolation-config.ts, credentials.ts
 │   ├── calibration/          store.ts, add-items.ts (freeze runs), calibrate.ts (recorded or replayed), score.ts, evidence-markdown.ts, calibration-report.ts
 │   └── report/               summary-file.ts, baseline.ts, console.ts, flow-markdown.ts, case-markdown.ts, judge-input-markdown.ts
 └── test/
@@ -624,7 +715,7 @@ evals/
 flowchart TB
     subgraph contracts["shared/contracts.d.ts · namespace Evals"]
         direction LR
-        Flow ~~~ Agent ~~~ Judge ~~~ Workspace ~~~ Commands
+        Flow ~~~ Agent ~~~ Judge ~~~ Workspace ~~~ Commands ~~~ Sandbox
         Cases ~~~ Checks ~~~ Engine ~~~ Report ~~~ Baseline
     end
     types["shared/types.ts<br/>module-only types"]
@@ -685,4 +776,6 @@ Candidates that support skills: OpenCode (`.claude/skills` and `.agents/skills`,
 - **Single-turn only.** The agent can ask questions, but nobody answers them. Write prompts with enough context.
 - **Network-dependent cases** depend on docs-ai.interop.io and GitHub being reachable. Check the transcript before treating a network-shaped failure as a skill regression.
 - **Codex:** no turn limit, cost needs `CODEX_PRICE_*`, and triggering is inferred from reading `SKILL.md`.
-- **`network: false`** doesn't block `npm install`.
+- **On the host, `network: false`** doesn't block `npm install`. In a container it's enforced by the proxy (`npm install` still works: the registry is in `network.always`).
+- **Server-side web search bypasses the proxy.** Claude's `WebSearch` and Codex's `web_search` run on the model provider's servers, so in a container the allowlist doesn't limit them (`network: false` still turns them off). `WebFetch` and every command go through the proxy.
+- **Container mode on Windows and macOS** runs Linux containers inside Docker Desktop's VM, so tools in the container are the Linux builds. A case whose commands only work on Windows won't pass there.

@@ -10,35 +10,47 @@ import {
 
 type SavedSummary = Parameters<typeof summaryEntries>[0];
 
-/** The committed baseline if there is one, otherwise the most recent earlier local run. */
+/**
+ * The committed baseline if there is one, otherwise the most recent earlier local run. Host and
+ * container runs never compare with each other: a baseline or run from the other isolation is passed over.
+ */
 export async function loadReference(
   baselineFile: string,
   resultsDir: string,
   currentRunId: string,
+  isolation: Evals.Sandbox.Isolation = "host",
 ): Promise<Evals.Baseline.Reference> {
   const baseline = await readJson<Evals.Baseline.File>(baselineFile);
-  if (baseline)
+  if (baseline && (baseline.isolation ?? "host") === isolation)
     return {
       kind: "baseline",
       runId: baseline.runId,
       entries: baseline.entries,
     };
+  const skipped = baseline
+    ? { skippedBaseline: baseline.isolation ?? "host" }
+    : {};
 
-  const previous = (await listRunIds(resultsDir))
+  const earlier = (await listRunIds(resultsDir))
     .filter((id) => id < currentRunId)
-    .at(-1);
-  if (previous) {
+    .reverse();
+  for (const previous of earlier) {
     const saved = await readJson<SavedSummary>(
       path.join(resultsDir, previous, SUMMARY_FILE),
     );
-    if (saved)
-      return {
-        kind: "previous-run",
-        runId: previous,
-        entries: summaryEntries(saved),
-      };
+    if (!saved || isolationOf(saved) !== isolation) continue;
+    return {
+      kind: "previous-run",
+      runId: previous,
+      entries: summaryEntries(saved),
+      ...skipped,
+    };
   }
-  return { kind: "none", entries: [] };
+  return { kind: "none", entries: [], ...skipped };
+}
+
+function isolationOf(saved: SavedSummary): Evals.Sandbox.Isolation {
+  return summaryOptions(saved).isolation ?? "host";
 }
 
 /**
@@ -127,11 +139,17 @@ export async function approveRun(
   if (!saved) throw new Error(`Run ${runId} has no ${SUMMARY_FILE}`);
 
   let entries = summaryEntries(saved);
+  const isolation = isolationOf(saved);
   if (isFiltered(summaryOptions(saved))) {
     const covered = new Set(entries.map((e) => `${e.caseId}|${e.target}`));
-    const existing =
-      (await readJson<Evals.Baseline.File>(options.baselineFile))?.entries ??
-      [];
+    const current = await readJson<Evals.Baseline.File>(options.baselineFile);
+    // Entries approved under the other isolation can't be kept beside these ones, and dropping
+    // them silently would lose the rest of the baseline.
+    if (current && (current.isolation ?? "host") !== isolation)
+      throw new Error(
+        `Run ${runId} is a filtered ${isolation} run, but baseline.json holds ${current.entries.length} ${current.isolation ?? "host"} entries. Approve a full ${isolation} run to switch the baseline's isolation.`,
+      );
+    const existing = current?.entries ?? [];
     entries = [
       ...existing.filter((e) => !covered.has(`${e.caseId}|${e.target}`)),
       ...entries,
@@ -141,6 +159,7 @@ export async function approveRun(
     version: 1,
     runId,
     approvedAt: (options.now?.() ?? new Date()).toISOString(),
+    ...(isolation === "host" ? {} : { isolation }),
     entries,
   };
   await mkdir(path.dirname(options.baselineFile), { recursive: true });

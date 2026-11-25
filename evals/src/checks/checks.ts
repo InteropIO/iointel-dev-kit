@@ -1,5 +1,3 @@
-import { access, readFile } from "node:fs/promises";
-import path from "node:path";
 import { compileMatcher } from "./matcher.js";
 import { SKILL_PREFIX } from "../flow/normalize.js";
 import type { Evals } from "../shared/contracts.js";
@@ -104,14 +102,12 @@ function skillFileMatcher(files: readonly string[]): (m: string) => boolean {
 /** Structural task checks: expected files, then package.json dependencies. Stops at the first failing stage. */
 export async function checkTaskStructure(
   c: Evals.Cases.TaskCase,
-  workdir: string,
+  box: Pick<Evals.Sandbox.Box, "resolve" | "exists" | "readFile">,
 ): Promise<Evals.Checks.Result[]> {
   const fileResults: Evals.Checks.Result[] = [];
   for (const file of c.output.deterministic.files) {
-    const exists = await access(path.join(workdir, file)).then(
-      () => true,
-      () => false,
-    );
+    // Always under the workdir, as before: "/src/a.ts" means <workdir>/src/a.ts.
+    const exists = await box.exists(box.resolve(file.replace(/^[\\/]+/, "")));
     fileResults.push({
       name: `file ${file}`,
       pass: exists,
@@ -123,9 +119,9 @@ export async function checkTaskStructure(
 
   let pkg: Record<string, Record<string, string> | undefined>;
   try {
-    pkg = JSON.parse(
-      await readFile(path.join(workdir, "package.json"), "utf8"),
-    );
+    const text = await box.readFile(box.resolve("package.json"));
+    if (text === undefined) throw new Error("package.json does not exist");
+    pkg = JSON.parse(text);
   } catch (err) {
     return [
       ...fileResults,

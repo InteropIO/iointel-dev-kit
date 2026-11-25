@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
@@ -20,6 +20,11 @@ import { renderConsoleSummary } from "./report/console.js";
 import { listSkillFiles, resolveSkill } from "./workspace/skill.js";
 import { resolveWorkdirRoot } from "./workspace/workdir-root.js";
 import { GitWorkspaceManager } from "./workspace/workspace.js";
+import { ContainerSandbox } from "./sandbox/container-sandbox.js";
+import { containerCredentials } from "./sandbox/credentials.js";
+import { SpawnDockerCli } from "./sandbox/docker-cli.js";
+import { loadIsolationConfig } from "./sandbox/isolation-config.js";
+import { agentCliVersions } from "./sandbox/runner-image.js";
 import type { Evals } from "./shared/contracts.js";
 
 const evalsRoot = path.resolve(
@@ -32,11 +37,14 @@ const paths = {
   baseline: path.join(evalsRoot, "baseline.json"),
   localTemplates: path.join(evalsRoot, "templates"),
   calibration: path.join(evalsRoot, "calibration"),
+  isolation: path.join(evalsRoot, "isolation.json"),
 };
 
 const USAGE = `Usage:
   npm run eval -- [options]          Run the eval suite
   npm run eval:approve -- [--run ID] Promote the latest (or given) run to baseline.json
+  npm run eval:shell -- DIR          Open a kept container workspace (--keep-workdirs) in a fresh
+                                     runner container, behind the same proxy
   npm run eval:calibrate -- add --case ID [--run ID] [--target ID] [--number N]
                                      Freeze graded runs as calibration items to label
   npm run eval:calibrate -- [--item TEXT] [--replay N]
@@ -52,6 +60,8 @@ Options:
   --without-skill              Also run every case with the skill removed, to show what it adds
   --keep-workdirs              Keep temp workspaces for debugging (and for calibration
                                items of workspaceAccess cases)
+  --isolation host|container   Where runs happen (default host). container: a fresh Docker
+                               container per run behind an allowlisting proxy (isolation.json)
 
 Calibration options:
   --run ID                     The results run to take items from (default: the latest)
@@ -79,6 +89,7 @@ async function main(argv: string[]) {
       "max-cost": { type: "string" },
       "without-skill": { type: "boolean" },
       "keep-workdirs": { type: "boolean" },
+      isolation: { type: "string" },
       run: { type: "string" },
       number: { type: "string" },
       item: { type: "string" },
@@ -99,11 +110,15 @@ async function main(argv: string[]) {
     );
   }
   if (command === "calibrate") return runCalibrate(positionals, values);
+  if (command === "shell") return runShell(positionals);
   if (command !== "run")
     throw new EvalSetupError(`Unknown command "${command}".\n\n${USAGE}`);
 
   if (values.kind && !["trigger", "answer", "task"].includes(values.kind))
     throw new EvalSetupError(`--kind must be trigger, answer or task`);
+  const isolation = values.isolation ?? "host";
+  if (isolation !== "host" && isolation !== "container")
+    throw new EvalSetupError(`--isolation must be host or container`);
   const skill = await resolveSkill(evalsRoot);
   console.log(
     `Skill under test: ${skill.name} (${path.relative(process.cwd(), skill.dir) || "."})`,
@@ -113,6 +128,21 @@ async function main(argv: string[]) {
     path.resolve(evalsRoot, ".."),
   );
   console.log(`Workspaces in: ${workdirRoot}`);
+  const keep = !!values["keep-workdirs"];
+  const workspace = new GitWorkspaceManager({
+    skillDir: skill.dir,
+    localTemplatesDir: paths.localTemplates,
+    workdirRoot,
+    keep,
+    ...(isolation === "container"
+      ? { sandbox: await containerSandbox(workdirRoot, keep) }
+      : {}),
+  });
+  // Ctrl-C: remove the run's containers, proxy and network before exiting.
+  process.once("SIGINT", () => {
+    console.error("\nInterrupted: cleaning up…");
+    void workspace.stop().finally(() => process.exit(130));
+  });
   const engine = new EvalEngine({
     adapters: {
       "claude-code": ClaudeCodeAdapter.getInstance(),
@@ -121,12 +151,7 @@ async function main(argv: string[]) {
     skillName: skill.name,
     skillFiles: await listSkillFiles(skill.dir),
     judge: AnthropicJudge.getInstance(),
-    workspace: new GitWorkspaceManager({
-      skillDir: skill.dir,
-      localTemplatesDir: paths.localTemplates,
-      workdirRoot,
-      keep: !!values["keep-workdirs"],
-    }),
+    workspace,
     log: (line) => console.log(line),
   });
   const report = await engine.run({
@@ -148,6 +173,51 @@ async function main(argv: string[]) {
     withoutSkill: !!values["without-skill"],
   });
   console.log("\n" + renderConsoleSummary(report));
+}
+
+async function runShell(positionals: string[]): Promise<void> {
+  const dir = positionals[0];
+  if (!dir || positionals.length > 1)
+    throw new EvalSetupError(`shell needs one kept workspace folder
+
+${USAGE}`);
+  const hostWorkdir = path.resolve(dir);
+  if (!(await stat(hostWorkdir).catch(() => undefined))?.isDirectory())
+    throw new EvalSetupError(`${hostWorkdir} is not a folder`);
+  const workdirRoot = await resolveWorkdirRoot(
+    evalsRoot,
+    path.resolve(evalsRoot, ".."),
+  );
+  const sandbox = await containerSandbox(workdirRoot, false);
+  try {
+    await sandbox.start([]).catch((err: Error) => {
+      throw new EvalSetupError(err.message);
+    });
+    console.log(
+      `Opening ${hostWorkdir} in a runner container (changes stay in the container; node_modules is not included, run npm install).`,
+    );
+    process.exitCode = await sandbox.shell(hostWorkdir);
+  } finally {
+    await sandbox.stop();
+  }
+}
+
+async function containerSandbox(
+  workdirRoot: string,
+  keep: boolean,
+): Promise<ContainerSandbox> {
+  return new ContainerSandbox({
+    docker: new SpawnDockerCli(),
+    image: {
+      contextDir: path.join(evalsRoot, "docker"),
+      buildArgs: await agentCliVersions(evalsRoot),
+    },
+    config: await loadIsolationConfig(paths.isolation),
+    workdirRoot,
+    keep,
+    credentials: containerCredentials,
+    log: (line) => console.log(line),
+  });
 }
 
 async function runCalibrate(

@@ -9,6 +9,7 @@ import { aggregateCases } from "./aggregate.js";
 import { DEFAULT_CONCURRENCY } from "./defaults.js";
 import { planRuns, selectCases } from "./planning.js";
 import { runPool } from "./pool.js";
+import { EvalSetupError } from "./errors.js";
 import { checkSetup } from "./preflight.js";
 import { skippedRecord } from "./records.js";
 import { ResultsWriter } from "./results-writer.js";
@@ -41,21 +42,38 @@ export class EvalEngine {
     const cases = await selectCases(options);
     const units = planRuns(cases, options);
     checkSetup(units, this.deps);
+    await this.startWorkspace(units);
 
     // 2. Run it.
-    await results.prepare();
-    this.log(
-      `Running ${units.length} run(s) across ${cases.length} case(s), concurrency ${concurrency}.`,
-    );
-    const records = await this.runUnits(units, options, concurrency, results);
+    let records: Evals.Report.RunRecord[];
+    try {
+      await results.prepare();
+      this.log(
+        `Running ${units.length} run(s) across ${cases.length} case(s), concurrency ${concurrency}${this.isolationNote()}.`,
+      );
+      records = await this.runUnits(units, options, concurrency, results);
+    } finally {
+      // Cleanup trouble must not cost the results of runs that already finished.
+      await this.deps.workspace
+        .stop?.()
+        .catch((err: Error) =>
+          this.log(`Cleanup after the run failed: ${err.message}`),
+        );
+    }
 
     // 3. Score it, compare it with the baseline, and write it down.
     const caseReports = aggregateCases(cases, units, records, options);
+    const isolation = this.deps.workspace.isolation ?? "host";
     const reference = await loadReference(
       options.baselineFile,
       options.resultsDir,
       results.runId,
+      isolation,
     );
+    if (reference.skippedBaseline)
+      this.log(
+        `baseline.json was approved from a ${reference.skippedBaseline} run, so this ${isolation} run is compared with ${reference.kind === "none" ? "nothing" : `run ${reference.runId}`} instead.`,
+      );
     const report = buildRunReport({
       runId: results.runId,
       runDir: results.runDir,
@@ -63,6 +81,7 @@ export class EvalEngine {
       finishedAt: this.now(),
       options,
       concurrency,
+      isolation,
       reference,
       records,
       cases: caseReports,
@@ -72,6 +91,24 @@ export class EvalEngine {
     });
     await results.writeReport(report, cases);
     return report;
+  }
+
+  /** Lets the workspace set up what every run shares (e.g. a container proxy); its failure stops the run. */
+  private async startWorkspace(units: RunUnit[]): Promise<void> {
+    if (!units.length || !this.deps.workspace.start) return;
+    try {
+      await this.deps.workspace.start([...new Set(units.map((u) => u.tool))]);
+    } catch (err) {
+      await this.deps.workspace.stop?.().catch(() => {});
+      throw err instanceof EvalSetupError
+        ? err
+        : new EvalSetupError((err as Error).message);
+    }
+  }
+
+  private isolationNote(): string {
+    const isolation = this.deps.workspace.isolation ?? "host";
+    return isolation === "host" ? "" : `, isolation ${isolation}`;
   }
 
   /** Runs units in parallel. Once --max-cost is spent, the remaining units are skipped. */
@@ -105,8 +142,12 @@ export class EvalEngine {
     const verdict = record.pass ? "pass" : "FAIL";
     const skill = unit.withSkill ? "" : " (without skill)";
     const kept = record.workdir
-      ? `\n      workspace kept: ${record.workdir}`
+      ? `\n      workspace kept: ${record.workdir}${record.reopenCommand ? `\n      reopen it with: ${record.reopenCommand}` : ""}`
       : "";
-    return `${verdict}  ${unit.case.id} [${unit.target}] run ${unit.index + 1}${skill}${kept}`;
+    const blocked = record.network?.filter((r) => !r.allowed) ?? [];
+    const network = blocked.length
+      ? `\n      blocked by the proxy: ${blocked.map((r) => r.host).join(", ")}`
+      : "";
+    return `${verdict}  ${unit.case.id} [${unit.target}] run ${unit.index + 1}${skill}${network}${kept}`;
   }
 }

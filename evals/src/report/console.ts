@@ -118,7 +118,9 @@ function notes(
   report: Evals.Report.RunReport,
 ): string {
   const parts: string[] = [];
-  if (!c.network) parts.push("network off");
+  if (c.network === false) parts.push("network off");
+  else if (c.network !== true)
+    parts.push(`network +${c.network.allow.join(", ")}`);
   if (c.skipped) parts.push(`${c.skipped} skipped`);
   if (c.oddRuns.length) parts.push("odd flow");
   const cmp = report.comparison.find(

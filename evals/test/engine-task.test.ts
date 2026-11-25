@@ -321,6 +321,70 @@ describe("task cases", () => {
     expect(report.cases[0]!.pass).toBe(true);
   });
 
+  it("fetches an official template once per eval run and seeds every run from that copy", async () => {
+    const env = await makeEnv();
+    await env.writeCase(
+      task("shared-template", {
+        input: { template: { official: "io-assist-react-packaged" } },
+        output: { deterministic: { files: ["README.md"] } },
+      }),
+    );
+    const materialized: string[] = [];
+    const seen: string[] = [];
+    const workspace = new GitWorkspaceManager({
+      skillDir: env.skillDir,
+      localTemplatesDir: env.localTemplatesDir,
+      materialize: async (templateId, target) => {
+        materialized.push(templateId);
+        await new Promise((r) => setTimeout(r, 50)); // others start while it's fetching
+        await mkdir(target, { recursive: true });
+        await writeFile(path.join(target, "README.md"), templateId);
+      },
+    });
+    const adapter = fakeAdapter(async (input) => {
+      seen.push(await readFile(path.join(input.workdir, "README.md"), "utf8"));
+      return {};
+    });
+
+    const report = await runEval(
+      env.options({ repeat: 3, concurrency: 3 }),
+      env.deps({ adapters: { fake: adapter }, workspace }),
+    );
+
+    expect(materialized).toEqual(["io-assist-react-packaged"]);
+    expect(seen).toEqual(Array(3).fill("io-assist-react-packaged"));
+    expect(report.cases[0]!.pass).toBe(true);
+  });
+
+  it("fails every run of a template that could not be fetched, without retrying", async () => {
+    const env = await makeEnv();
+    await env.writeCase(
+      task("broken-template", {
+        input: { template: { official: "missing" } },
+      }),
+    );
+    let calls = 0;
+    const workspace = new GitWorkspaceManager({
+      skillDir: env.skillDir,
+      localTemplatesDir: env.localTemplatesDir,
+      materialize: async () => {
+        calls++;
+        throw new Error("unknown template missing");
+      },
+    });
+
+    const report = await runEval(
+      env.options({ repeat: 2, concurrency: 1 }),
+      env.deps({ adapters: { fake: fakeAdapter() }, workspace }),
+    );
+
+    expect(calls).toBe(1);
+    expect(report.cases[0]!.runs.map((r) => r.error)).toEqual([
+      "unknown template missing",
+      "unknown template missing",
+    ]);
+  });
+
   it("starts from an empty folder when there is no template", async () => {
     const env = await makeEnv();
     await env.writeCase(

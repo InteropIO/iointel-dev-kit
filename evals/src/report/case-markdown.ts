@@ -112,7 +112,10 @@ function renderRun(
       }
     }
   }
+  if (run.network) out.push(...renderNetwork(run.network));
   if (run.workdir) out.push(`Workspace kept at: \`${run.workdir}\``, "");
+  if (run.reopenCommand)
+    out.push(`Reopen it in a runner container: \`${run.reopenCommand}\``, "");
   if (run.transcriptFile)
     out.push(
       `Full transcript: [${run.transcriptFile}](../${run.transcriptFile})`,
@@ -124,6 +127,26 @@ function renderRun(
       "",
     );
   return out;
+}
+
+/** The hosts a container run asked the proxy for; blocked ones are what a reader looks for. */
+function renderNetwork(
+  requests: readonly Evals.Sandbox.NetworkRequest[],
+): string[] {
+  if (!requests.length)
+    return ["**Network:** no requests through the proxy", ""];
+  const blocked = requests.filter((r) => !r.allowed).length;
+  return [
+    `**Network** (${requests.length} host${requests.length === 1 ? "" : "s"}${blocked ? `, ${blocked} blocked` : ""}):`,
+    "",
+    "| Host | Requests | |",
+    "|---|---|---|",
+    ...requests.map(
+      (r) =>
+        `| \`${r.host}\` | ${r.count} | ${r.allowed ? "allowed" : "❌ blocked"} |`,
+    ),
+    "",
+  ];
 }
 
 /** Quotes text as a markdown blockquote, so its own headings can't break the report's structure. */

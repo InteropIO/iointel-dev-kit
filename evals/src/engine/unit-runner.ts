@@ -1,4 +1,3 @@
-import { runShellCommand } from "../checks/command-runner.js";
 import type { Evals } from "../shared/contracts.js";
 import type { Grading, RunUnit } from "../shared/types.js";
 import { AGENT_LIMITS } from "./defaults.js";
@@ -14,14 +13,10 @@ import { runChecks } from "./run-checks.js";
 export class UnitRunner {
   private static readonly NOT_GRADED: Grading = { costUsd: 0 };
 
-  private readonly runCommand: Evals.Commands.Runner;
-
   public constructor(
     private readonly deps: Evals.Engine.Deps,
     private readonly results: ResultsWriter,
-  ) {
-    this.runCommand = deps.runCommand ?? runShellCommand;
-  }
+  ) {}
 
   /** Never throws: a run that fails outside the agent comes back as a failed record. */
   public async run(unit: RunUnit): Promise<Evals.Report.RunRecord> {
@@ -39,24 +34,32 @@ export class UnitRunner {
         : {}),
       skillInstallPath,
       withSkill: unit.withSkill,
+      network: unit.case.network,
     });
+    const box = workspace.box;
+    let synced = false;
 
     try {
       const agent = await UnitRunner.runAgent(
         adapter,
         unit,
-        workspace.workdir,
+        box,
         skillInstallPath,
       );
+      // An agent that timed out may still be running in a container: stop it before the checks.
+      await box.stopProcesses();
       const outcome = await runChecks(
         unit,
         agent,
         workspace,
-        this.runCommand,
+        this.deps.runCommand ?? box.shell,
         this.deps.skillFiles,
       );
+      // Host-side readers (the judge, --keep-workdirs) see the finished workdir from here on.
+      await box.sync();
+      synced = true;
       const grading = outcome.checks.every((x) => x.pass)
-        ? await this.grade(unit, agent, outcome.diff, workspace.workdir)
+        ? await this.grade(unit, agent, outcome.diff, box.hostWorkdir)
         : UnitRunner.NOT_GRADED;
       const transcriptFile = await this.results.writeTranscript(
         unit,
@@ -74,10 +77,18 @@ export class UnitRunner {
         transcriptFile,
         judgeInputFile,
       );
-      return workspace.kept
-        ? { ...record, workdir: workspace.workdir }
-        : record;
+      const network = await box.networkLog();
+      return {
+        ...record,
+        ...(workspace.kept ? { workdir: box.hostWorkdir } : {}),
+        ...(workspace.kept && box.isolation !== "host"
+          ? { reopenCommand: `npm run eval:shell -- "${box.hostWorkdir}"` }
+          : {}),
+        ...(network ? { network } : {}),
+      };
     } finally {
+      // A kept container workspace still gets its files when the run failed part-way.
+      if (workspace.kept && !synced) await box.sync().catch(() => {});
       await workspace.cleanup();
     }
   }
@@ -107,7 +118,7 @@ export class UnitRunner {
   private static async runAgent(
     adapter: Evals.Agent.Adapter,
     unit: RunUnit,
-    workdir: string,
+    box: Evals.Sandbox.Box,
     skillInstallPath: string,
   ): Promise<Evals.Agent.RunResult> {
     const c = unit.case;
@@ -117,9 +128,10 @@ export class UnitRunner {
         prompt: c.input.prompt,
         ...(c.input.reply ? { reply: c.input.reply } : {}),
         model: unit.model,
-        workdir,
+        workdir: box.workdir,
         skillInstallPath,
-        network: c.network,
+        network: c.network !== false,
+        box,
         maxTurns: c.maxTurns ?? limits.maxTurns,
         timeoutMs: c.timeoutMs ?? limits.timeoutMs,
       });

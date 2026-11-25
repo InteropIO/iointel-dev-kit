@@ -182,7 +182,9 @@ function toRun(r: Evals.Report.RunRecord): Evals.Summary.Run {
       ...(r.transcriptFile ? { transcript: r.transcriptFile } : {}),
       ...(r.judgeInputFile ? { judgeInput: r.judgeInputFile } : {}),
       ...(r.workdir ? { workdir: r.workdir } : {}),
+      ...(r.reopenCommand ? { reopen: r.reopenCommand } : {}),
     },
+    ...(r.network ? { network: r.network } : {}),
     ...(r.flow ? { flow: r.flow.steps } : {}),
   };
 }
@@ -219,10 +221,10 @@ export function summaryEntries(
   }));
 }
 
-/** The filter options a saved summary.json was run with. */
+/** The filter options a saved summary.json was run with, and its isolation (absent: host). */
 export function summaryOptions(
   saved: Summary | RunReport,
-): Evals.Engine.Filters {
+): Evals.Engine.Filters & Pick<RunReport["options"], "isolation"> {
   return isVersion2(saved) ? saved.run.options : saved.options;
 }
 

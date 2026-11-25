@@ -29,8 +29,7 @@ export async function runChecks(
   if (c.kind === "answer") return { checks, diff: await workspace.diff() };
 
   const allPass = () => checks.every((x) => x.pass);
-  if (allPass())
-    checks.push(...(await checkTaskStructure(c, workspace.workdir)));
+  if (allPass()) checks.push(...(await checkTaskStructure(c, workspace.box)));
   if (allPass())
     checks.push(
       ...(await runTaskCommands(

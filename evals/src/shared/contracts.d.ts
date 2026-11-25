@@ -79,6 +79,8 @@ export declare namespace Evals {
       readonly network: boolean;
       readonly maxTurns: number;
       readonly timeoutMs: number;
+      /** Where to start the agent's process; absent means directly on the host. */
+      readonly box?: Sandbox.Box;
     }
 
     interface RunResult {
@@ -178,10 +180,15 @@ export declare namespace Evals {
       readonly template?: Template;
       readonly skillInstallPath: string;
       readonly withSkill: boolean;
+      /** The case's network setting; enforced only where the box has a proxy. Default true. */
+      readonly network?: Cases.Network;
     }
 
     interface Prepared {
+      /** The workdir as the agent sees it (box.workdir). */
       readonly workdir: string;
+      /** Where the run's processes and files live. */
+      readonly box: Sandbox.Box;
       /** true when cleanup() leaves the folder in place (--keep-workdirs). */
       readonly kept?: boolean;
       /** Changes since the workspace was prepared (lockfiles and the skill folder excluded). */
@@ -190,12 +197,22 @@ export declare namespace Evals {
     }
 
     interface Manager {
+      /** Where runs happen; absent means "host". */
+      readonly isolation?: Sandbox.Isolation;
+      /** Called once before any run, and once after the last (e.g. to start a shared proxy). */
+      start?(tools: readonly string[]): Promise<void>;
+      stop?(): Promise<void>;
       prepare(options: PrepareOptions): Promise<Prepared>;
     }
 
+    /**
+     * Fetches an official template into `target` (a box path). Runs on the host when given no box;
+     * a materializer that ignores the box only works for host runs.
+     */
     type TemplateMaterializer = (
       templateId: string,
       target: string,
+      box?: Sandbox.Box,
     ) => Promise<void>;
   }
 
@@ -214,9 +231,109 @@ export declare namespace Evals {
     ) => Promise<Result>;
   }
 
+  /**
+   * Where a run's processes and files live. "host": a temp folder on this machine. "container": a
+   * fresh Docker container per run, behind an allowlisting proxy (--isolation container).
+   */
+  namespace Sandbox {
+    type Isolation = "host" | "container";
+
+    interface ExecOptions {
+      /** Box path; default the workdir. */
+      readonly cwd?: string;
+    }
+
+    interface ExecResult {
+      readonly stdout: string;
+      readonly stderr: string;
+    }
+
+    /** A process to start in the box. Only the env entries a box chooses to forward reach it. */
+    interface SpawnRequest {
+      readonly command: string;
+      readonly args: readonly string[];
+      /** Box path; default the workdir. */
+      readonly cwd?: string;
+      readonly env: Readonly<Record<string, string | undefined>>;
+    }
+
+    /** One host the run's processes asked the proxy for, with how often. */
+    interface NetworkRequest {
+      readonly host: string;
+      readonly allowed: boolean;
+      readonly count: number;
+    }
+
+    /**
+     * One run's box. Paths called "box paths" are as processes in the box see them; on the host
+     * they are ordinary host paths, in a container they are POSIX paths inside it.
+     */
+    interface Box {
+      readonly isolation: Isolation;
+      /** Box path of the run's own folder; the workdir is its "work" child. */
+      readonly root: string;
+      /** Box path of the folder the agent works in. */
+      readonly workdir: string;
+      /**
+       * Host path holding the workdir's files for host-side readers (the judge, --keep-workdirs).
+       * The workdir itself on the host; a copy (without node_modules) refreshed by sync() in a container.
+       */
+      readonly hostWorkdir: string;
+      /** true when close() leaves hostWorkdir in place (--keep-workdirs). */
+      readonly kept: boolean;
+      /** Box path of `rel` (POSIX or native, as the box needs) under the workdir. */
+      resolve(rel: string): string;
+      /** Runs a program without a shell; rejects with its stderr when it exits non-zero. */
+      exec(
+        file: string,
+        args: readonly string[],
+        options?: ExecOptions,
+      ): Promise<ExecResult>;
+      /** Runs a shell command; exitCode is null when it timed out. */
+      shell: Commands.Runner;
+      spawn(request: SpawnRequest): import("node:child_process").ChildProcess;
+      /** Copies a host file or folder to a box path, creating parents. */
+      copyIn(hostPath: string, boxPath: string): Promise<void>;
+      /** A file's text, or undefined when it does not exist. */
+      readFile(boxPath: string): Promise<string | undefined>;
+      /** Whether a file or folder exists. */
+      exists(boxPath: string): Promise<boolean>;
+      writeFile(boxPath: string, content: string): Promise<void>;
+      /** Refreshes hostWorkdir from the workdir (a no-op on the host). */
+      sync(): Promise<void>;
+      /** Stops whatever spawn() started that is still running, e.g. an agent that timed out. */
+      stopProcesses(): Promise<void>;
+      /** Hosts requested through the proxy so far; undefined when the box has no proxy. */
+      networkLog(): Promise<readonly NetworkRequest[] | undefined>;
+      /** Removes the box (keeping hostWorkdir when kept). */
+      close(): Promise<void>;
+    }
+
+    interface OpenOptions {
+      /** What this run may reach; ignored by the host box. */
+      readonly network: Cases.Network;
+    }
+
+    /** Opens one box per run. start/stop bracket an eval run (e.g. a shared proxy). */
+    interface Provider {
+      readonly isolation: Isolation;
+      /** Problems that stop the run before anything starts (e.g. Docker not running). */
+      start?(tools: readonly string[]): Promise<void>;
+      stop?(): Promise<void>;
+      open(options: OpenOptions): Promise<Box>;
+    }
+  }
+
   /** Case files, after validation and defaults. */
   namespace Cases {
     type Kind = "trigger" | "answer" | "task";
+
+    /**
+     * What the agent may reach. true: the global allowlist (isolation.json). false: only the model
+     * APIs and the npm registry. { allow }: the global allowlist plus these hosts. Enforced by the
+     * proxy in container runs; on the host, anything but false means open.
+     */
+    type Network = boolean | { readonly allow: readonly string[] };
 
     /** A substring, or a regex written as "/pattern/flags". */
     type Matcher = string;
@@ -293,7 +410,7 @@ export declare namespace Evals {
       /** Free-text note for humans (where the case came from, what it expects). Ignored by the engine. */
       readonly note?: string;
       readonly targets: readonly string[];
-      readonly network: boolean;
+      readonly network: Cases.Network;
       readonly repeat?: number;
       /** Fraction of runs that must pass, 0..1. */
       readonly passThreshold?: number;
@@ -413,6 +530,10 @@ export declare namespace Evals {
       readonly judgeTranscriptTrimmed?: true;
       /** Absolute path of the run's workspace, set only when it was kept (--keep-workdirs). */
       readonly workdir?: string;
+      /** Hosts the run asked the egress proxy for, blocked ones first. Container runs only. */
+      readonly network?: readonly Sandbox.NetworkRequest[];
+      /** How to reopen a kept container workspace in the same isolation (npm run eval:shell -- …). */
+      readonly reopenCommand?: string;
     }
 
     interface CaseReport {
@@ -422,7 +543,7 @@ export declare namespace Evals {
       /** The message sent to the agent, and the simulated user reply when the case has one. */
       readonly prompt: string;
       readonly reply?: string;
-      readonly network: boolean;
+      readonly network: Cases.Network;
       /** null when every run was skipped. */
       readonly pass: boolean | null;
       readonly threshold: number;
@@ -493,6 +614,8 @@ export declare namespace Evals {
       > & {
         readonly concurrency: number;
         readonly withoutSkill: boolean;
+        /** Where the runs happened; absent (older runs) means "host". */
+        readonly isolation?: Sandbox.Isolation;
       };
       readonly reference: {
         readonly kind: Baseline.Reference["kind"];
@@ -593,7 +716,7 @@ export declare namespace Evals {
       readonly rubricThreshold: number | null;
       readonly ran: number;
       readonly skipped: number;
-      readonly network: boolean;
+      readonly network: Cases.Network;
       readonly costUsd: number;
       /** Against the reference run or baseline; absent when there is none. */
       readonly change?: {
@@ -660,7 +783,11 @@ export declare namespace Evals {
         readonly judgeInput?: string;
         /** Kept workspace (--keep-workdirs). */
         readonly workdir?: string;
+        /** The command that reopens the kept workspace in a runner container (container runs). */
+        readonly reopen?: string;
       };
+      /** Hosts requested through the egress proxy (container runs), blocked ones first. */
+      readonly network?: readonly Sandbox.NetworkRequest[];
       /** Key steps the agent took; absent when the agent did not run to completion. */
       readonly flow?: readonly Flow.Step[];
     }
@@ -686,6 +813,8 @@ export declare namespace Evals {
       readonly version: 1;
       readonly runId: string;
       readonly approvedAt: string;
+      /** Where the approved run happened; absent means "host". Only runs with the same isolation compare with it. */
+      readonly isolation?: Sandbox.Isolation;
       readonly entries: readonly Entry[];
     }
 
@@ -693,6 +822,8 @@ export declare namespace Evals {
       readonly kind: "baseline" | "previous-run" | "none";
       readonly runId?: string;
       readonly entries: readonly Entry[];
+      /** Set when a baseline.json exists but was approved under another isolation, so it was not used. */
+      readonly skippedBaseline?: Sandbox.Isolation;
     }
 
     interface CompareOptions {
